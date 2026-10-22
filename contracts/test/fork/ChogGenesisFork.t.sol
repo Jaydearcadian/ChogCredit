@@ -197,6 +197,7 @@ contract ChogGenesisForkTest is Test {
             paymentToken: REAL_USDC,
             price: 100e6,
             stateNonce: liveVault.stateNonce(),
+            epoch: liveEscrow.epochOf(liveRegistry.accountKey(CHOG, id)),
             deadline: block.timestamp + 1 days,
             salt: 1
         });

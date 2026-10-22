@@ -131,6 +131,10 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Foundry test suite | **Prototype only:** 11/11 unit tests pass; 3 mainnet-fork tests pass (local simulation). No fuzz/invariant tests | `docs/evidence/GATE_A.md` |
 | Identity/registry tests | **Done in source (Gate B):** 29 unit/fuzz tests + 1 fork test of the registry against the real collection; 5/5 manual mutants caught. Wallet-held mode only; escrow not built | `docs/evidence/GATE_B.md` (commit `69b6d6c`) |
 | Escrow safety tests | **Done in source (Gate C):** 21 escrow tests, 6 stateful invariants, 11/11 manual mutants caught, live-collection escrow round trip on a mainnet fork (simulation). Credit module is a mock; no real pool yet | `docs/evidence/GATE_C.md` (commit `0156112`) |
+| Static analysis | **Done (Slither 0.11.6, `src/core`):** only intentional or false-positive items; listed in `GATE_C2.md` | `docs/evidence/GATE_C2.md` |
+| Package sale (debt-free) | **Done in source:** buyer-signed, atomic, epoch/nonce-bound, 7702 and ERC-1271 buyers; fork simulation with real Chog and real USDC. Debt-bearing transfer not implemented | `docs/evidence/GATE_C2.md` |
+| Deployment script, local deployment | **Local chain only:** `DeployCore` + `SmokeCore` on Anvil, 7 txs, 0 failed. Testnet dry run only (about 1.6 MON); not broadcast | `docs/evidence/GATE_C2.md` |
+| Automated code review | One pass (`code-review` skill, high effort): 9 findings, 6 valid and fixed. Not independent | `docs/evidence/GATE_C2.md` |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |
 | Testnet deployment | Not performed/verified | Chain ID, deploy tx hashes, addresses, explorer links and code verification |

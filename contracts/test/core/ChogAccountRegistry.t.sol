@@ -5,6 +5,7 @@ import {CoreBase} from "./CoreBase.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
 import {IChogAccountRegistry, AccountInfo, ReleaseBlocker} from "../../src/core/interfaces/IChogAccountRegistry.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
+import {BadNoFunctions, BadWrongSize, BadBool, BadSwitchable} from "../../src/mocks/BadModules.sol";
 import {HostileCollection} from "../../src/mocks/HostileMocks.sol";
 
 contract ChogAccountRegistryTest is CoreBase {
@@ -235,5 +236,59 @@ contract ChogAccountRegistryTest is CoreBase {
         module.setBroken(true);
         assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
         assertEq(uint8(registry.releaseBlocker(bytes32(uint256(3)))), uint8(ReleaseBlocker.UnknownAccount));
+    }
+
+    // ---- review-driven: a bind cannot be undone, so bad modules must be refused or fail closed
+
+    function test_bind_rejectsEoaAndNonModules() external {
+        vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.InvalidModule.selector, bob));
+        registry.bindCreditModule(bob); // no code
+        address plain = address(new BadNoFunctions());
+        vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.InvalidModule.selector, plain));
+        registry.bindCreditModule(plain);
+        address twoWords = address(new BadWrongSize());
+        vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.InvalidModule.selector, twoWords));
+        registry.bindCreditModule(twoWords);
+        address badBool = address(new BadBool());
+        vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.InvalidModule.selector, badBool));
+        registry.bindCreditModule(badBool);
+        assertEq(registry.creditModule(), address(0), "nothing was bound, so it can still be bound correctly");
+        registry.bindCreditModule(address(module));
+    }
+
+    function test_afterBind_aModuleThatTurnsHostileFailsClosedInsteadOfReverting() external {
+        BadSwitchable m = new BadSwitchable();
+        registry.bindCreditModule(address(m));
+        _open(alice, 1);
+        bytes32 key = _key(1);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.None));
+
+        m.setMode(1); // starts reverting
+        assertEq(registry.debtOf(key), type(uint256).max);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
+        assertEq(uint8(registry.liabilityBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
+
+        m.setMode(2); // answers with 64 bytes
+        assertEq(registry.debtOf(key), type(uint256).max);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
+
+        m.setMode(3); // answers with a huge return value (return bomb)
+        assertEq(registry.debtOf(key), type(uint256).max);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
+
+        m.setMode(4); // bool answer of 2
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
+
+        m.setMode(0); // healthy again
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.None));
+    }
+
+    function test_afterBind_moduleSelfDestructedOrEmptied_failsClosed() external {
+        BadSwitchable m = new BadSwitchable();
+        registry.bindCreditModule(address(m));
+        _open(alice, 1);
+        vm.etch(address(m), ""); // the module's code disappears
+        assertEq(registry.debtOf(_key(1)), type(uint256).max);
+        assertEq(uint8(registry.releaseBlocker(_key(1))), uint8(ReleaseBlocker.ModuleUnavailable));
     }
 }

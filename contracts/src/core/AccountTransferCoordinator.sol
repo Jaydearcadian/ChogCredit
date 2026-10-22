@@ -7,11 +7,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {AccountVault} from "./AccountVault.sol";
 import {IChogAccountRegistry, IChogCreditEscrow, ReleaseBlocker} from "./interfaces/IChogAccountRegistry.sol";
-
-interface IVaultNonce {
-    function stateNonce() external view returns (uint256);
-}
 
 /// @title AccountTransferCoordinator
 /// @notice Atomic sale of a funded, escrowed Chog account (the "package") from its beneficial owner to a buyer who
@@ -21,7 +18,8 @@ interface IVaultNonce {
 ///      Debt-bearing transfer needs the credit pool and extra signed fields (debt ceiling, health floor) and is not
 ///      implemented. Created by the escrow's constructor; only the escrow trusts it.
 ///      The buyer's acceptance binds: account key, seller, buyer, payment token, price, the vault's state nonce
-///      (so any deposit/withdrawal after signing voids it), a deadline and a salt, under an EIP-712 domain that
+///      (so any deposit/withdrawal/sweep after signing voids it), the escrow ownership epoch (so an ownership
+///      change and change-back cannot revive an old acceptance), a deadline and a salt, under an EIP-712 domain that
 ///      includes the chain ID and this contract. Signatures are accepted from the buyer's key directly (this is what
 ///      makes EIP-7702-delegated EOAs work) or through ERC-1271 for smart-contract wallets.
 contract AccountTransferCoordinator is EIP712, ReentrancyGuard {
@@ -34,12 +32,13 @@ contract AccountTransferCoordinator is EIP712, ReentrancyGuard {
         address paymentToken;
         uint256 price;
         uint256 stateNonce;
+        uint256 epoch;
         uint256 deadline;
         uint256 salt;
     }
 
     bytes32 public constant ACCEPTANCE_TYPEHASH = keccak256(
-        "Acceptance(bytes32 key,address seller,address buyer,address paymentToken,uint256 price,uint256 stateNonce,uint256 deadline,uint256 salt)"
+        "Acceptance(bytes32 key,address seller,address buyer,address paymentToken,uint256 price,uint256 stateNonce,uint256 epoch,uint256 deadline,uint256 salt)"
     );
 
     IChogAccountRegistry public immutable registry;
@@ -52,6 +51,7 @@ contract AccountTransferCoordinator is EIP712, ReentrancyGuard {
     error Expired(uint256 deadline);
     error AlreadyUsed(bytes32 digest);
     error StateChanged(uint256 signed, uint256 current);
+    error EpochChanged(uint256 signed, uint256 current);
     error HasLiabilities(ReleaseBlocker why);
     error InvalidSignature();
     error PaymentShortfall(uint256 expected, uint256 received);
@@ -83,6 +83,7 @@ contract AccountTransferCoordinator is EIP712, ReentrancyGuard {
                     a.paymentToken,
                     a.price,
                     a.stateNonce,
+                    a.epoch,
                     a.deadline,
                     a.salt
                 )
@@ -98,6 +99,11 @@ contract AccountTransferCoordinator is EIP712, ReentrancyGuard {
     function executeSale(Acceptance calldata a, bytes calldata buyerSignature) external nonReentrant {
         if (msg.sender != a.seller) revert NotSeller();
         if (a.buyer == address(0) || a.buyer == a.seller) revert BadParties();
+        // Never hand an account to the protocol's own contracts: nothing there could ever act as its owner.
+        if (
+            a.buyer == address(this) || a.buyer == address(escrow) || a.buyer == address(registry)
+                || a.buyer == registry.accountInfo(a.key).vault
+        ) revert BadParties();
         if (escrow.beneficialOwnerOf(a.key) != a.seller) revert SellerNotBeneficialOwner();
         if (block.timestamp > a.deadline) revert Expired(a.deadline);
 
@@ -106,8 +112,10 @@ contract AccountTransferCoordinator is EIP712, ReentrancyGuard {
         if (!_validSignature(a.buyer, digest, buyerSignature)) revert InvalidSignature();
 
         address vault = registry.accountInfo(a.key).vault;
-        uint256 nonce = IVaultNonce(vault).stateNonce();
+        uint256 nonce = AccountVault(vault).stateNonce();
         if (nonce != a.stateNonce) revert StateChanged(a.stateNonce, nonce);
+        uint256 epoch = escrow.epochOf(a.key);
+        if (epoch != a.epoch) revert EpochChanged(a.epoch, epoch);
         ReleaseBlocker why = registry.liabilityBlocker(a.key);
         if (why != ReleaseBlocker.None) revert HasLiabilities(why);
 

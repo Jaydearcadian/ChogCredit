@@ -14,6 +14,7 @@ This documentation set describes the revised Chogathon product: financial utilit
 - [`evidence/GATE_A.md`](evidence/GATE_A.md): exact toolchain, commands and results for the Foundry baseline.
 - [`evidence/GATE_B.md`](evidence/GATE_B.md): account registry and vault results, mutation check, and the limits to know before relying on them.
 - [`evidence/GATE_C.md`](evidence/GATE_C.md): NFT escrow, beneficial-owner control and release rules; invariants, mutation check and the trust assumptions to review.
+- [`evidence/GATE_C2.md`](evidence/GATE_C2.md): hardening round: what became of each Gate C limit, the live Chog admin analysis, package sale, rescue, review findings, deployment and static-analysis results.
 - [`REVISION_NOTES.md`](REVISION_NOTES.md): summary of the architecture corrections in v0.2.
 - [`architecture.md`](architecture.md): previous source-slice architecture, retained for historical context only.
 

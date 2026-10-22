@@ -95,35 +95,45 @@ contract ChogAccountRegistry is IChogAccountRegistry {
     function debtOf(bytes32 key) public view returns (uint256) {
         address module = creditModule;
         if (module == address(0)) return 0;
-        try ICreditModule(module).debtOf(key) returns (uint256 d) {
-            return d;
-        } catch {
-            return type(uint256).max; // fail closed
-        }
+        (bool ok, uint256 d) = _readWord(module, abi.encodeCall(ICreditModule.debtOf, (key)));
+        return ok ? d : type(uint256).max; // fail closed
     }
 
     function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker) {
         address vault = _accounts[key].vault;
         if (vault == address(0)) return ReleaseBlocker.UnknownAccount;
         if (!AccountVault(vault).isEmpty()) return ReleaseBlocker.HasAssets;
-        return liabilityBlocker(key);
+        return _liabilityBlocker(key);
     }
 
-    function liabilityBlocker(bytes32 key) public view returns (ReleaseBlocker) {
+    function liabilityBlocker(bytes32 key) external view returns (ReleaseBlocker) {
         if (_accounts[key].vault == address(0)) return ReleaseBlocker.UnknownAccount;
+        return _liabilityBlocker(key);
+    }
+
+    function _liabilityBlocker(bytes32 key) internal view returns (ReleaseBlocker) {
         address module = creditModule;
         if (module == address(0)) return ReleaseBlocker.None;
-        try ICreditModule(module).debtOf(key) returns (uint256 d) {
-            if (d != 0) return ReleaseBlocker.HasDebt;
-        } catch {
-            return ReleaseBlocker.ModuleUnavailable;
-        }
-        try ICreditModule(module).hasPendingOperation(key) returns (bool pending) {
-            if (pending) return ReleaseBlocker.PendingOperation;
-        } catch {
-            return ReleaseBlocker.ModuleUnavailable;
-        }
+        (bool ok, uint256 debt) = _readWord(module, abi.encodeCall(ICreditModule.debtOf, (key)));
+        if (!ok) return ReleaseBlocker.ModuleUnavailable;
+        if (debt != 0) return ReleaseBlocker.HasDebt;
+        (ok, debt) = _readWord(module, abi.encodeCall(ICreditModule.hasPendingOperation, (key)));
+        if (!ok || debt > 1) return ReleaseBlocker.ModuleUnavailable; // a bool must be exactly 0 or 1
+        if (debt == 1) return ReleaseBlocker.PendingOperation;
         return ReleaseBlocker.None;
+    }
+
+    /// @dev Static call that cannot revert the caller: no code, a revert, or any reply that is not exactly one word all
+    ///      come back as `ok == false`. The reply is copied into a fixed 32-byte buffer, so a module cannot grief with
+    ///      a huge return value ("return bomb").
+    function _readWord(address target, bytes memory data) internal view returns (bool ok, uint256 word) {
+        assembly ("memory-safe") {
+            let success := staticcall(gas(), target, add(data, 0x20), mload(data), 0x00, 0x20)
+            if and(success, eq(returndatasize(), 0x20)) {
+                ok := 1
+                word := mload(0x00)
+            }
+        }
     }
 
     /// @notice One-time wiring of the credit pool. Only the deployer, only once, never zero.
@@ -131,6 +141,12 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         if (msg.sender != binder) revert NotBinder();
         if (creditModule != address(0)) revert ModuleAlreadyBound();
         if (module == address(0)) revert ZeroAddress();
+        // The bind cannot be undone, so refuse anything that does not answer both calls with a single word. An address
+        // with no code cannot, so it is refused by the same probe.
+        (bool okDebt,) = _readWord(module, abi.encodeCall(ICreditModule.debtOf, (bytes32(0))));
+        (bool okPending, uint256 pending) =
+            _readWord(module, abi.encodeCall(ICreditModule.hasPendingOperation, (bytes32(0))));
+        if (!okDebt || !okPending || pending > 1) revert InvalidModule(module);
         creditModule = module;
         emit CreditModuleBound(module);
     }
@@ -145,7 +161,7 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         if (existing != address(0)) revert AccountExists(key, existing);
 
         // A missing token reverts inside ownerOf; surface it as NotTokenOwner rather than a raw revert.
-        address holder = address(0);
+        address holder;
         try IERC721(collection).ownerOf(tokenId) returns (address h) {
             holder = h;
         } catch {}
@@ -153,7 +169,7 @@ contract ChogAccountRegistry is IChogAccountRegistry {
 
         vault = Clones.cloneDeterministic(vaultImplementation, key);
         _accounts[key] = AccountInfo(collection, tokenId, vault, uint64(block.timestamp));
-        emit AccountCreated(key, collection, tokenId, vault, msg.sender);
         AccountVault(vault).initialize(address(this), key);
+        emit AccountCreated(key, collection, tokenId, vault, msg.sender);
     }
 }

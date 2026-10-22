@@ -112,6 +112,7 @@ contract EscrowHandler is Test {
             paymentToken: address(usdc),
             price: 0,
             stateNonce: AccountVault(registry.vaultOf(address(chog), id)).stateNonce(),
+            epoch: escrow.epochOf(key),
             deadline: block.timestamp + 1 days,
             salt: ++_salt
         });

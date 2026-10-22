@@ -33,9 +33,9 @@ Observations about the collection contract (from on-chain reads, not from source
 
 - Token IDs start at 1 (`ownerOf(1)` and `ownerOf(1969)` resolve). `tokenURI(532)` is `ipfs://bafybei…/24.json`, so IDs and metadata file names do not line up one to one.
 - Royalty: `royaltyInfo(532, 1e18)` returns 5% to `0x84113421a8a564b594ee9ae78c875310332d7023`.
-- `owner()` reverts and `DEFAULT_ADMIN_ROLE()` resolves, so access control is role-based (OpenZeppelin AccessControl pattern). The deployer/admin powers are **unknown**.
+- `owner()` reverts and `DEFAULT_ADMIN_ROLE()` resolves, so access control is role-based (OpenZeppelin AccessControl pattern). A dispatch-table analysis (see `evidence/GATE_C2.md` section 2) found 67 dispatched functions and **no burn, pause, blocklist, operator filter, transfer validator or forced transfer**; the admin can change metadata, royalty and treasury and withdraw proceeds. `ADMIN_ROLE` is held by a single EIP-7702-delegated EOA (`0x8411…7023`, also treasury and royalty receiver); the `DEFAULT_ADMIN_ROLE` holder was not identified. Minting is closed (`currentStage = 255`, supply at max).
 - No transfer-validator hook: `getTransferValidator()` reverts, and no `pause`/`paused` selector was found in the bytecode, so a plain `approve` + `safeTransferFrom` into escrow is expected to work. This must be proven with a fork test (see `BUILD_PLAN.md`, section 5).
-- The contract has about 120 selectors, more than a plain ERC-721, and it is **not verified on Sourcify** (queried 2026-10-22). Obtain the verified source or ABI from the Chog team or an explorer before relying on admin behaviour.
+- The contract has 123 four-byte selectors in its code (67 of them dispatched functions), and it is **not verified on Sourcify** (queried 2026-10-22). Obtain the verified source or ABI from the Chog team or an explorer to confirm the bytecode analysis.
 - There is **no Chog Genesis code on testnet** (`eth_getCode` returns `0x`). Testnet work needs a mock collection.
 
 Official-source status: the official mint page (mint.chog.xyz) states 1,969 supply and links the OpenSea collection `opensea.io/collection/chog-genesis` (shown as Verified). The on-chain supply and name match. I did **not** find the contract address printed on an official Chog-controlled page. Treat the address as strongly corroborated but still ask the Chog team to confirm it in writing (`WHITEPAPER.md` section 12, decision 2).
@@ -120,7 +120,7 @@ Implications: (1) the NFT is a poor collateral asset, which matches the existing
 ## 8. Not verified or still open
 
 - Official written confirmation of the Chog Genesis contract address from the Chog team.
-- Verified source/ABI of the Chog Genesis contract and the powers of its admin role.
+- Verified source/ABI of the Chog Genesis contract to confirm the bytecode analysis of its admin powers, and the holder of `DEFAULT_ADMIN_ROLE`.
 - Whether any other official Chog NFT collection is meant by "Chog NFT" in the Chogathon brief.
 - Heartbeat and deviation parameters of each oracle feed; Pyth and Stork read paths.
 - Whether Uniswap/Pancake position managers have any behaviour that blocks custody by a third-party vault (to be tested on a fork).

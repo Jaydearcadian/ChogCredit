@@ -14,9 +14,11 @@ import {AccountTransferCoordinator} from "./AccountTransferCoordinator.sol";
 /// @dev Trust boundary. There is no owner, admin, pause or rescue function. The only way out is `release`, callable
 ///      by the beneficial owner when the account is empty and clear of liabilities, or the package sale in the
 ///      `coordinator` that this contract creates. Deposit is by `safeTransferFrom` into `onERC721Received`.
-///      Tokens sent with plain `transferFrom` are NOT recorded; the optional `rescuer` can recover such stranded
-///      tokens after `RESCUE_DELAY`, and can never touch a recorded token. Created by the registry in its
-///      constructor. The UI must only use `safeTransferFrom`.
+///      The ONE privileged role is the optional immutable `rescuer`: it may recover tokens that are held here but
+///      unrecorded (sent with plain `transferFrom`) after a public `RESCUE_DELAY`, and it can never touch a recorded
+///      token. It cannot be rotated, so it should be a multisig/timelock contract; address(0) disables it. A rescuer
+///      key that is lost simply ends rescue; one that is compromised can take future stranded tokens, never recorded
+///      ones. Created by the registry in its constructor. The UI must only use `safeTransferFrom`.
 contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard {
     uint256 public constant RESCUE_DELAY = 3 days;
 
@@ -24,6 +26,7 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
     address public immutable coordinator;
     address public immutable rescuer;
     mapping(bytes32 => address) private _beneficial;
+    mapping(bytes32 => uint256) public epochOf;
 
     struct Rescue {
         address to;
@@ -47,6 +50,7 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
     error NotStranded(address collection, uint256 tokenId);
     error RescueNotReady(uint256 readyAt);
     error NoRescuePending();
+    error RescueAlreadyPending(address collection, uint256 tokenId);
 
     event Escrowed(bytes32 indexed key, address indexed collection, uint256 indexed tokenId, address beneficialOwner);
     event Released(bytes32 indexed key, address indexed collection, uint256 indexed tokenId, address to);
@@ -87,6 +91,7 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
         if (IERC721(collection).ownerOf(tokenId) != address(this)) revert NotHeld(collection, tokenId);
 
         _beneficial[key] = from;
+        ++epochOf[key];
         emit Escrowed(key, collection, tokenId, from);
         return IERC721Receiver.onERC721Received.selector;
     }
@@ -103,6 +108,7 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
         if (blocker != ReleaseBlocker.None) revert ReleaseBlocked(key, blocker);
 
         delete _beneficial[key]; // effects before the external transfer
+        ++epochOf[key];
         emit Released(key, collection, tokenId, to);
         // transferFrom, not safeTransferFrom: no callback into `to`. EIP-7702-delegated EOAs (common Chog holders)
         // may run a delegate that lacks the ERC-721 receiver hook, and marketplaces such as Seaport also use
@@ -119,6 +125,7 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
         if (old == address(0)) revert NotEscrowed(key);
         if (newOwner == address(0)) revert ZeroAddress();
         _beneficial[key] = newOwner;
+        ++epochOf[key];
         emit BeneficialOwnerChanged(key, old, newOwner);
     }
 
@@ -131,21 +138,28 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
         if (msg.sender != rescuer) revert NotRescuer();
         key = registry.accountKey(collection, tokenId);
         if (_beneficial[key] != address(0)) revert NotStranded(collection, tokenId);
-        if (IERC721(collection).ownerOf(tokenId) != address(this)) revert NotStranded(collection, tokenId);
+        // A burned or missing token makes ownerOf revert; report it as not stranded rather than bubbling the error.
+        try IERC721(collection).ownerOf(tokenId) returns (address holder) {
+            if (holder != address(this)) revert NotStranded(collection, tokenId);
+        } catch {
+            revert NotStranded(collection, tokenId);
+        }
     }
 
     function requestRescue(address collection, uint256 tokenId, address to) external {
         if (to == address(0)) revert ZeroAddress();
         bytes32 key = _requireStranded(collection, tokenId);
+        // No silent re-request: the public delay must not be restartable or retargetable without a visible cancel.
+        if (rescues[key].readyAt != 0) revert RescueAlreadyPending(collection, tokenId);
         uint64 readyAt = uint64(block.timestamp + RESCUE_DELAY);
         rescues[key] = Rescue(to, readyAt);
         emit RescueRequested(collection, tokenId, to, readyAt);
     }
 
     function cancelRescue(address collection, uint256 tokenId) external {
-        bytes32 key = registry.accountKey(collection, tokenId);
         if (rescuer == address(0)) revert RescueDisabled();
         if (msg.sender != rescuer) revert NotRescuer();
+        bytes32 key = registry.accountKey(collection, tokenId);
         if (rescues[key].readyAt == 0) revert NoRescuePending();
         delete rescues[key];
         emit RescueCancelled(collection, tokenId);

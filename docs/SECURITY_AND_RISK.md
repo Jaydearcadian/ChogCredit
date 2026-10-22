@@ -53,6 +53,10 @@ Likelihood labels are provisional until threat modeling, testing and audit.
 | R-28 | Debt-transfer signature replay or stale state accepted | High | Typed signatures include chain, coordinator, account key, nonce/state hash, exact debt cap, health condition and expiry; replay tests |
 | R-29 | Collection configuration migration strands accounts | Critical | Versioned configuration, timelock, per-account migration plan, no silent collection replacement, migration tests |
 | R-30 | Legal/consumer-lending/market structure requirements are missed | High | Jurisdiction-specific legal review before public lending, custody-like escrow, external capital or public marketplace |
+| R-31 | The optional escrow rescuer (recovers tokens sent by plain `transferFrom`) is a privileged role; a compromised or malicious rescuer could take stranded Chogs, and it cannot be rotated | High | Disable it (address(0)) or make it a multisig/timelock; 3-day public delay and events; it can never touch recorded tokens (tested and in the invariant suite); UI must only use `safeTransferFrom` |
+| R-32 | The one-time credit-module bind is irreversible; a wrong or hostile module could lock every funded account | Critical | Bind in the deployment transaction (Gate D); bind is probed; module reads cannot revert or be return-bombed and fail closed; binder is a multisig or deployment contract |
+| R-33 | A signed buyer acceptance is replayed or revived after the account changed (deposit, sweep, ownership round trip) | High | Acceptance binds vault state nonce and escrow ownership epoch; digest single-use; chain-bound EIP-712 domain; buyer `cancel` (all covered by tests) |
+| R-34 | Live Chog Genesis collection admin: single 7702-delegated key holds `ADMIN_ROLE`; source unverified | Medium | Bytecode analysis found no burn, pause, filter or forced-transfer function and no executable delegatecall; still obtain verified source and written confirmation; metadata and royalty changes remain possible |
 
 ## 4. Mandatory security invariants
 

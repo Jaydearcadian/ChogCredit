@@ -111,6 +111,10 @@ contract AccountVault is ReentrancyGuard {
         uint256 bal = IERC20(token).balanceOf(address(this));
         uint256 have = accounted[token];
         if (bal <= have) revert NothingToSweep();
+        // A sweep changes what a buyer could see in the vault, so it must void signed acceptances too.
+        unchecked {
+            ++stateNonce;
+        }
         IERC20(token).safeTransfer(to, bal - have);
     }
 }

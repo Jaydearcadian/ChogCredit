@@ -29,6 +29,8 @@ interface IChogCreditEscrow {
     function beneficialOwnerOf(bytes32 key) external view returns (address);
     function isEscrowed(bytes32 key) external view returns (bool);
     function coordinator() external view returns (address);
+    /// @notice Increments whenever the beneficial owner of `key` is set, moved or cleared.
+    function epochOf(bytes32 key) external view returns (uint256);
     /// @notice Only the transfer coordinator may call this. Moves the beneficial owner of an escrowed account.
     function transferBeneficialOwnership(bytes32 key, address newOwner) external;
 }
@@ -43,6 +45,7 @@ interface IChogAccountRegistry {
     error UnknownAccount(bytes32 key);
     error NotBinder();
     error ModuleAlreadyBound();
+    error InvalidModule(address module);
 
     event AccountCreated(
         bytes32 indexed key, address indexed collection, uint256 indexed tokenId, address vault, address creator

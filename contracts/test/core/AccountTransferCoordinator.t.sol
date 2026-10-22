@@ -91,6 +91,7 @@ contract AccountTransferCoordinatorTest is CoreBase {
             paymentToken: address(usdc),
             price: price,
             stateNonce: vault.stateNonce(),
+            epoch: escrow.epochOf(_key(1)),
             deadline: block.timestamp + 1 days,
             salt: salt
         });
@@ -103,7 +104,7 @@ contract AccountTransferCoordinatorTest is CoreBase {
         returns (AccountTransferCoordinator.Acceptance memory c)
     {
         c = AccountTransferCoordinator.Acceptance(
-            a.key, a.seller, a.buyer, a.paymentToken, a.price, a.stateNonce, a.deadline, a.salt
+            a.key, a.seller, a.buyer, a.paymentToken, a.price, a.stateNonce, a.epoch, a.deadline, a.salt
         );
     }
 
@@ -221,6 +222,12 @@ contract AccountTransferCoordinatorTest is CoreBase {
         coord.executeSale(t, good);
 
         t = _clone(a);
+        t.epoch = a.epoch + 1;
+        vm.prank(seller);
+        vm.expectRevert(AccountTransferCoordinator.InvalidSignature.selector);
+        coord.executeSale(t, good);
+
+        t = _clone(a);
         t.stateNonce = a.stateNonce + 1;
         vm.prank(seller);
         vm.expectRevert(AccountTransferCoordinator.InvalidSignature.selector);
@@ -252,6 +259,7 @@ contract AccountTransferCoordinatorTest is CoreBase {
                 a.paymentToken,
                 a.price,
                 a.stateNonce,
+                a.epoch,
                 a.deadline,
                 a.salt
             )
@@ -296,6 +304,7 @@ contract AccountTransferCoordinatorTest is CoreBase {
         next.buyer = carolAddr;
         next.salt = 2;
         next.stateNonce = vault.stateNonce();
+        next.epoch = escrow.epochOf(_key(1));
         bytes memory nextSig = _sign(next, carolPk);
         _sell(next, nextSig);
         assertEq(escrow.beneficialOwnerOf(_key(1)), carolAddr);
@@ -325,6 +334,7 @@ contract AccountTransferCoordinatorTest is CoreBase {
             paymentToken: address(usdc),
             price: 0,
             stateNonce: nonce3,
+            epoch: escrow.epochOf(key3),
             deadline: block.timestamp + 7 days,
             salt: 1
         });
@@ -337,6 +347,7 @@ contract AccountTransferCoordinatorTest is CoreBase {
         back.seller = buyer;
         back.buyer = s;
         back.salt = 2;
+        back.epoch = escrow.epochOf(key3);
         bytes memory backSig = _sign(back, sPk);
         vm.prank(buyer);
         coord.executeSale(back, backSig);
@@ -496,5 +507,106 @@ contract AccountTransferCoordinatorTest is CoreBase {
         assertEq(usdc.balanceOf(seller) + usdc.balanceOf(buyer) + vault.accounted(address(usdc)), totalBefore);
         assertEq(vault.accounted(address(usdc)), 500e6);
         assertEq(escrow.beneficialOwnerOf(_key(1)), buyer);
+    }
+
+    // ---- review-driven regressions
+
+    /// @dev A key-controlled seller `s` with an empty escrowed account (token 3), so the vault nonce never moves and
+    ///      only the ownership epoch can distinguish "before" from "after".
+    function _emptyKeySellerAccount() internal returns (address s, uint256 sPk, bytes32 key3) {
+        (s, sPk) = makeAddrAndKey("keySeller2");
+        chog.mint(s, 3);
+        vm.startPrank(s);
+        registry.createAccount(address(chog), 3);
+        chog.safeTransferFrom(s, address(escrow), 3);
+        vm.stopPrank();
+        key3 = _key(3);
+    }
+
+    function _acceptance3(bytes32 key3, address s, address b, uint256 salt)
+        internal
+        view
+        returns (AccountTransferCoordinator.Acceptance memory)
+    {
+        return AccountTransferCoordinator.Acceptance({
+            key: key3,
+            seller: s,
+            buyer: b,
+            paymentToken: address(usdc),
+            price: 0,
+            stateNonce: AccountVault(registry.vaultOf(address(chog), 3)).stateNonce(),
+            epoch: escrow.epochOf(key3),
+            deadline: block.timestamp + 30 days,
+            salt: salt
+        });
+    }
+
+    function test_staleAcceptanceDoesNotReviveAfterOwnershipRoundTrip() external {
+        (address s, uint256 sPk, bytes32 key3) = _emptyKeySellerAccount();
+        (address x, uint256 xPk) = makeAddrAndKey("xBuyer");
+
+        // B signs for seller s, who never executes it
+        AccountTransferCoordinator.Acceptance memory stale = _acceptance3(key3, s, buyer, 1);
+        bytes memory staleSig = _sign(stale, buyerPk);
+
+        // s sells to X, X sells back to s: s owns it again; vault nonce and the stale digest are unchanged
+        AccountTransferCoordinator.Acceptance memory toX = _acceptance3(key3, s, x, 2);
+        bytes memory toXSig = _sign(toX, xPk);
+        vm.prank(s);
+        coord.executeSale(toX, toXSig);
+        AccountTransferCoordinator.Acceptance memory back = _acceptance3(key3, x, s, 3);
+        bytes memory backSig = _sign(back, sPk);
+        vm.prank(x);
+        coord.executeSale(back, backSig);
+        assertEq(escrow.beneficialOwnerOf(key3), s);
+        assertEq(AccountVault(registry.vaultOf(address(chog), 3)).stateNonce(), stale.stateNonce, "nonce unchanged");
+        assertFalse(coord.used(coord.hashAcceptance(stale)));
+
+        uint256 nowEpoch = escrow.epochOf(key3);
+        vm.prank(s);
+        vm.expectRevert(abi.encodeWithSelector(AccountTransferCoordinator.EpochChanged.selector, stale.epoch, nowEpoch));
+        coord.executeSale(stale, staleSig);
+    }
+
+    function test_releaseAndReEscrowBySameOwner_voidsOldAcceptance() external {
+        (address s,, bytes32 key3) = _emptyKeySellerAccount();
+        AccountTransferCoordinator.Acceptance memory a = _acceptance3(key3, s, buyer, 1);
+        bytes memory sig = _sign(a, buyerPk);
+
+        vm.startPrank(s);
+        escrow.release(address(chog), 3, s);
+        chog.safeTransferFrom(s, address(escrow), 3);
+        vm.stopPrank();
+        assertEq(AccountVault(registry.vaultOf(address(chog), 3)).stateNonce(), a.stateNonce, "nonce unchanged");
+
+        uint256 nowEpoch = escrow.epochOf(key3);
+        vm.prank(s);
+        vm.expectRevert(abi.encodeWithSelector(AccountTransferCoordinator.EpochChanged.selector, a.epoch, nowEpoch));
+        coord.executeSale(a, sig);
+    }
+
+    function test_sweepVoidsAcceptance() external {
+        deal(address(usdc), address(vault), usdc.balanceOf(address(vault)) + 7e6); // an unsolicited 7 USDC
+        AccountTransferCoordinator.Acceptance memory a = _acc(100e6, 1);
+        bytes memory sig = _sign(a, buyerPk);
+        vm.prank(seller);
+        vault.sweepUnaccounted(address(usdc), seller); // seller front-runs by taking what the buyer saw
+        uint256 nowNonce = vault.stateNonce();
+        vm.prank(seller);
+        vm.expectRevert(
+            abi.encodeWithSelector(AccountTransferCoordinator.StateChanged.selector, a.stateNonce, nowNonce)
+        );
+        coord.executeSale(a, sig);
+    }
+
+    function test_buyerCannotBeAProtocolContract() external {
+        address[4] memory bad = [address(coord), address(escrow), address(registry), address(vault)];
+        for (uint256 i; i < bad.length; i++) {
+            AccountTransferCoordinator.Acceptance memory a = _acc(0, 10 + i);
+            a.buyer = bad[i];
+            vm.prank(seller);
+            vm.expectRevert(AccountTransferCoordinator.BadParties.selector);
+            coord.executeSale(a, hex"00");
+        }
     }
 }

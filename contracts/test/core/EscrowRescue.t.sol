@@ -122,4 +122,56 @@ contract EscrowRescueTest is CoreBase {
         chog.safeTransferFrom(alice, address(escrow), 1);
         assertEq(escrow.beneficialOwnerOf(_key(1)), alice);
     }
+
+    // ---- review-driven
+
+    function test_rescue_repeatedRequestIsRefused_untilCancelled() external {
+        _strand(1);
+        vm.startPrank(rescuer);
+        escrow.requestRescue(address(chog), 1, alice);
+        vm.warp(block.timestamp + 2 days);
+        vm.expectRevert(abi.encodeWithSelector(ChogCreditEscrow.RescueAlreadyPending.selector, address(chog), 1));
+        escrow.requestRescue(address(chog), 1, rescuer); // cannot silently retarget or restart the timer
+        escrow.cancelRescue(address(chog), 1);
+        escrow.requestRescue(address(chog), 1, rescuer); // a visible cancel makes a fresh request possible
+        vm.stopPrank();
+    }
+
+    function test_rescue_burnedOrMissingToken_isNotStranded_notARawRevert() external {
+        HostileCollection other = new HostileCollection();
+        other.mint(alice, 5);
+        vm.prank(alice);
+        other.transferFrom(alice, address(escrow), 5);
+        other.setRevert(true); // ownerOf now reverts, as it does for a burned token
+        vm.prank(rescuer);
+        vm.expectRevert(abi.encodeWithSelector(ChogCreditEscrow.NotStranded.selector, address(other), 5));
+        escrow.requestRescue(address(other), 5, alice);
+    }
+
+    function test_rescue_rescuerCannotMoveARecordedTokenEvenAfterASale() external {
+        _open(alice, 1);
+        // after any change of beneficial owner the token is still recorded, hence still untouchable
+        bytes32 key = _key(1);
+        address coordinator = escrow.coordinator();
+        vm.prank(coordinator);
+        escrow.transferBeneficialOwnership(key, bob);
+        vm.prank(rescuer);
+        vm.expectRevert(abi.encodeWithSelector(ChogCreditEscrow.NotStranded.selector, address(chog), 1));
+        escrow.requestRescue(address(chog), 1, rescuer);
+    }
+
+    function test_epoch_movesOnEveryOwnershipChange() external {
+        _openWalletHeld(alice, 1);
+        bytes32 key = _key(1);
+        assertEq(escrow.epochOf(key), 0);
+        vm.prank(alice);
+        chog.safeTransferFrom(alice, address(escrow), 1);
+        assertEq(escrow.epochOf(key), 1);
+        vm.prank(address(escrow.coordinator()));
+        escrow.transferBeneficialOwnership(key, bob);
+        assertEq(escrow.epochOf(key), 2);
+        vm.prank(bob);
+        escrow.release(address(chog), 1, bob);
+        assertEq(escrow.epochOf(key), 3);
+    }
 }
