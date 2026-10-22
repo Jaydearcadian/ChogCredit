@@ -125,10 +125,10 @@ This is not final collection approval. Verify from an official Chog source or ex
 |---|---|---|
 | Exact Chog collection confirmed | **Partly.** `LIVE_READ_PASS` 2026-10-22: `0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763` on chain 143 reports `Chog Genesis`, supply 1,969 (matches the official mint page), ERC-721/2981. Address not yet printed on an official Chog page; contract not verified on Sourcify | Written confirmation from the Chog team + verified source/ABI; `scripts/verify_monad_reference.py mainnet` output |
 | Monad third-party addresses (USDC, WMON, Multicall3, Uniswap/Pancake V3, oracles, ERC-6551) | `LIVE_READ_PASS` 2026-10-22, mainnet block 115,697,336 and testnet block 73,328,862. Reference only, not approved integrations | `config/monad-reference.json`, `docs/MONAD_REFERENCE.md`, verifier script output |
-| Live-collection escrow behaviour | Not tested | Mainnet-fork test of approve + `safeTransferFrom` + release on the real contract |
+| Live-collection escrow behaviour | **Partly:** fork simulation shows approve + `safeTransferFrom` into a contract and back out works for plain and 7702-delegated EOA holders. Operator/marketplace flow, admin-role behaviour and on-chain transactions not tested | `contracts/test/fork/ChogGenesisFork.t.sol`, `docs/evidence/GATE_A.md` |
 | Chogathon application terms | Judging criteria seen; eligibility, license, prize terms and dates not established | Read the application page and rules; record answers |
-| Solidity compile | Not verified | `forge build` log and source commit |
-| Foundry test suite | Not verified | `forge test -vvv` log |
+| Solidity compile | **Prototype only:** `LOCAL_BUILD_PASS` with Foundry 1.8.6, `network = "monad"`, solc 0.8.24, OZ 5.1.0 (commit `6bc452a`, fresh clone). v0.2 contracts do not exist yet | `docs/evidence/GATE_A.md` |
+| Foundry test suite | **Prototype only:** 11/11 unit tests pass; 3 mainnet-fork tests pass (local simulation). No fuzz/invariant tests | `docs/evidence/GATE_A.md` |
 | Identity/registry tests | Not implemented for target identity | Test report for chain + collection + token key |
 | Escrow safety tests | Not implemented for target architecture | Test report incl. adversarial cases |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |

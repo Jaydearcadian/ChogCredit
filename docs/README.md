@@ -11,6 +11,7 @@ This documentation set describes the revised Chogathon product: financial utilit
 - [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md): explicit mismatch between the earlier code source and the revised target architecture, and the evidence required to close it.
 - [`MONAD_REFERENCE.md`](MONAD_REFERENCE.md): verified Monad network facts, Chog contract reads, token/infra/DEX/oracle addresses, pool depth, tooling notes and open items. Machine-readable copy in `../config/monad-reference.json`; re-verify with `../scripts/verify_monad_reference.py`.
 - [`BUILD_PLAN.md`](BUILD_PLAN.md): what the research changed, scope tiers, workstreams W0 to W9 with tests, a relative day plan against the Chogathon criteria, and decisions needed.
+- [`evidence/GATE_A.md`](evidence/GATE_A.md): exact toolchain, commands and results for the Foundry baseline.
 - [`REVISION_NOTES.md`](REVISION_NOTES.md): summary of the architecture corrections in v0.2.
 - [`architecture.md`](architecture.md): previous source-slice architecture, retained for historical context only.
 
