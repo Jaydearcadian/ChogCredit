@@ -50,6 +50,8 @@ Five deliberate breakages were applied one at a time and the suite run each time
 
 This is a hand-run check of five mutants, not a mutation-testing tool run.
 
+> **Superseded in part by Gate C (`GATE_C.md`):** the test-only `walletHeldDeposits` flag described below was removed, assets are now accepted only while the Chog is escrowed, and `ChogAccountRegistry`'s constructor takes two arguments.
+
 ## Known limits and trust assumptions (read before relying on this)
 
 1. **Wallet-held control is unsafe once the vault holds anything.** Control follows `ownerOf`, so selling the NFT hands over the vault; `test_walletHeldControlFollowsNftSale_whyEscrowIsRequired` demonstrates it. For that reason the registry refuses deposits by default (`canAcceptAssets` is false). The constructor flag `walletHeldDeposits = true` exists only for tests and must never be set outside local runs. Gate C replaces it with NFT escrow.

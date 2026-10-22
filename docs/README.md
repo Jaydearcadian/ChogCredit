@@ -13,6 +13,7 @@ This documentation set describes the revised Chogathon product: financial utilit
 - [`BUILD_PLAN.md`](BUILD_PLAN.md): what the research changed, scope tiers, workstreams W0 to W9 with tests, a relative day plan against the Chogathon criteria, and decisions needed.
 - [`evidence/GATE_A.md`](evidence/GATE_A.md): exact toolchain, commands and results for the Foundry baseline.
 - [`evidence/GATE_B.md`](evidence/GATE_B.md): account registry and vault results, mutation check, and the limits to know before relying on them.
+- [`evidence/GATE_C.md`](evidence/GATE_C.md): NFT escrow, beneficial-owner control and release rules; invariants, mutation check and the trust assumptions to review.
 - [`REVISION_NOTES.md`](REVISION_NOTES.md): summary of the architecture corrections in v0.2.
 - [`architecture.md`](architecture.md): previous source-slice architecture, retained for historical context only.
 
