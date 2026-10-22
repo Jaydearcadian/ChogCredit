@@ -123,7 +123,10 @@ This is not final collection approval. Verify from an official Chog source or ex
 
 | Evidence item | Current state | Required artifact |
 |---|---|---|
-| Exact Chog collection confirmed | Not verified | Official project/collection source + contract address + reviewer |
+| Exact Chog collection confirmed | **Partly.** `LIVE_READ_PASS` 2026-10-22: `0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763` on chain 143 reports `Chog Genesis`, supply 1,969 (matches the official mint page), ERC-721/2981. Address not yet printed on an official Chog page; contract not verified on Sourcify | Written confirmation from the Chog team + verified source/ABI; `scripts/verify_monad_reference.py mainnet` output |
+| Monad third-party addresses (USDC, WMON, Multicall3, Uniswap/Pancake V3, oracles, ERC-6551) | `LIVE_READ_PASS` 2026-10-22, mainnet block 115,697,336 and testnet block 73,328,862. Reference only, not approved integrations | `config/monad-reference.json`, `docs/MONAD_REFERENCE.md`, verifier script output |
+| Live-collection escrow behaviour | Not tested | Mainnet-fork test of approve + `safeTransferFrom` + release on the real contract |
+| Chogathon application terms | Judging criteria seen; eligibility, license, prize terms and dates not established | Read the application page and rules; record answers |
 | Solidity compile | Not verified | `forge build` log and source commit |
 | Foundry test suite | Not verified | `forge test -vvv` log |
 | Identity/registry tests | Not implemented for target identity | Test report for chain + collection + token key |

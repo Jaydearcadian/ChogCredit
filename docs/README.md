@@ -9,6 +9,8 @@ This documentation set describes the revised Chogathon product: financial utilit
 - [`TECHNICAL_SPECIFICATION.md`](TECHNICAL_SPECIFICATION.md): canonical NFT identity, registry/vault, escrow, credit pool, valuation, contract interfaces, API, UI, events, state machines, testing and deployment.
 - [`SECURITY_AND_RISK.md`](SECURITY_AND_RISK.md): collection authenticity, NFT escrow, debt-bearing transfer, valuation, solvency, admin and mainnet risks.
 - [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md): explicit mismatch between the earlier code source and the revised target architecture, and the evidence required to close it.
+- [`MONAD_REFERENCE.md`](MONAD_REFERENCE.md): verified Monad network facts, Chog contract reads, token/infra/DEX/oracle addresses, pool depth, tooling notes and open items. Machine-readable copy in `../config/monad-reference.json`; re-verify with `../scripts/verify_monad_reference.py`.
+- [`BUILD_PLAN.md`](BUILD_PLAN.md): what the research changed, scope tiers, workstreams W0 to W9 with tests, a relative day plan against the Chogathon criteria, and decisions needed.
 - [`REVISION_NOTES.md`](REVISION_NOTES.md): summary of the architecture corrections in v0.2.
 - [`architecture.md`](architecture.md): previous source-slice architecture, retained for historical context only.
 
