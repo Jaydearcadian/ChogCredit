@@ -83,10 +83,66 @@ contract ChogCreditTest is Test {
         assertEq(credit.collateralOf(1), 78 ether); // $11 collateral at $0.50/token
     }
 
-    function testBorrowingRequiresLiquidity() external {
-        // Current pool has ample liquidity; request beyond the collateral limit is rejected first.
+    function testBorrowAboveLtvRevertsWithBorrowLimitError() external {
+        // Pool has ample cash here, so this proves the LTV branch only, not the liquidity branch.
         vm.prank(alice);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(ChogCredit.BorrowLimitExceeded.selector, 51 * 1e6, 50 * 1e6));
         credit.borrow(1, 51 * 1e6);
+    }
+
+    function testBorrowingRequiresLiquidity() external {
+        // Bob has far more collateral capacity (12,000 tokens at $1, 50% LTV = $6,000) than the pool holds ($5,000),
+        // so the request below is inside his LTV limit and can only fail on pool cash.
+        vm.startPrank(bob);
+        collateral.approve(address(credit), type(uint256).max);
+        for (uint256 i = 0; i < 12; i++) collateral.faucet();
+        credit.createAccount(); // account 2
+        credit.depositCollateral(2, 12_000 ether);
+        credit.borrow(2, 4_950 * 1e6); // leaves 50 USDC of cash
+        assertEq(credit.availableLiquidity(), 50 * 1e6);
+        assertGt(credit.maxBorrowUsdc(2), 4_950 * 1e6 + 100 * 1e6);
+        vm.expectRevert(abi.encodeWithSelector(ChogCredit.InsufficientLiquidity.selector, 100 * 1e6, 50 * 1e6));
+        credit.borrow(2, 100 * 1e6);
+        vm.stopPrank();
+    }
+
+    function testHealthyAccountCannotBeLiquidated() external {
+        vm.prank(alice);
+        credit.borrow(1, 50 * 1e6); // at max LTV (50%) but below the 75% liquidation threshold
+        vm.startPrank(bob);
+        usdc.faucet();
+        usdc.approve(address(credit), type(uint256).max);
+        vm.expectRevert(abi.encodeWithSelector(ChogCredit.NotLiquidatable.selector, 1, 50 * 1e6, 75 * 1e6));
+        credit.liquidate(1, 10 * 1e6);
+        vm.stopPrank();
+    }
+
+    function testZeroAmountsRevert() external {
+        vm.startPrank(alice);
+        vm.expectRevert(ChogCredit.InvalidAmount.selector);
+        credit.borrow(1, 0);
+        vm.expectRevert(ChogCredit.InvalidAmount.selector);
+        credit.depositCollateral(1, 0);
+        vm.expectRevert(ChogCredit.InvalidAmount.selector);
+        credit.repay(1, 0);
+        vm.stopPrank();
+    }
+
+    function testOnlyAccountOwnerCanBorrow() external {
+        vm.prank(bob);
+        vm.expectRevert(ChogCredit.NotAccountOwner.selector);
+        credit.borrow(1, 1 * 1e6);
+    }
+
+    function testRepayCapsAtOutstandingDebt() external {
+        vm.startPrank(alice);
+        credit.borrow(1, 10 * 1e6);
+        usdc.faucet();
+        usdc.approve(address(credit), type(uint256).max);
+        uint256 before = usdc.balanceOf(alice);
+        credit.repay(1, 1_000 * 1e6); // overpay
+        vm.stopPrank();
+        assertEq(before - usdc.balanceOf(alice), 10 * 1e6);
+        assertEq(credit.debtOf(1), 0);
     }
 }
