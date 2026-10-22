@@ -11,8 +11,8 @@ import {IChogAccountRegistry, AccountInfo} from "./interfaces/IChogAccountRegist
 ///         There is no generic `call(target, data)`: the only external effects are token transfers.
 /// @dev GATE C. Balances are tracked per token (`accounted`), not read from `balanceOf`, so an unsolicited transfer
 ///      cannot make the account look non-empty and block release of the Chog. Control, "may this account hold
-///      assets" and debt all come from the registry. Withdrawals are blocked while any debt is reported; Gate D
-///      refines this into a post-withdrawal solvency check.
+///      assets" and debt all come from the registry. Withdrawals ask the credit module whether the account
+///      stays within its borrowing limit.
 contract AccountVault is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -30,12 +30,14 @@ contract AccountVault is ReentrancyGuard {
     error ZeroAmount();
     error ZeroAddress();
     error BalanceDeltaMismatch(uint256 expected, uint256 received);
-    error DebtOutstanding(uint256 debt);
+    error WithdrawalBlocked();
+    error OnlyCreditModule();
     error ExceedsAccounted(uint256 requested, uint256 accounted);
     error NothingToSweep();
 
     event Deposited(address indexed token, address indexed from, uint256 amount, uint256 stateNonce);
     event Withdrawn(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
+    event Seized(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
 
     constructor() {
         // Lock the implementation so nobody can initialise it and treat it as an account.
@@ -87,13 +89,31 @@ contract AccountVault is ReentrancyGuard {
         return nonEmptyTokens == 0;
     }
 
-    /// @notice Send accounted tokens to `to`. Blocked while the account has any debt (Gate D replaces this blanket
-    ///         rule with a post-withdrawal solvency check).
+    /// @notice Send accounted tokens to `to`, unless the credit module says the account would end up over its
+    ///         borrowing limit.
     function withdrawERC20(address token, uint256 amount, address to) external nonReentrant onlyController {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
-        uint256 debt = registry.debtOf(key);
-        if (debt != 0) revert DebtOutstanding(debt);
+        uint256 have = accounted[token];
+        if (amount > have) revert ExceedsAccounted(amount, have);
+        // With no debt this needs no price; with debt the credit module checks the post-withdrawal borrowing limit.
+        // A module that fails or refuses blocks the withdrawal (fail closed).
+        if (!registry.withdrawAllowed(key, token, amount)) revert WithdrawalBlocked();
+        unchecked {
+            accounted[token] = have - amount;
+            ++stateNonce;
+        }
+        if (have == amount) --nonEmptyTokens;
+        IERC20(token).safeTransfer(to, amount);
+        emit Withdrawn(token, to, amount, stateNonce);
+    }
+
+    /// @notice Liquidation path: the bound credit module moves accounted collateral to a liquidator. It is the only
+    ///         way assets leave a vault other than the controller's own withdrawal.
+    function seizeCollateral(address token, uint256 amount, address to) external nonReentrant {
+        if (msg.sender != registry.creditModule()) revert OnlyCreditModule();
+        if (amount == 0) revert ZeroAmount();
+        if (to == address(0)) revert ZeroAddress();
         uint256 have = accounted[token];
         if (amount > have) revert ExceedsAccounted(amount, have);
         unchecked {
@@ -102,7 +122,7 @@ contract AccountVault is ReentrancyGuard {
         }
         if (have == amount) --nonEmptyTokens;
         IERC20(token).safeTransfer(to, amount);
-        emit Withdrawn(token, to, amount, stateNonce);
+        emit Seized(token, to, amount, stateNonce);
     }
 
     /// @notice Recover tokens sent here without a deposit (anything above the accounted balance).

@@ -99,6 +99,14 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         return ok ? d : type(uint256).max; // fail closed
     }
 
+    function withdrawAllowed(bytes32 key, address token, uint256 amount) external view returns (bool) {
+        address module = creditModule;
+        if (module == address(0)) return true;
+        (bool ok, uint256 allowed) =
+            _readWord(module, abi.encodeCall(ICreditModule.withdrawAllowed, (key, token, amount)));
+        return ok && allowed == 1; // anything but an explicit yes is a no
+    }
+
     function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker) {
         address vault = _accounts[key].vault;
         if (vault == address(0)) return ReleaseBlocker.UnknownAccount;
@@ -146,7 +154,9 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         (bool okDebt,) = _readWord(module, abi.encodeCall(ICreditModule.debtOf, (bytes32(0))));
         (bool okPending, uint256 pending) =
             _readWord(module, abi.encodeCall(ICreditModule.hasPendingOperation, (bytes32(0))));
-        if (!okDebt || !okPending || pending > 1) revert InvalidModule(module);
+        (bool okWithdraw, uint256 allowed) =
+            _readWord(module, abi.encodeCall(ICreditModule.withdrawAllowed, (bytes32(0), address(0), 0)));
+        if (!okDebt || !okPending || pending > 1 || !okWithdraw || allowed > 1) revert InvalidModule(module);
         creditModule = module;
         emit CreditModuleBound(module);
     }

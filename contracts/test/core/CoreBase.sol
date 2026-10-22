@@ -37,6 +37,12 @@ contract MockCreditModule is ICreditModule {
         require(!broken, "module down");
         return pending[key];
     }
+
+    /// @dev Blanket rule matching the old Gate C behaviour: nothing may leave while any debt exists.
+    function withdrawAllowed(bytes32 key, address, uint256) external view returns (bool) {
+        require(!broken, "module down");
+        return debt[key] == 0;
+    }
 }
 
 abstract contract CoreBase is Test {

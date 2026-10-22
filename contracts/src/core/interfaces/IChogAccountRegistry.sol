@@ -23,6 +23,9 @@ enum ReleaseBlocker {
 interface ICreditModule {
     function debtOf(bytes32 key) external view returns (uint256);
     function hasPendingOperation(bytes32 key) external view returns (bool);
+    /// @notice Whether the account would still be within its borrowing limit after `amount` of `token` leaves its
+    /// vault. Must be true when the account has no debt, without needing any price.
+    function withdrawAllowed(bytes32 key, address token, uint256 amount) external view returns (bool);
 }
 
 interface IChogCreditEscrow {
@@ -71,6 +74,8 @@ interface IChogAccountRegistry {
     function canAcceptAssets(bytes32 key) external view returns (bool);
     /// @notice Debt reported by the credit module; fails closed (max) if the module reverts. Zero if none is bound.
     function debtOf(bytes32 key) external view returns (uint256);
+    /// @notice Fails closed: false if a module is bound and refuses or fails; true if none is bound.
+    function withdrawAllowed(bytes32 key, address token, uint256 amount) external view returns (bool);
     function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker);
     /// @notice Like `releaseBlocker` but ignores held assets: only debt, pending operations and module failure.
     function liabilityBlocker(bytes32 key) external view returns (ReleaseBlocker);

@@ -181,12 +181,12 @@ contract AccountVaultTest is CoreBase {
 
         module.setDebt(_key(1), 3);
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(AccountVault.DebtOutstanding.selector, 3));
+        vm.expectRevert(AccountVault.WithdrawalBlocked.selector);
         vault.withdrawERC20(address(usdc), 1e6, alice);
 
         module.setBroken(true);
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSelector(AccountVault.DebtOutstanding.selector, type(uint256).max));
+        vm.expectRevert(AccountVault.WithdrawalBlocked.selector);
         vault.withdrawERC20(address(usdc), 1e6, alice);
 
         module.setBroken(false);
@@ -237,6 +237,35 @@ contract AccountVaultTest is CoreBase {
         assertEq(vault.isEmpty(), dep == wd);
         assertEq(usdc.balanceOf(bob), wd);
         assertEq(usdc.balanceOf(alice), 1_000e6 - dep);
+    }
+
+    // ---- seizeCollateral is the liquidation path and nothing else
+    function test_seizeCollateral_onlyTheBoundCreditModule() external {
+        vm.prank(alice);
+        vault.depositERC20(address(usdc), 100e6);
+
+        // not the controller, not a stranger, not the registry, and no module is bound yet
+        address[4] memory callers = [alice, bob, address(registry), address(escrow)];
+        for (uint256 i; i < callers.length; i++) {
+            vm.prank(callers[i]);
+            vm.expectRevert(AccountVault.OnlyCreditModule.selector);
+            vault.seizeCollateral(address(usdc), 1e6, callers[i]);
+        }
+
+        registry.bindCreditModule(address(module));
+        vm.prank(alice);
+        vm.expectRevert(AccountVault.OnlyCreditModule.selector);
+        vault.seizeCollateral(address(usdc), 1e6, alice); // even the owner cannot use the liquidation path
+
+        uint256 nonceBefore = vault.stateNonce();
+        vm.prank(address(module));
+        vault.seizeCollateral(address(usdc), 40e6, carol);
+        assertEq(usdc.balanceOf(carol), 40e6);
+        assertEq(vault.accounted(address(usdc)), 60e6);
+        assertGt(vault.stateNonce(), nonceBefore, "a seizure voids pending sale acceptances");
+        vm.prank(address(module));
+        vm.expectRevert(abi.encodeWithSelector(AccountVault.ExceedsAccounted.selector, 61e6, 60e6));
+        vault.seizeCollateral(address(usdc), 61e6, carol);
     }
 }
 
