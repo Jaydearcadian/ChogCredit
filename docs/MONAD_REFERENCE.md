@@ -101,7 +101,7 @@ All feeds below answered `latestRoundData()` on the Chainlink interface with 8 d
 | Pyth price feed contract | `0x2880aB155794e7179c9eE2e38200202908C17B43` (newer `0xB754BA51E3861Ac0Cb67f73CD046dE790A36508d`) | pull-style; feed IDs in `config/monad-reference.json`; **read path not yet exercised** |
 | Stork | `0xacC0a0cF13571d30B4b8637996F5D6D774d4fd62` | not read |
 
-Design notes: the Chainlink MON/USD and RedStone MON/USD readings agree to within about 0.1% at read time, which makes them a usable primary plus cross-check pair. The USDC/USD heartbeat looked long (age over 40 minutes), so freshness windows must be set per feed from observed heartbeats and the feed documentation, not from one global constant. Feed heartbeat and deviation parameters have **not** been independently confirmed here.
+Design notes: the Chainlink MON/USD and RedStone MON/USD readings agree to within about 0.1% at read time, which makes them a usable primary plus cross-check pair. The USDC/USD heartbeat looked long (age over 40 minutes), so freshness windows must be set per feed from observed heartbeats and the feed documentation, not from one global constant. Feed heartbeat and deviation parameters have **not** been independently confirmed here. `ChainlinkPairOracle` is exercised against these exact feeds in `contracts/test/fork/ChogCreditFork.t.sol`; the `maxAge` and deviation bounds used there are test values, not recommendations.
 
 ## 6. Market snapshot for Chog Genesis (not verified on-chain)
 

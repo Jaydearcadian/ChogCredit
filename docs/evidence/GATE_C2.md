@@ -93,6 +93,8 @@ Hand-run, not a mutation-testing tool.
 - A first dust-grief mutant used the wrong token address and was caught for the wrong reason; it was redone against the mock's real address.
 - Several test failures during this round were test bugs: calls evaluated in `vm.prank`/`vm.expectRevert` argument lists consumed the cheatcodes, and Solidity memory structs alias on assignment, which made one "tampered variant" test weaker than intended until `_clone` was introduced.
 
+> **Update (Gate D, `GATE_D.md`):** limit 2 below (the credit-module binder) is now closed by `ChogCreditFactory`, limit 6 (solvency math) is implemented, and `ChogAccountRegistry.withdrawAllowed` plus `AccountVault.seizeCollateral` were added. Limits 1, 3, 4, 5, 7, 8, 9 stand.
+
 ## 7. Remaining limits
 
 1. **Plain `transferFrom` into the escrow still strands a Chog until a rescuer acts**, and a rescuer is a trusted party. Without one, it is unrecoverable.

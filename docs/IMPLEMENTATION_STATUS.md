@@ -135,6 +135,10 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Package sale (debt-free) | **Done in source:** buyer-signed, atomic, epoch/nonce-bound, 7702 and ERC-1271 buyers; fork simulation with real Chog and real USDC. Debt-bearing transfer not implemented | `docs/evidence/GATE_C2.md` |
 | Deployment script, local deployment | **Local chain only:** `DeployCore` + `SmokeCore` on Anvil, 7 txs, 0 failed. Testnet dry run only (about 1.6 MON); not broadcast | `docs/evidence/GATE_C2.md` |
 | Automated code review | One pass (`code-review` skill, high effort): 9 findings, 6 valid and fixed. Not independent | `docs/evidence/GATE_C2.md` |
+| Credit pool, lender accounting, interest, liquidation, bad debt | **Done in source (Gate D):** immutable-parameter pool with shares, debt index, caps, fail-closed oracle behaviour; 15 stateful invariants at 256 runs x depth 500; 62/62 manual mutants caught; two rounding defects found by tests and fixed | `docs/evidence/GATE_D.md` (commit `c9c5f93`) |
+| Real oracle path | **Fork-tested only:** Chainlink + RedStone feeds on Monad via `ChainlinkPairOracle`; feed heartbeats and deviation thresholds NOT verified; default deployments use a mock oracle | `docs/evidence/GATE_D.md` |
+| Credit-module binder | **Closed:** `ChogCreditFactory` binds the pool in its constructor | `docs/evidence/GATE_D.md` |
+| LP-position collateral, second-market adapter, debt-bearing sales | **Not built** | n/a |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |
 | Testnet deployment | Not performed/verified | Chain ID, deploy tx hashes, addresses, explorer links and code verification |

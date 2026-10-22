@@ -4,6 +4,8 @@
 **Date:** 22 October 2026
 **Status:** Proposed plan. Nothing in it is built yet. It follows the Gate A to F order in `IMPLEMENTATION_STATUS.md` and uses the verified facts in `MONAD_REFERENCE.md`.
 
+> **Progress (22 October 2026):** Gates A to D are done in source with evidence in `docs/evidence/`: Foundry baseline, registry and vault, NFT escrow, debt-free package sale, credit pool, oracle and liquidation. Remaining for Tier 1: a funded testnet deployment and the wallet frontend / read API (Gate E), plus the decisions in section 5. Tier 2 (real LP positions, verified feeds, liquidity model) and Tier 3 are not started.
+
 ## 1. What the research changed
 
 | Finding | Source | Effect on the plan |
