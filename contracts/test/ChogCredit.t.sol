@@ -18,7 +18,9 @@ contract ChogCreditTest is Test {
         usdc = new MockUSDC();
         collateral = new MockCollateral();
         nft = new ChogPositionNFT(address(this));
-        credit = new ChogCredit(address(usdc), address(collateral), address(nft), address(this), 1_000_000, 5_000, 7_500, 500);
+        credit = new ChogCredit(
+            address(usdc), address(collateral), address(nft), address(this), 1_000_000, 5_000, 7_500, 500
+        );
         nft.setCreditFacility(address(credit));
         usdc.faucet();
         collateral.faucet();
@@ -95,7 +97,9 @@ contract ChogCreditTest is Test {
         // so the request below is inside his LTV limit and can only fail on pool cash.
         vm.startPrank(bob);
         collateral.approve(address(credit), type(uint256).max);
-        for (uint256 i = 0; i < 12; i++) collateral.faucet();
+        for (uint256 i = 0; i < 12; i++) {
+            collateral.faucet();
+        }
         credit.createAccount(); // account 2
         credit.depositCollateral(2, 12_000 ether);
         credit.borrow(2, 4_950 * 1e6); // leaves 50 USDC of cash

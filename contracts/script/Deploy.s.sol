@@ -30,8 +30,7 @@ contract Deploy is Script {
         }
         ChogPositionNFT nft = new ChogPositionNFT(deployer);
         ChogCredit credit = new ChogCredit(
-            usdcAddress, collateralAddress, address(nft), deployer,
-            price, maxLtv, liquidationThreshold, annualRate
+            usdcAddress, collateralAddress, address(nft), deployer, price, maxLtv, liquidationThreshold, annualRate
         );
         nft.setCreditFacility(address(credit));
         vm.stopBroadcast();
