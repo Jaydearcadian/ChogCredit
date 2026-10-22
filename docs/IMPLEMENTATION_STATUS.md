@@ -129,7 +129,7 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Chogathon application terms | Judging criteria seen; eligibility, license, prize terms and dates not established | Read the application page and rules; record answers |
 | Solidity compile | **Prototype only:** `LOCAL_BUILD_PASS` with Foundry 1.8.6, `network = "monad"`, solc 0.8.24, OZ 5.1.0 (commit `6bc452a`, fresh clone). v0.2 contracts do not exist yet | `docs/evidence/GATE_A.md` |
 | Foundry test suite | **Prototype only:** 11/11 unit tests pass; 3 mainnet-fork tests pass (local simulation). No fuzz/invariant tests | `docs/evidence/GATE_A.md` |
-| Identity/registry tests | Not implemented for target identity | Test report for chain + collection + token key |
+| Identity/registry tests | **Done in source (Gate B):** 29 unit/fuzz tests + 1 fork test of the registry against the real collection; 5/5 manual mutants caught. Wallet-held mode only; escrow not built | `docs/evidence/GATE_B.md` (commit `69b6d6c`) |
 | Escrow safety tests | Not implemented for target architecture | Test report incl. adversarial cases |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |
