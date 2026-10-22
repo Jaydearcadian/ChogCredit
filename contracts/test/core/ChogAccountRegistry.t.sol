@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {CoreBase} from "./CoreBase.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
-import {IChogAccountRegistry, AccountInfo} from "../../src/core/interfaces/IChogAccountRegistry.sol";
+import {IChogAccountRegistry, AccountInfo, ReleaseBlocker} from "../../src/core/interfaces/IChogAccountRegistry.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
 import {HostileCollection} from "../../src/mocks/HostileMocks.sol";
 
@@ -14,7 +14,7 @@ contract ChogAccountRegistryTest is CoreBase {
 
         vm.expectEmit(true, true, true, true, address(registry));
         emit IChogAccountRegistry.AccountCreated(key, address(chog), 1, predicted, alice);
-        AccountVault v = _open(alice, 1);
+        AccountVault v = _openWalletHeld(alice, 1);
 
         assertEq(address(v), predicted);
         assertEq(registry.vaultOf(address(chog), 1), predicted);
@@ -27,13 +27,13 @@ contract ChogAccountRegistryTest is CoreBase {
     }
 
     function test_noSecondIdentityNftIsMinted() external {
-        _open(alice, 1);
+        _openWalletHeld(alice, 1);
         assertEq(chog.totalSupply(), 3, "supply unchanged: no position NFT minted");
-        assertEq(chog.ownerOf(1), alice, "the original Chog stays with the user");
+        assertEq(chog.ownerOf(1), alice, "the original Chog stays with the user until it is escrowed");
     }
 
     function test_duplicateAccountReverts() external {
-        AccountVault v = _open(alice, 1);
+        AccountVault v = _openWalletHeld(alice, 1);
         bytes32 key = registry.accountKey(address(chog), 1);
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.AccountExists.selector, key, address(v)));
@@ -86,7 +86,7 @@ contract ChogAccountRegistryTest is CoreBase {
     }
 
     function test_isController_followsLiveOwner() external {
-        _open(alice, 1);
+        _openWalletHeld(alice, 1);
         bytes32 key = registry.accountKey(address(chog), 1);
         assertTrue(registry.isController(key, alice));
         assertFalse(registry.isController(key, bob));
@@ -110,7 +110,7 @@ contract ChogAccountRegistryTest is CoreBase {
         // EIP-7702-delegated EOAs carry code (0xef0100 || delegate). They are real Chog holders and must work.
         vm.etch(alice, hex"ef010063c0c19a282a1b52b07dd5a65b58948a07dae32b");
         assertGt(alice.code.length, 0);
-        _open(alice, 1);
+        _openWalletHeld(alice, 1);
         assertTrue(registry.isController(registry.accountKey(address(chog), 1), alice));
     }
 
@@ -120,7 +120,7 @@ contract ChogAccountRegistryTest is CoreBase {
         h.mint(alice, 1);
         address[] memory cols = new address[](1);
         cols[0] = address(h);
-        ChogAccountRegistry r = new ChogAccountRegistry(cols, new address[](0), false);
+        ChogAccountRegistry r = new ChogAccountRegistry(cols, new address[](0));
         vm.prank(alice);
         r.createAccount(address(h), 1);
         bytes32 key = r.accountKey(address(h), 1);
@@ -137,19 +137,19 @@ contract ChogAccountRegistryTest is CoreBase {
         address[] memory one = new address[](1);
         one[0] = address(chog);
         vm.expectRevert(IChogAccountRegistry.EmptyAllowlist.selector);
-        new ChogAccountRegistry(none, none, false);
+        new ChogAccountRegistry(none, none);
 
         address[] memory zero = new address[](1);
         vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
-        new ChogAccountRegistry(zero, none, false);
+        new ChogAccountRegistry(zero, none);
         vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
-        new ChogAccountRegistry(one, zero, false);
+        new ChogAccountRegistry(one, zero);
 
         address[] memory dup = new address[](2);
         dup[0] = address(chog);
         dup[1] = address(chog);
         vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.DuplicateEntry.selector, address(chog)));
-        new ChogAccountRegistry(dup, none, false);
+        new ChogAccountRegistry(dup, none);
     }
 
     function test_noAdminSurface() external view {
@@ -157,5 +157,83 @@ contract ChogAccountRegistryTest is CoreBase {
         assertTrue(registry.isCollectionAllowed(address(chog)));
         assertFalse(registry.isCollectionAllowed(address(usdc)));
         assertTrue(registry.isTokenAllowed(address(usdc)));
+    }
+
+    // ---- Gate C: control while escrowed, module binding
+
+    function test_controlWhileEscrowed_isBeneficialOwner_notEscrowContract() external {
+        _open(alice, 1);
+        bytes32 key = _key(1);
+        assertEq(chog.ownerOf(1), address(escrow));
+        assertTrue(registry.isController(key, alice));
+        assertFalse(registry.isController(key, address(escrow)));
+        assertFalse(registry.isController(key, bob));
+        assertTrue(registry.canAcceptAssets(key));
+    }
+
+    function test_walletHeldAccountCannotAcceptAssets() external {
+        _openWalletHeld(alice, 1);
+        assertFalse(registry.canAcceptAssets(_key(1)));
+        assertFalse(registry.canAcceptAssets(bytes32(uint256(9))), "unknown account");
+    }
+
+    function test_createAccountFailsOnceTokenIsInEscrow() external {
+        _open(alice, 1);
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IChogAccountRegistry.AccountExists.selector, _key(1), registry.vaultOf(address(chog), 1)
+            )
+        );
+        registry.createAccount(address(chog), 1);
+    }
+
+    function test_bindCreditModule_onlyBinder_once_nonZero() external {
+        vm.prank(bob);
+        vm.expectRevert(IChogAccountRegistry.NotBinder.selector);
+        registry.bindCreditModule(address(module));
+
+        vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
+        registry.bindCreditModule(address(0));
+
+        registry.bindCreditModule(address(module));
+        assertEq(registry.creditModule(), address(module));
+        vm.expectRevert(IChogAccountRegistry.ModuleAlreadyBound.selector);
+        registry.bindCreditModule(address(0xDEAD));
+    }
+
+    function test_debtOf_failsClosedWhenModuleReverts() external {
+        assertEq(registry.debtOf(_key(1)), 0, "no module bound");
+        registry.bindCreditModule(address(module));
+        module.setDebt(_key(1), 7);
+        assertEq(registry.debtOf(_key(1)), 7);
+        module.setBroken(true);
+        assertEq(registry.debtOf(_key(1)), type(uint256).max);
+    }
+
+    function test_releaseBlocker_matrix() external {
+        AccountVault v = _open(alice, 1);
+        bytes32 key = _key(1);
+        registry.bindCreditModule(address(module));
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.None));
+
+        deal(address(usdc), alice, 10e6);
+        vm.startPrank(alice);
+        usdc.approve(address(v), 10e6);
+        v.depositERC20(address(usdc), 10e6);
+        vm.stopPrank();
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.HasAssets));
+
+        vm.prank(alice);
+        v.withdrawERC20(address(usdc), 10e6, alice);
+        module.setDebt(key, 1);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.HasDebt));
+        module.setDebt(key, 0);
+        module.setPending(key, true);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.PendingOperation));
+        module.setPending(key, false);
+        module.setBroken(true);
+        assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.ModuleUnavailable));
+        assertEq(uint8(registry.releaseBlocker(bytes32(uint256(3)))), uint8(ReleaseBlocker.UnknownAccount));
     }
 }

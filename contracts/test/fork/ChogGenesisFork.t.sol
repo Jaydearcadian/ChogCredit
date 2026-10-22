@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
+import {ChogCreditEscrow} from "../../src/core/ChogCreditEscrow.sol";
+import {ReleaseBlocker} from "../../src/core/interfaces/IChogAccountRegistry.sol";
 
 interface IChogGenesis {
     function name() external view returns (string memory);
@@ -13,6 +15,7 @@ interface IChogGenesis {
     function approve(address to, uint256 tokenId) external;
     function getApproved(uint256 tokenId) external view returns (address);
     function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function transferFrom(address from, address to, uint256 tokenId) external;
     function supportsInterface(bytes4 id) external view returns (bool);
 }
 
@@ -94,7 +97,7 @@ contract ChogGenesisForkTest is Test {
     function testRegistryOpensAccountsForRealHolders() external onlyFork {
         address[] memory cols = new address[](1);
         cols[0] = CHOG;
-        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0), false);
+        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0));
 
         for (uint256 id = 1; id <= 2; id++) {
             address holder = chog.ownerOf(id);
@@ -111,5 +114,43 @@ contract ChogGenesisForkTest is Test {
         vm.prank(address(0xBAD));
         vm.expectRevert();
         registry.createAccount(CHOG, 3);
+    }
+
+    /// @dev Gate C against the REAL collection: open, escrow, prove nobody can move the Chog, release.
+    /// Tokens 1 (plain EOA) and 2 (7702-delegated EOA) are the sampled holders.
+    function testLiveEscrowRoundTrip_realCollection() external onlyFork {
+        address[] memory cols = new address[](1);
+        cols[0] = CHOG;
+        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0));
+        ChogCreditEscrow escrow = ChogCreditEscrow(address(registry.escrow()));
+
+        for (uint256 id = 1; id <= 2; id++) {
+            address holder = chog.ownerOf(id);
+            bytes32 key = registry.accountKey(CHOG, id);
+
+            vm.startPrank(holder);
+            registry.createAccount(CHOG, id);
+            assertFalse(registry.canAcceptAssets(key), "wallet-held accounts hold nothing");
+            chog.safeTransferFrom(holder, address(escrow), id);
+            vm.stopPrank();
+
+            assertEq(chog.ownerOf(id), address(escrow));
+            assertEq(escrow.beneficialOwnerOf(key), holder);
+            assertTrue(registry.canAcceptAssets(key));
+            assertTrue(registry.isController(key, holder));
+
+            // the previous owner (and an unrelated address) can no longer move the live token
+            vm.prank(holder);
+            vm.expectRevert();
+            chog.transferFrom(holder, address(0xBEEF), id);
+            vm.prank(address(0xBAD));
+            vm.expectRevert();
+            escrow.release(CHOG, id, address(0xBAD));
+
+            vm.prank(holder);
+            escrow.release(CHOG, id, holder);
+            assertEq(chog.ownerOf(id), holder, "the real Chog came back");
+            assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.None));
+        }
     }
 }

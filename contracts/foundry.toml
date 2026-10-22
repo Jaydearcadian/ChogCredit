@@ -17,5 +17,10 @@ remappings = [
 [fuzz]
 runs = 1000
 
+[invariant]
+runs = 64
+depth = 100
+fail_on_revert = false
+
 [rpc_endpoints]
 monad_testnet = "${MONAD_TESTNET_RPC_URL}"

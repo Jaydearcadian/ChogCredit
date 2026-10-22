@@ -9,14 +9,18 @@ import {IChogAccountRegistry, AccountInfo} from "./interfaces/IChogAccountRegist
 /// @title AccountVault
 /// @notice Custody for one Chog account. EIP-1167 clone created by the registry. Holds allowlisted ERC-20s only.
 ///         There is no generic `call(target, data)`: the only external effects are token transfers.
-/// @dev GATE B SCOPE. No debt module exists yet, so withdrawals are limited only by control. Gate D adds the
-///      post-withdrawal solvency check. Control and "may this account hold assets" both come from the registry.
+/// @dev GATE C. Balances are tracked per token (`accounted`), not read from `balanceOf`, so an unsolicited transfer
+///      cannot make the account look non-empty and block release of the Chog. Control, "may this account hold
+///      assets" and debt all come from the registry. Withdrawals are blocked while any debt is reported; Gate D
+///      refines this into a post-withdrawal solvency check.
 contract AccountVault is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IChogAccountRegistry public registry;
     bytes32 public key;
     uint256 public stateNonce;
+    mapping(address => uint256) public accounted;
+    uint256 public nonEmptyTokens;
 
     error AlreadyInitialized();
     error OnlyRegistry();
@@ -26,6 +30,9 @@ contract AccountVault is ReentrancyGuard {
     error ZeroAmount();
     error ZeroAddress();
     error BalanceDeltaMismatch(uint256 expected, uint256 received);
+    error DebtOutstanding(uint256 debt);
+    error ExceedsAccounted(uint256 requested, uint256 accounted);
+    error NothingToSweep();
 
     event Deposited(address indexed token, address indexed from, uint256 amount, uint256 stateNonce);
     event Withdrawn(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
@@ -67,20 +74,43 @@ contract AccountVault is ReentrancyGuard {
         uint256 received = IERC20(token).balanceOf(address(this)) - beforeBal;
         if (received != amount) revert BalanceDeltaMismatch(amount, received);
 
+        if (accounted[token] == 0) ++nonEmptyTokens;
+        accounted[token] += amount;
         unchecked {
             ++stateNonce;
         }
         emit Deposited(token, msg.sender, amount, stateNonce);
     }
 
-    /// @notice Send tokens to `to`. Gate D adds the debt and health checks.
+    /// @notice True when no accounted token balance remains. Unsolicited transfers do not count.
+    function isEmpty() external view returns (bool) {
+        return nonEmptyTokens == 0;
+    }
+
+    /// @notice Send accounted tokens to `to`. Blocked while the account has any debt (Gate D replaces this blanket
+    ///         rule with a post-withdrawal solvency check).
     function withdrawERC20(address token, uint256 amount, address to) external nonReentrant onlyController {
         if (amount == 0) revert ZeroAmount();
         if (to == address(0)) revert ZeroAddress();
+        uint256 debt = registry.debtOf(key);
+        if (debt != 0) revert DebtOutstanding(debt);
+        uint256 have = accounted[token];
+        if (amount > have) revert ExceedsAccounted(amount, have);
         unchecked {
+            accounted[token] = have - amount;
             ++stateNonce;
         }
+        if (have == amount) --nonEmptyTokens;
         IERC20(token).safeTransfer(to, amount);
         emit Withdrawn(token, to, amount, stateNonce);
+    }
+
+    /// @notice Recover tokens sent here without a deposit (anything above the accounted balance).
+    function sweepUnaccounted(address token, address to) external nonReentrant onlyController {
+        if (to == address(0)) revert ZeroAddress();
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        uint256 have = accounted[token];
+        if (bal <= have) revert NothingToSweep();
+        IERC20(token).safeTransfer(to, bal - have);
     }
 }

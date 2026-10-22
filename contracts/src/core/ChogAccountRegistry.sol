@@ -3,26 +3,35 @@ pragma solidity ^0.8.24;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {IChogAccountRegistry, AccountInfo} from "./interfaces/IChogAccountRegistry.sol";
+import {
+    IChogAccountRegistry,
+    IChogCreditEscrow,
+    ICreditModule,
+    ReleaseBlocker,
+    AccountInfo
+} from "./interfaces/IChogAccountRegistry.sol";
 import {AccountVault} from "./AccountVault.sol";
+import {ChogCreditEscrow} from "./ChogCreditEscrow.sol";
 
 /// @title ChogAccountRegistry
-/// @notice Maps an existing Chog NFT (chainId, collection, tokenId) to exactly one portfolio vault.
-///         It never mints an identity NFT. The collection and asset allowlists are fixed at deployment and have no
-///         setter, so no EOA can widen them later.
-/// @dev GATE B SCOPE. Control is derived from the collection's live `ownerOf`. That is only safe while the vault holds
-///      nothing: a sale of the NFT would hand over the vault. `allowWalletHeldDeposits` is therefore false by
-///      default; it exists only so Gate B plumbing can be tested. Gate C replaces it with NFT escrow
-///      (`canAcceptAssets` becomes true only when the NFT is escrowed). Never deploy with it true outside local tests.
+/// @notice Maps an existing Chog NFT (chainId, collection, tokenId) to exactly one portfolio vault. It never mints an
+///         identity NFT. The collection and asset allowlists are fixed at deployment and have no setter.
+/// @dev GATE C. A vault may hold assets only while its Chog is in `escrow` (deployed by this constructor), so a sale of
+///      the NFT can never hand over a non-empty portfolio. Control is the beneficial owner while escrowed, otherwise
+///      the collection's live `ownerOf`. The single privileged action is `bindCreditModule`: the deployer ("binder")
+///      may bind the credit pool once so debt can block release and withdrawal. Production must make the binder a
+///      multisig/timelock or bind the pool in the deployment transaction.
 contract ChogAccountRegistry is IChogAccountRegistry {
     address public immutable vaultImplementation;
-    bool public immutable allowWalletHeldDeposits;
+    IChogCreditEscrow public immutable escrow;
+    address public immutable binder;
+    address public creditModule;
 
     mapping(address => bool) public isCollectionAllowed;
     mapping(address => bool) public isTokenAllowed;
     mapping(bytes32 => AccountInfo) private _accounts;
 
-    constructor(address[] memory collections, address[] memory tokens, bool walletHeldDeposits) {
+    constructor(address[] memory collections, address[] memory tokens) {
         if (collections.length == 0) revert EmptyAllowlist();
         for (uint256 i; i < collections.length; ++i) {
             address c = collections[i];
@@ -36,14 +45,19 @@ contract ChogAccountRegistry is IChogAccountRegistry {
             if (isTokenAllowed[t]) revert DuplicateEntry(t);
             isTokenAllowed[t] = true;
         }
-        allowWalletHeldDeposits = walletHeldDeposits;
+        binder = msg.sender;
         vaultImplementation = address(new AccountVault());
+        escrow = IChogCreditEscrow(address(new ChogCreditEscrow(address(this))));
     }
 
     // ---------------------------------------------------------------- views
 
     function accountKey(address collection, uint256 tokenId) public view returns (bytes32) {
         return keccak256(abi.encode(block.chainid, collection, tokenId));
+    }
+
+    function accountExists(bytes32 key) external view returns (bool) {
+        return _accounts[key].vault != address(0);
     }
 
     function accountInfo(bytes32 key) external view returns (AccountInfo memory info) {
@@ -62,6 +76,8 @@ contract ChogAccountRegistry is IChogAccountRegistry {
     function isController(bytes32 key, address who) external view returns (bool) {
         AccountInfo storage info = _accounts[key];
         if (info.vault == address(0) || who == address(0)) return false;
+        address beneficial = escrow.beneficialOwnerOf(key);
+        if (beneficial != address(0)) return beneficial == who;
         // Deliberately no `who.code.length` test: many Chog holders are EIP-7702-delegated EOAs and have code.
         try IERC721(info.collection).ownerOf(info.tokenId) returns (address holder) {
             return holder == who;
@@ -71,8 +87,45 @@ contract ChogAccountRegistry is IChogAccountRegistry {
     }
 
     function canAcceptAssets(bytes32 key) external view returns (bool) {
-        if (_accounts[key].vault == address(0)) return false;
-        return allowWalletHeldDeposits; // Gate C: escrowed(key)
+        return escrow.isEscrowed(key);
+    }
+
+    function debtOf(bytes32 key) public view returns (uint256) {
+        address module = creditModule;
+        if (module == address(0)) return 0;
+        try ICreditModule(module).debtOf(key) returns (uint256 d) {
+            return d;
+        } catch {
+            return type(uint256).max; // fail closed
+        }
+    }
+
+    function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker) {
+        address vault = _accounts[key].vault;
+        if (vault == address(0)) return ReleaseBlocker.UnknownAccount;
+        if (!AccountVault(vault).isEmpty()) return ReleaseBlocker.HasAssets;
+        address module = creditModule;
+        if (module == address(0)) return ReleaseBlocker.None;
+        try ICreditModule(module).debtOf(key) returns (uint256 d) {
+            if (d != 0) return ReleaseBlocker.HasDebt;
+        } catch {
+            return ReleaseBlocker.ModuleUnavailable;
+        }
+        try ICreditModule(module).hasPendingOperation(key) returns (bool pending) {
+            if (pending) return ReleaseBlocker.PendingOperation;
+        } catch {
+            return ReleaseBlocker.ModuleUnavailable;
+        }
+        return ReleaseBlocker.None;
+    }
+
+    /// @notice One-time wiring of the credit pool. Only the deployer, only once, never zero.
+    function bindCreditModule(address module) external {
+        if (msg.sender != binder) revert NotBinder();
+        if (creditModule != address(0)) revert ModuleAlreadyBound();
+        if (module == address(0)) revert ZeroAddress();
+        creditModule = module;
+        emit CreditModuleBound(module);
     }
 
     // ---------------------------------------------------------------- create
