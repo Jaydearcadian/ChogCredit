@@ -14,5 +14,8 @@ remappings = [
   "forge-std/=lib/forge-std/src/"
 ]
 
+[fuzz]
+runs = 1000
+
 [rpc_endpoints]
 monad_testnet = "${MONAD_TESTNET_RPC_URL}"

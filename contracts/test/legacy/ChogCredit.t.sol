@@ -2,9 +2,9 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {ChogPositionNFT} from "../src/ChogPositionNFT.sol";
-import {ChogCredit} from "../src/ChogCredit.sol";
-import {MockUSDC, MockCollateral} from "../src/MockTokens.sol";
+import {ChogPositionNFT} from "../../src/legacy/ChogPositionNFT.sol";
+import {ChogCredit} from "../../src/legacy/ChogCredit.sol";
+import {MockUSDC, MockCollateral} from "../../src/mocks/MockTokens.sol";
 
 contract ChogCreditTest is Test {
     MockUSDC internal usdc;

@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
+import {AccountVault} from "../../src/core/AccountVault.sol";
 
 interface IChogGenesis {
     function name() external view returns (string memory);
@@ -85,5 +87,29 @@ contract ChogGenesisForkTest is Test {
     function testLiveChogCanBeEscrowedByAContract_delegatedEoaHolder() external onlyFork {
         // Token 2's holder was a 7702-delegated EOA when this was written; the round trip must work either way.
         _roundTrip(2);
+    }
+
+    /// @dev The registry, pointed at the real collection, opens accounts for real holders (plain and 7702-delegated)
+    /// and refuses everyone else.
+    function testRegistryOpensAccountsForRealHolders() external onlyFork {
+        address[] memory cols = new address[](1);
+        cols[0] = CHOG;
+        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0), false);
+
+        for (uint256 id = 1; id <= 2; id++) {
+            address holder = chog.ownerOf(id);
+            vm.prank(holder);
+            address vault = registry.createAccount(CHOG, id);
+            assertEq(vault, registry.predictVault(CHOG, id));
+            bytes32 key = registry.accountKey(CHOG, id);
+            assertTrue(registry.isController(key, holder));
+            assertFalse(registry.isController(key, address(0xBAD)));
+            assertEq(AccountVault(vault).key(), key);
+        }
+
+        // someone who is not the holder cannot open an account for token 3
+        vm.prank(address(0xBAD));
+        vm.expectRevert();
+        registry.createAccount(CHOG, 3);
     }
 }
