@@ -72,7 +72,7 @@ This is a hand-run check, not a mutation-testing tool.
 4. **No beneficial-owner transfer exists yet.** To sell a funded Chog today the owner must empty the account, release the Chog and sell it normally. The package transfer (buyer-signed, atomic) is Gate E.
 5. **Only ERC-20 custody.** No ERC-721 positions, no native MON.
 6. **No solvency math.** Withdrawals are blocked outright while any debt is reported; the health-factor check arrives with the pool (Gate D).
-7. **Not done:** static analysis (Slither or similar), an independent review, gas review under Monad's charge-on-limit rule, a deployment script for the new core (`Deploy.s.sol` still deploys the legacy prototype), and the GitHub Actions workflow has still never run. The invariant suite uses 64 runs by default; a longer run (the earlier 256 runs took about 5 minutes) has been done once, with all six invariants passing, before the depth was reduced.
+7. **Not done:** static analysis (Slither or similar), an independent review, gas review under Monad's charge-on-limit rule, a deployment script for the new core (`Deploy.s.sol` still deploys the legacy prototype), and the GitHub Actions workflow has still never run. The invariant suite uses 64 runs by default; a longer run (256 runs, about 5 minutes, all six invariants passing) was done once, but **before** `release` was switched from `safeTransferFrom` to `transferFrom`, so it does not cover the final code. Re-run with `forge test --match-contract EscrowInvariantTest --invariant-runs 256` before relying on it.
 
 ## Next: Gate D
 
