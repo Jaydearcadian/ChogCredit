@@ -51,6 +51,7 @@ abstract contract CoreBase is Test {
     address internal alice = address(0xA11CE);
     address internal bob = address(0xB0B);
     address internal carol = address(0xCA201);
+    address internal rescuer = address(0xBE5C);
 
     function setUp() public virtual {
         chog = new MockChogGenesis(address(this));
@@ -67,7 +68,7 @@ abstract contract CoreBase is Test {
         toks[0] = address(usdc);
         toks[1] = address(feeToken);
         toks[2] = address(reToken);
-        registry = new ChogAccountRegistry(cols, toks); // this test contract is the binder
+        registry = new ChogAccountRegistry(cols, toks, address(this), rescuer); // this test contract is the binder
         escrow = ChogCreditEscrow(address(registry.escrow()));
         module = new MockCreditModule();
     }

@@ -120,7 +120,7 @@ contract ChogAccountRegistryTest is CoreBase {
         h.mint(alice, 1);
         address[] memory cols = new address[](1);
         cols[0] = address(h);
-        ChogAccountRegistry r = new ChogAccountRegistry(cols, new address[](0));
+        ChogAccountRegistry r = new ChogAccountRegistry(cols, new address[](0), address(this), address(0));
         vm.prank(alice);
         r.createAccount(address(h), 1);
         bytes32 key = r.accountKey(address(h), 1);
@@ -137,19 +137,19 @@ contract ChogAccountRegistryTest is CoreBase {
         address[] memory one = new address[](1);
         one[0] = address(chog);
         vm.expectRevert(IChogAccountRegistry.EmptyAllowlist.selector);
-        new ChogAccountRegistry(none, none);
+        new ChogAccountRegistry(none, none, address(this), address(0));
 
         address[] memory zero = new address[](1);
         vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
-        new ChogAccountRegistry(zero, none);
+        new ChogAccountRegistry(zero, none, address(this), address(0));
         vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
-        new ChogAccountRegistry(one, zero);
+        new ChogAccountRegistry(one, zero, address(this), address(0));
 
         address[] memory dup = new address[](2);
         dup[0] = address(chog);
         dup[1] = address(chog);
         vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.DuplicateEntry.selector, address(chog)));
-        new ChogAccountRegistry(dup, none);
+        new ChogAccountRegistry(dup, none, address(this), address(0));
     }
 
     function test_noAdminSurface() external view {

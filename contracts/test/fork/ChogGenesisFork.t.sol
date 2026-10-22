@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
 import {ChogCreditEscrow} from "../../src/core/ChogCreditEscrow.sol";
+import {AccountTransferCoordinator} from "../../src/core/AccountTransferCoordinator.sol";
 import {ReleaseBlocker} from "../../src/core/interfaces/IChogAccountRegistry.sol";
 
 interface IChogGenesis {
@@ -20,6 +21,12 @@ interface IChogGenesis {
 }
 
 /// @dev Minimal ERC-721 receiver standing in for the future escrow. Not production code.
+interface IERC20Min {
+    function balanceOf(address) external view returns (uint256);
+    function approve(address, uint256) external returns (bool);
+    function decimals() external view returns (uint8);
+}
+
 contract ForkReceiver {
     uint256 public received;
 
@@ -97,7 +104,7 @@ contract ChogGenesisForkTest is Test {
     function testRegistryOpensAccountsForRealHolders() external onlyFork {
         address[] memory cols = new address[](1);
         cols[0] = CHOG;
-        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0));
+        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0), address(this), address(0));
 
         for (uint256 id = 1; id <= 2; id++) {
             address holder = chog.ownerOf(id);
@@ -121,7 +128,7 @@ contract ChogGenesisForkTest is Test {
     function testLiveEscrowRoundTrip_realCollection() external onlyFork {
         address[] memory cols = new address[](1);
         cols[0] = CHOG;
-        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0));
+        ChogAccountRegistry registry = new ChogAccountRegistry(cols, new address[](0), address(this), address(0));
         ChogCreditEscrow escrow = ChogCreditEscrow(address(registry.escrow()));
 
         for (uint256 id = 1; id <= 2; id++) {
@@ -152,5 +159,80 @@ contract ChogGenesisForkTest is Test {
             assertEq(chog.ownerOf(id), holder, "the real Chog came back");
             assertEq(uint8(registry.releaseBlocker(key)), uint8(ReleaseBlocker.None));
         }
+    }
+
+    address internal constant REAL_USDC = 0x754704Bc059F8C67012fEd69BC8A327a5aafb603;
+    ChogAccountRegistry internal liveRegistry;
+    ChogCreditEscrow internal liveEscrow;
+    AccountTransferCoordinator internal liveCoord;
+    AccountVault internal liveVault;
+
+    function _liveFundedAccount(uint256 id, address seller) internal {
+        address[] memory cols = new address[](1);
+        cols[0] = CHOG;
+        address[] memory toks = new address[](1);
+        toks[0] = REAL_USDC;
+        liveRegistry = new ChogAccountRegistry(cols, toks, address(this), address(0));
+        liveEscrow = ChogCreditEscrow(address(liveRegistry.escrow()));
+        liveCoord = AccountTransferCoordinator(liveEscrow.coordinator());
+
+        deal(REAL_USDC, seller, 250e6);
+        vm.startPrank(seller);
+        liveVault = AccountVault(liveRegistry.createAccount(CHOG, id));
+        chog.safeTransferFrom(seller, address(liveEscrow), id);
+        IERC20Min(REAL_USDC).approve(address(liveVault), 250e6);
+        liveVault.depositERC20(REAL_USDC, 250e6);
+        vm.stopPrank();
+    }
+
+    function _liveSignedSale(uint256 id, address seller, address buyer, uint256 buyerPk)
+        internal
+        view
+        returns (AccountTransferCoordinator.Acceptance memory a, bytes memory sig)
+    {
+        a = AccountTransferCoordinator.Acceptance({
+            key: liveRegistry.accountKey(CHOG, id),
+            seller: seller,
+            buyer: buyer,
+            paymentToken: REAL_USDC,
+            price: 100e6,
+            stateNonce: liveVault.stateNonce(),
+            deadline: block.timestamp + 1 days,
+            salt: 1
+        });
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(buyerPk, liveCoord.hashAcceptance(a));
+        sig = abi.encodePacked(r, s, v);
+    }
+
+    /// @dev Package sale on the real collection, funded and paid with the REAL Circle USDC contract on Monad.
+    function testLiveSale_realChog_realUsdc() external onlyFork {
+        assertEq(IERC20Min(REAL_USDC).decimals(), 6);
+        uint256 id = 1;
+        address seller = chog.ownerOf(id);
+        (address buyer, uint256 buyerPk) = makeAddrAndKey("liveBuyer");
+        _liveFundedAccount(id, seller);
+        assertEq(liveVault.accounted(REAL_USDC), 250e6);
+
+        deal(REAL_USDC, buyer, 100e6);
+        vm.prank(buyer);
+        IERC20Min(REAL_USDC).approve(address(liveCoord), 100e6);
+        (AccountTransferCoordinator.Acceptance memory a, bytes memory sig) = _liveSignedSale(id, seller, buyer, buyerPk);
+
+        uint256 sellerBefore = IERC20Min(REAL_USDC).balanceOf(seller);
+        vm.prank(seller);
+        liveCoord.executeSale(a, sig);
+
+        bytes32 key = a.key;
+        assertEq(liveEscrow.beneficialOwnerOf(key), buyer);
+        assertEq(chog.ownerOf(id), address(liveEscrow), "the real Chog never left escrow");
+        assertEq(IERC20Min(REAL_USDC).balanceOf(seller) - sellerBefore, 100e6, "seller paid in real USDC");
+        assertEq(liveVault.accounted(REAL_USDC), 250e6, "portfolio moved with the Chog");
+
+        vm.startPrank(buyer);
+        liveVault.withdrawERC20(REAL_USDC, 250e6, buyer);
+        liveEscrow.release(CHOG, id, buyer);
+        vm.stopPrank();
+        assertEq(chog.ownerOf(id), buyer);
+        assertEq(IERC20Min(REAL_USDC).balanceOf(buyer), 250e6);
     }
 }

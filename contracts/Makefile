@@ -14,4 +14,4 @@ test:
 	forge test -vvv
 
 deploy-testnet:
-	forge script script/Deploy.s.sol:Deploy --rpc-url monad_testnet --broadcast -vvvv
+	DEPLOY_MODE=testnet-mock forge script script/DeployCore.s.sol:DeployCore --rpc-url monad_testnet --broadcast -vvvv

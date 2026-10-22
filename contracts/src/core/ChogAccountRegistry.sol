@@ -31,7 +31,9 @@ contract ChogAccountRegistry is IChogAccountRegistry {
     mapping(address => bool) public isTokenAllowed;
     mapping(bytes32 => AccountInfo) private _accounts;
 
-    constructor(address[] memory collections, address[] memory tokens) {
+    /// @param binder_ may bind the credit module once; use a deployment contract/multisig, or address(0) for none.
+    /// @param rescuer_ may recover stranded (unrecorded) tokens from the escrow after a delay; address(0) disables it.
+    constructor(address[] memory collections, address[] memory tokens, address binder_, address rescuer_) {
         if (collections.length == 0) revert EmptyAllowlist();
         for (uint256 i; i < collections.length; ++i) {
             address c = collections[i];
@@ -45,9 +47,9 @@ contract ChogAccountRegistry is IChogAccountRegistry {
             if (isTokenAllowed[t]) revert DuplicateEntry(t);
             isTokenAllowed[t] = true;
         }
-        binder = msg.sender;
+        binder = binder_;
         vaultImplementation = address(new AccountVault());
-        escrow = IChogCreditEscrow(address(new ChogCreditEscrow(address(this))));
+        escrow = IChogCreditEscrow(address(new ChogCreditEscrow(address(this), rescuer_)));
     }
 
     // ---------------------------------------------------------------- views
@@ -104,6 +106,11 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         address vault = _accounts[key].vault;
         if (vault == address(0)) return ReleaseBlocker.UnknownAccount;
         if (!AccountVault(vault).isEmpty()) return ReleaseBlocker.HasAssets;
+        return liabilityBlocker(key);
+    }
+
+    function liabilityBlocker(bytes32 key) public view returns (ReleaseBlocker) {
+        if (_accounts[key].vault == address(0)) return ReleaseBlocker.UnknownAccount;
         address module = creditModule;
         if (module == address(0)) return ReleaseBlocker.None;
         try ICreditModule(module).debtOf(key) returns (uint256 d) {
@@ -138,7 +145,7 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         if (existing != address(0)) revert AccountExists(key, existing);
 
         // A missing token reverts inside ownerOf; surface it as NotTokenOwner rather than a raw revert.
-        address holder;
+        address holder = address(0);
         try IERC721(collection).ownerOf(tokenId) returns (address h) {
             holder = h;
         } catch {}
@@ -146,7 +153,7 @@ contract ChogAccountRegistry is IChogAccountRegistry {
 
         vault = Clones.cloneDeterministic(vaultImplementation, key);
         _accounts[key] = AccountInfo(collection, tokenId, vault, uint64(block.timestamp));
-        AccountVault(vault).initialize(address(this), key);
         emit AccountCreated(key, collection, tokenId, vault, msg.sender);
+        AccountVault(vault).initialize(address(this), key);
     }
 }

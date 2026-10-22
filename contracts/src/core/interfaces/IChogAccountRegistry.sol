@@ -28,6 +28,9 @@ interface ICreditModule {
 interface IChogCreditEscrow {
     function beneficialOwnerOf(bytes32 key) external view returns (address);
     function isEscrowed(bytes32 key) external view returns (bool);
+    function coordinator() external view returns (address);
+    /// @notice Only the transfer coordinator may call this. Moves the beneficial owner of an escrowed account.
+    function transferBeneficialOwnership(bytes32 key, address newOwner) external;
 }
 
 interface IChogAccountRegistry {
@@ -66,4 +69,6 @@ interface IChogAccountRegistry {
     /// @notice Debt reported by the credit module; fails closed (max) if the module reverts. Zero if none is bound.
     function debtOf(bytes32 key) external view returns (uint256);
     function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker);
+    /// @notice Like `releaseBlocker` but ignores held assets: only debt, pending operations and module failure.
+    function liabilityBlocker(bytes32 key) external view returns (ReleaseBlocker);
 }

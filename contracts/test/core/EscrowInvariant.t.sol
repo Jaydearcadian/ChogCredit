@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
 import {ChogCreditEscrow} from "../../src/core/ChogCreditEscrow.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
+import {AccountTransferCoordinator} from "../../src/core/AccountTransferCoordinator.sol";
 import {MockChogGenesis} from "../../src/mocks/MockChogGenesis.sol";
 import {MockUSDC} from "../../src/mocks/MockTokens.sol";
 
@@ -14,7 +15,11 @@ contract EscrowHandler is Test {
     MockUSDC public usdc;
     ChogAccountRegistry public registry;
     ChogCreditEscrow public escrow;
-    address[3] public actors = [address(0xA1), address(0xB2), address(0xC3)];
+    address[3] public actors;
+    uint256[3] internal _pks = [uint256(0xA1), 0xB2, 0xC3];
+    AccountTransferCoordinator public coord;
+    uint256 public ghostSales;
+    uint256 internal _salt;
     uint256[3] public ids = [uint256(1), 2, 3];
     uint256 public ghostDeposited;
     uint256 public ghostWithdrawn;
@@ -24,6 +29,10 @@ contract EscrowHandler is Test {
         usdc = u;
         registry = r;
         escrow = ChogCreditEscrow(address(r.escrow()));
+        coord = AccountTransferCoordinator(escrow.coordinator());
+        for (uint256 i; i < 3; i++) {
+            actors[i] = vm.addr(_pks[i]);
+        }
     }
 
     function _a(uint256 s) internal view returns (address) {
@@ -87,12 +96,51 @@ contract EscrowHandler is Test {
         } catch {}
     }
 
+    /// @dev Debt-free signed sale between actors, price 0 so no payment plumbing; reverts are skipped.
+    function sell(uint256 i, uint256 b) external {
+        uint256 id = _id(i);
+        bytes32 key = registry.accountKey(address(chog), id);
+        address seller = escrow.beneficialOwnerOf(key);
+        if (seller == address(0)) return;
+        uint256 bi = b % 3;
+        address buyer = actors[bi];
+        if (buyer == seller) return;
+        AccountTransferCoordinator.Acceptance memory a = AccountTransferCoordinator.Acceptance({
+            key: key,
+            seller: seller,
+            buyer: buyer,
+            paymentToken: address(usdc),
+            price: 0,
+            stateNonce: AccountVault(registry.vaultOf(address(chog), id)).stateNonce(),
+            deadline: block.timestamp + 1 days,
+            salt: ++_salt
+        });
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_pks[bi], coord.hashAcceptance(a));
+        vm.prank(seller);
+        try coord.executeSale(a, abi.encodePacked(r, s, v)) {
+            ++ghostSales;
+        } catch {}
+    }
+
+    function rescue(uint256 i) external {
+        // the rescuer tries to pull any token out: it must only ever succeed for unrecorded (stranded) tokens
+        uint256 id = _id(i);
+        vm.startPrank(RESCUER);
+        try escrow.requestRescue(address(chog), id, RESCUER) {
+            vm.warp(block.timestamp + 3 days);
+            try escrow.executeRescue(address(chog), id) {} catch {}
+        } catch {}
+        vm.stopPrank();
+    }
+
     function donate(uint256 i, uint256 amt) external {
         address v = registry.vaultOf(address(chog), _id(i));
         if (v == address(0)) return;
         deal(address(usdc), v, usdc.balanceOf(v) + bound(amt, 1, 1_000e6));
     }
 }
+
+address constant RESCUER = address(0xBE5C);
 
 contract EscrowInvariantTest is Test {
     MockChogGenesis chog;
@@ -108,7 +156,7 @@ contract EscrowInvariantTest is Test {
         cols[0] = address(chog);
         address[] memory toks = new address[](1);
         toks[0] = address(usdc);
-        registry = new ChogAccountRegistry(cols, toks);
+        registry = new ChogAccountRegistry(cols, toks, address(this), RESCUER);
         escrow = ChogCreditEscrow(address(registry.escrow()));
         handler = new EscrowHandler(chog, usdc, registry);
         for (uint256 i; i < 3; i++) {
@@ -164,6 +212,35 @@ contract EscrowInvariantTest is Test {
             if (v != address(0)) sumAccounted += AccountVault(v).accounted(address(usdc));
         }
         assertEq(sumAccounted, handler.ghostDeposited() - handler.ghostWithdrawn(), "accounting drift");
+    }
+
+    function invariant_beneficialOwnerAlwaysControls() external view {
+        for (uint256 i; i < 3; i++) {
+            bytes32 key = registry.accountKey(address(chog), handler.ids(i));
+            address ben = escrow.beneficialOwnerOf(key);
+            if (ben != address(0)) assertTrue(registry.isController(key, ben), "beneficial owner lost control");
+        }
+    }
+
+    /// @dev Guards against a vacuous invariant campaign: the handler's own sale and rescue paths really execute.
+    function test_handlerPathsAreNotVacuous() external {
+        handler.openAccount(0, 0);
+        handler.depositChog(0, 0);
+        bytes32 key = registry.accountKey(address(chog), 1);
+        address first = handler.actors(0);
+        assertEq(escrow.beneficialOwnerOf(key), first);
+
+        handler.sell(0, 1); // actor 0 sells account 1 to actor 1 for free
+        assertEq(handler.ghostSales(), 1, "sale did not execute");
+        assertEq(escrow.beneficialOwnerOf(key), handler.actors(1));
+
+        // strand token 2 with a plain transferFrom, then let the handler's rescuer recover it
+        handler.openAccount(1, 1);
+        handler.plainTransferToEscrow(1, 1);
+        assertEq(chog.ownerOf(2), address(escrow));
+        handler.rescue(1);
+        assertEq(chog.ownerOf(2), RESCUER, "stranded token was not rescued");
+        assertFalse(escrow.isEscrowed(registry.accountKey(address(chog), 2)));
     }
 
     function invariant_oneVaultPerKey() external view {

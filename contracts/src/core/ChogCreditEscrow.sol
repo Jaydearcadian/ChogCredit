@@ -5,19 +5,32 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IChogAccountRegistry, IChogCreditEscrow, ReleaseBlocker} from "./interfaces/IChogAccountRegistry.sol";
+import {AccountTransferCoordinator} from "./AccountTransferCoordinator.sol";
 
 /// @title ChogCreditEscrow
 /// @notice Holds the original Chog NFT while its account carries assets, positions or debt, and records the
 ///         beneficial owner. `ownerOf(tokenId)` on the collection is this contract while escrowed; the beneficial
 ///         owner is recorded here.
 /// @dev Trust boundary. There is no owner, admin, pause or rescue function. The only way out is `release`, callable
-///      by the beneficial owner when the account is empty and clear of liabilities. Deposit is by
-///      `safeTransferFrom` into `onERC721Received`: NFTs sent with plain `transferFrom`, or from collections that
-///      are not on the registry allowlist, are NOT recorded and cannot be recovered. The UI must only use
-///      `safeTransferFrom`. Created by the registry in its constructor.
+///      by the beneficial owner when the account is empty and clear of liabilities, or the package sale in the
+///      `coordinator` that this contract creates. Deposit is by `safeTransferFrom` into `onERC721Received`.
+///      Tokens sent with plain `transferFrom` are NOT recorded; the optional `rescuer` can recover such stranded
+///      tokens after `RESCUE_DELAY`, and can never touch a recorded token. Created by the registry in its
+///      constructor. The UI must only use `safeTransferFrom`.
 contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard {
+    uint256 public constant RESCUE_DELAY = 3 days;
+
     IChogAccountRegistry public immutable registry;
+    address public immutable coordinator;
+    address public immutable rescuer;
     mapping(bytes32 => address) private _beneficial;
+
+    struct Rescue {
+        address to;
+        uint64 readyAt;
+    }
+
+    mapping(bytes32 => Rescue) public rescues;
 
     error NotRegistry();
     error CollectionNotAllowed(address collection);
@@ -28,13 +41,25 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
     error NotEscrowed(bytes32 key);
     error NotBeneficialOwner(bytes32 key, address caller);
     error ReleaseBlocked(bytes32 key, ReleaseBlocker reason);
+    error NotCoordinator();
+    error NotRescuer();
+    error RescueDisabled();
+    error NotStranded(address collection, uint256 tokenId);
+    error RescueNotReady(uint256 readyAt);
+    error NoRescuePending();
 
     event Escrowed(bytes32 indexed key, address indexed collection, uint256 indexed tokenId, address beneficialOwner);
     event Released(bytes32 indexed key, address indexed collection, uint256 indexed tokenId, address to);
+    event BeneficialOwnerChanged(bytes32 indexed key, address indexed from, address indexed to);
+    event RescueRequested(address indexed collection, uint256 indexed tokenId, address to, uint256 readyAt);
+    event RescueCancelled(address indexed collection, uint256 indexed tokenId);
+    event RescueExecuted(address indexed collection, uint256 indexed tokenId, address to);
 
-    constructor(address registry_) {
+    constructor(address registry_, address rescuer_) {
         if (registry_ == address(0)) revert ZeroAddress();
         registry = IChogAccountRegistry(registry_);
+        rescuer = rescuer_;
+        coordinator = address(new AccountTransferCoordinator(registry_, address(this)));
     }
 
     function beneficialOwnerOf(bytes32 key) external view returns (address) {
@@ -83,5 +108,56 @@ contract ChogCreditEscrow is IChogCreditEscrow, IERC721Receiver, ReentrancyGuard
         // may run a delegate that lacks the ERC-721 receiver hook, and marketplaces such as Seaport also use
         // transferFrom. The beneficial owner chooses `to` and bears the risk of a non-receiving contract.
         IERC721(collection).transferFrom(address(this), to, tokenId);
+    }
+
+    // ---------------------------------------------------------------- package sale hook
+
+    /// @notice Called only by the transfer coordinator after it has verified buyer consent, payment and account state.
+    function transferBeneficialOwnership(bytes32 key, address newOwner) external {
+        if (msg.sender != coordinator) revert NotCoordinator();
+        address old = _beneficial[key];
+        if (old == address(0)) revert NotEscrowed(key);
+        if (newOwner == address(0)) revert ZeroAddress();
+        _beneficial[key] = newOwner;
+        emit BeneficialOwnerChanged(key, old, newOwner);
+    }
+
+    // ---------------------------------------------------------------- stranded-token rescue
+
+    /// @dev A token is "stranded" when the collection says this contract holds it but no beneficial owner is recorded.
+    ///      A recorded token can never pass this check, so the rescuer has no power over any account.
+    function _requireStranded(address collection, uint256 tokenId) internal view returns (bytes32 key) {
+        if (rescuer == address(0)) revert RescueDisabled();
+        if (msg.sender != rescuer) revert NotRescuer();
+        key = registry.accountKey(collection, tokenId);
+        if (_beneficial[key] != address(0)) revert NotStranded(collection, tokenId);
+        if (IERC721(collection).ownerOf(tokenId) != address(this)) revert NotStranded(collection, tokenId);
+    }
+
+    function requestRescue(address collection, uint256 tokenId, address to) external {
+        if (to == address(0)) revert ZeroAddress();
+        bytes32 key = _requireStranded(collection, tokenId);
+        uint64 readyAt = uint64(block.timestamp + RESCUE_DELAY);
+        rescues[key] = Rescue(to, readyAt);
+        emit RescueRequested(collection, tokenId, to, readyAt);
+    }
+
+    function cancelRescue(address collection, uint256 tokenId) external {
+        bytes32 key = registry.accountKey(collection, tokenId);
+        if (rescuer == address(0)) revert RescueDisabled();
+        if (msg.sender != rescuer) revert NotRescuer();
+        if (rescues[key].readyAt == 0) revert NoRescuePending();
+        delete rescues[key];
+        emit RescueCancelled(collection, tokenId);
+    }
+
+    function executeRescue(address collection, uint256 tokenId) external nonReentrant {
+        bytes32 key = _requireStranded(collection, tokenId);
+        Rescue memory r = rescues[key];
+        if (r.readyAt == 0) revert NoRescuePending();
+        if (block.timestamp < r.readyAt) revert RescueNotReady(r.readyAt);
+        delete rescues[key];
+        emit RescueExecuted(collection, tokenId, r.to);
+        IERC721(collection).transferFrom(address(this), r.to, tokenId);
     }
 }
