@@ -165,6 +165,7 @@ export function reason(e: unknown): string {
     [/BorrowCapExceeded/, 'The pool has reached its borrow limit for now.'],
     [/NothingToClaim/, 'Nothing has arrived to add.'],
     [/AssetsNotAccepted/, 'Lock the Chog in escrow first.'],
+    [/insufficient funds|exceeds the balance|Missing or invalid parameters/i, 'Not enough MON in your wallet to pay for gas. Monad charges for the gas limit, so keep a little extra.'],
     [/insufficient allowance|ERC20InsufficientAllowance/i, 'Approve the token first.'],
     [/ERC20InsufficientBalance|exceeds balance/i, 'Not enough in your wallet.'],
     [/user rejected|denied/i, 'You rejected it in the wallet. Nothing changed.'],
