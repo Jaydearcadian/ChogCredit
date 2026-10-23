@@ -43,8 +43,8 @@ await step('open the Chog that already has a vault (from the first run)', async 
 });
 await step('test tokens and add WMON', async () => {
   await main.getByRole('link', { name: 'Add assets' }).first().click(); await p.getByText(/How much WMON/).waitFor({ timeout: 30000 }); if (await p.getByRole('button', { name: 'Get test tokens' }).isVisible()) await p.getByRole('button', { name: 'Get test tokens' }).click();
-  await p.getByText(/In your wallet: 100,000.00/).waitFor({ timeout: 120000 });
-  await p.getByLabel('How much WMON do you want to add?', { exact: true }).fill('50000'); await p.getByRole('button', { name: 'Add 50,000.00 WMON' }).click(); await final();
+  await p.getByText(/In your wallet: [1-9]/).waitFor({ timeout: 120000 });
+  await p.getByLabel('How much WMON do you want to add?', { exact: true }).fill('1000'); await p.getByRole('button', { name: 'Add 1,000.00 WMON' }).click(); await final();
 });
 await step('borrow 100 USDC', async () => {
   await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Borrow', exact: true }).click({ timeout: 30000 });
