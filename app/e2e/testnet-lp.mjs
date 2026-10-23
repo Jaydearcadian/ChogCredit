@@ -24,7 +24,7 @@ await ctx.exposeBinding('__rpc', async (_s, method, params) => retry(async () =>
     case 'eth_accounts': return authorized ? [account.address] : []; // like a real wallet: nothing until the user connects
     case 'eth_chainId': return '0x279f';
     case 'wallet_switchEthereumChain': case 'wallet_addEthereumChain': return null;
-    case 'eth_sendTransaction': { const t = params[0]; return wal.sendTransaction({ to: t.to, data: t.data, value: t.value ? BigInt(t.value) : 0n, gas: t.gas ? BigInt(t.gas) : undefined }); }
+    case 'eth_sendTransaction': { const t = params[0]; try { return await wal.sendTransaction({ to: t.to, data: t.data, value: t.value ? BigInt(t.value) : 0n, gas: t.gas ? BigInt(t.gas) : undefined }); } catch (e) { console.log('SENDFAIL to', t.to, 'sel', String(t.data).slice(0, 10), 'gas', t.gas, '|', String(e.shortMessage ?? e.message).slice(0, 200), '|', String(e.cause?.message ?? '').slice(0, 300)); throw e; } }
     case 'eth_signTypedData_v4': { const d = JSON.parse(params[1]); const { EIP712Domain, ...types } = d.types; return account.signTypedData({ domain: d.domain, types, primaryType: d.primaryType, message: d.message }); }
     default: return pub.request({ method, params });
   }
@@ -39,7 +39,7 @@ const main = p.locator('main');
 const final = () => p.getByText('Final on Monad.').first().waitFor({ timeout: 90000 });
 const shot = (n) => p.screenshot({ path: `shots/${n}.png` });
 const t0 = Date.now();
-const step = async (name, fn) => { const s = Date.now(); try { await fn(); console.log('ok  ', name, `${((Date.now() - s) / 1000).toFixed(1)}s`); } catch (e) { console.log('FAIL', name, String(e.message).split('\n')[0]); await shot('fail'); console.log((await main.innerText().catch(() => '')).slice(0, 500)); console.log(errs); await b.close(); process.exit(1); } };
+const step = async (name, fn) => { const s = Date.now(); try { await fn(); console.log('ok  ', name, `${((Date.now() - s) / 1000).toFixed(1)}s`); } catch (e) { console.log('ERRS', JSON.stringify(errs.filter((x) => x.startsWith('rpcerr') || x.startsWith('rpc ')).slice(-4))); console.log('FAIL', name, String(e.message).split('\n')[0]); await shot('fail'); console.log((await main.innerText().catch(() => '')).slice(0, 500)); console.log(errs); await b.close(); process.exit(1); } };
 
 await step('connect', async () => { await p.goto(URL); await p.getByRole('button', { name: 'Connect wallet' }).click(); await p.getByRole('button', { name: 'Browser Wallet' }).click({ timeout: 5000 }).catch(() => {}); await p.getByRole('heading', { name: 'Pick your Chog' }).waitFor({ timeout: 30000 }); });
 await step('get a test Chog and open its vault (or reuse the one from an earlier run)', async () => {
@@ -68,15 +68,14 @@ await step('borrow against it', async () => {
   await p.getByLabel('How much do you want to borrow?', { exact: true }).fill('25'); await p.getByRole('button', { name: 'Borrow 25.00 USDC' }).click(); await final();
   await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Repay', exact: true }).waitFor({ timeout: 60000 });
 });
-await step('the position can leave only if the rest of the vault still covers the loan', async () => {
-  // This wallet's vault also holds WMON from earlier runs, so the position is not needed to back the loan and is offered for withdrawal.
-  await main.getByRole('link', { name: 'Withdraw', exact: true }).click(); await p.getByRole('button', { name: /^Withdraw position #/ }).waitFor({ timeout: 60000 }); await shot('lp-3-withdraw');
+await step('the position cannot leave while it backs the loan', async () => {
+  await main.getByRole('link', { name: 'Withdraw', exact: true }).click(); await p.getByText('It backs your loan. Repay first.').first().waitFor({ timeout: 60000 }); await shot('lp-3-locked');
 });
 await step('repay, then take it back', async () => {
   await main.getByRole('link', { name: 'Cancel' }).click(); await main.getByRole('link', { name: 'Repay', exact: true }).click();
   await p.getByRole('button', { name: /Repay all/ }).click(); await p.getByText('Debt-free. Look at you.').waitFor({ timeout: 90000 }); await final();
   await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Withdraw', exact: true }).click();
-  await p.getByRole('button', { name: /^Withdraw position #/ }).click(); await p.getByText('Nothing in the vault').waitFor({ timeout: 90000 });
+  await p.getByRole('button', { name: /^Withdraw position #/ }).first().click(); await final();
 });
 console.log('total', ((Date.now() - t0) / 1000).toFixed(0), 's; errors:', errs);
 await b.close();
