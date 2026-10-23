@@ -1,6 +1,6 @@
 # Sale sequence: Sell with Vault
 
-Covers the seller's offer, the buyer's signed bounds, execution, and the automatic cancel branch.
+Covers the seller's offer, the buyer's signed bounds, execution, and the branch where execution reverts.
 
 ```mermaid
 sequenceDiagram
@@ -22,8 +22,8 @@ sequenceDiagram
     alt Prices or loan moved outside signed bounds
         C->>P: Read current loan
         P-->>C: Loan outside bounds
-        C-->>UI: Sale cancelled automatically
-        UI-->>S: Cancelled with reason, account unchanged
+        C-->>UI: Execution reverts (bounds not met)
+        UI-->>S: Can't complete, with reason; account unchanged
     else Bounds still hold
         UI->>C: Execute with signed bounds
         alt Execution succeeds
@@ -41,5 +41,5 @@ sequenceDiagram
 Notes
 
 - The package moves as one unit, or it does not move. There is no partial transfer.
-- The automatic cancel applies when prices or the loan move outside the signed bounds before execution.
+- Execution reverts, and the app shows it as can't complete, when prices or the loan move outside the signed bounds before execution.
 - Execution is not offered while prices are paused, since the bounds depend on vault value and health. This is to be confirmed against the coordinator spec.
