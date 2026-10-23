@@ -45,11 +45,11 @@ export function Header({ title, back }: { title?: string; back?: string }) {
   );
 }
 
-export function Shell({ children, tabs = true, register = 'ledger', title, back, enter = true }: {
-  children: ReactNode; tabs?: boolean; register?: 'ledger' | 'chog'; title?: string; back?: string; enter?: boolean;
+export function Shell({ children, tabs = true, register = 'ledger', title, back, enter = true, wide = false }: {
+  children: ReactNode; tabs?: boolean; register?: 'ledger' | 'chog'; title?: string; back?: string; enter?: boolean; wide?: boolean;
 }) {
   return (
-    <div className={`shell ${register === 'chog' ? 'cream' : ''} ${tabs ? '' : 'no-tabs'}`}>
+    <div className={`shell ${register === 'chog' ? 'cream' : ''} ${tabs ? '' : 'no-tabs'} ${wide ? 'wide' : ''}`}>
       <Header title={title} back={back} />
       <SoundOffer />
       <main className={enter ? 'enter' : undefined}>{children}</main>

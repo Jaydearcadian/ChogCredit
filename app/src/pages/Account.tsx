@@ -27,8 +27,12 @@ export default function Account() {
 
   return (
     <Shell>
+      <div className="account-grid">
+      <div className="col">
       <ChogFrame id={id} morph prop={PROP[status]} />
       <div className="note small">{Icon.lock()}<span>Chog #{id} is in its vault. It stays while {owes ? 'you owe' : 'the vault holds assets'}.</span></div>
+      </div>
+      <div className="col">
 
       <section className={`card health-card ${paused ? 'paused' : ''}`} aria-label="Health">
         <HealthRing fill={ringFill(status, d.healthFactorBps)} label={label} paused={paused} />
@@ -69,6 +73,8 @@ export default function Account() {
       <div className="row small" style={{ marginTop: 8 }}>
         {owes ? <Link to="/release" viewTransition>Release the Chog</Link> : <span />}
         <Link to="/settings" viewTransition>Settings</Link>
+      </div>
+      </div>
       </div>
     </Shell>
   );

@@ -33,8 +33,11 @@ function HealthAfter({ h }: { h: { status: Status; label: string } }) {
 
 /** A focused flow: Back and the screen's name in the header, no tab bar, the main action at the bottom (board 4, phone 2). */
 function Flow({ title, children }: { title: string; children: ReactNode }) {
-  const { wallet } = useApp();
+  const { wallet, chogs } = useApp();
   if (!wallet) return <Navigate to="/" replace />;
+  if (chogs && !chogs.some((c) => c.state === 'escrowed')) {
+    return <Shell tabs={false} title={title} back="/pick"><h1>No Chog in a vault</h1><Bubble>Hm, what's in here?</Bubble><p className="muted">Open a vault for a Chog first.</p><Link to="/pick" viewTransition className="btn cta block">Pick a Chog</Link></Shell>;
+  }
   return <Shell tabs={false} title={title} back="/account">{children}</Shell>;
 }
 function Bottom({ children }: { children: ReactNode }) {
