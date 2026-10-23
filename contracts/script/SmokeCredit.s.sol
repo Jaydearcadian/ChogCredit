@@ -19,6 +19,7 @@ contract SmokeCredit is Script {
         MockChogGenesis chog;
         MockUSDC usdc;
         TestToken wmon;
+        TestToken chogToken;
         ChogAccountRegistry registry;
         ChogCreditEscrow escrow;
         ChogCreditPool pool;
@@ -38,6 +39,7 @@ contract SmokeCredit is Script {
         c.chog = MockChogGenesis(vm.parseJsonAddress(json, ".mockChogGenesis"));
         c.usdc = MockUSDC(vm.parseJsonAddress(json, ".mockUsdc"));
         c.wmon = TestToken(vm.parseJsonAddress(json, ".mockWmon"));
+        c.chogToken = TestToken(vm.parseJsonAddress(json, ".mockChogToken"));
         c.registry = ChogAccountRegistry(vm.parseJsonAddress(json, ".registry"));
         c.escrow = ChogCreditEscrow(vm.parseJsonAddress(json, ".escrow"));
         c.pool = ChogCreditPool(vm.parseJsonAddress(json, ".pool"));
@@ -73,6 +75,12 @@ contract SmokeCredit is Script {
         ChogCreditPool.AccountData memory d = c.pool.accountData(c.key);
         require(d.priceOk && d.borrowPower == 800e6, "unexpected borrowing power");
 
+        // the vault also holds mock $CHOG: it is allowed, worth nothing as collateral, and always withdrawable
+        c.chogToken.mint(c.me, 1_000_000e18);
+        c.chogToken.approve(address(vault), 1_000_000e18);
+        vault.depositERC20(address(c.chogToken), 1_000_000e18);
+        require(c.pool.accountData(c.key).borrowPower == 800e6, "CHOG must add no borrowing power");
+
         c.pool.borrow(c.key, 500e6);
         require(c.pool.debtOf(c.key) == 500e6, "debt not recorded");
         // cannot leave with debt outstanding
@@ -83,6 +91,7 @@ contract SmokeCredit is Script {
         require(c.pool.debtOf(c.key) == 0, "not repaid");
 
         vault.withdrawERC20(address(c.wmon), 100_000e18, c.me);
+        vault.withdrawERC20(address(c.chogToken), 1_000_000e18, c.me);
         c.escrow.release(address(c.chog), c.id, c.me);
         require(c.chog.ownerOf(c.id) == c.me, "Chog not returned");
         c.pool.redeem(shares);

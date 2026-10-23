@@ -32,6 +32,8 @@ contract ChogCreditForkTest is Test {
     address internal constant CHOG = 0xc96d31F8626c6D03Fae5dCD3d61e3FB9F4a73763;
     address internal constant USDC = 0x754704Bc059F8C67012fEd69BC8A327a5aafb603;
     address internal constant WMON = 0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A;
+    address internal constant CHOG_TOKEN = 0x350035555E10d9AfAF1566AaebfCeD5BA6C27777;
+    address internal constant CHOG_POOL = 0xde4c4a5d91ed23964A7b636D2b15Edf51f4A7A6D; // holds some real $CHOG
     address internal constant CL_MON = 0xBcD78f76005B7515837af6b50c7C52BCf73822fb;
     address internal constant RS_MON = 0x1C9582E87eD6E99bc23EC0e6Eb52eE9d7C0D6bcd;
     address internal constant CL_USDC = 0xf5F15f188AbCB0d165D1Edb7f37F7d6fA2fCebec;
@@ -64,7 +66,8 @@ contract ChogCreditForkTest is Test {
         ChogCreditFactory.Params memory p;
         p.collections = new address[](1);
         p.collections[0] = CHOG;
-        p.extraTokens = new address[](0);
+        p.extraTokens = new address[](1);
+        p.extraTokens[0] = CHOG_TOKEN; // held in vaults, never collateral
         p.rescuer = address(0);
         p.pool = ChogCreditPool.PoolConfig({
             loanToken: USDC,
@@ -130,6 +133,35 @@ contract ChogCreditForkTest is Test {
     }
 
     // ---- tests
+    /// @dev The REAL $CHOG token inside a REAL Chog's vault: accepted without a fee-on-transfer failure, worth nothing
+    ///      as collateral, withdrawable at any time.
+    function testRealChogToken_canBeHeldInAVault_andAddsNoCredit() external onlyFork {
+        _supplyRealUsdc(50_000e6);
+        _openRealAccount(1, 100_000e18);
+        uint256 powerBefore = pool.accountData(key).borrowPower;
+        // take some real $CHOG from the thin CHOG/WMON pool's balance and give it to the real holder
+        uint256 amt = 10e18;
+        uint256 owned = IERC20Fork(CHOG_TOKEN).balanceOf(holder); // the real holder already owns some
+        vm.prank(CHOG_POOL);
+        (bool sent,) = CHOG_TOKEN.call(abi.encodeWithSignature("transfer(address,uint256)", holder, amt));
+        require(sent, "could not source real CHOG");
+        assertEq(IERC20Fork(CHOG_TOKEN).balanceOf(holder), owned + amt);
+
+        vm.startPrank(holder);
+        IERC20Fork(CHOG_TOKEN).approve(address(vault), amt);
+        vault.depositERC20(CHOG_TOKEN, amt); // the vault's balance-delta check would reject a fee-on-transfer token
+        vm.stopPrank();
+        assertEq(vault.accounted(CHOG_TOKEN), amt);
+        assertEq(pool.accountData(key).borrowPower, powerBefore, "real CHOG adds no borrowing power");
+
+        // borrow to the limit, then take the CHOG back out: always allowed
+        vm.startPrank(holder);
+        pool.borrow(key, powerBefore);
+        vault.withdrawERC20(CHOG_TOKEN, amt, holder);
+        vm.stopPrank();
+        assertEq(IERC20Fork(CHOG_TOKEN).balanceOf(holder), owned + amt);
+    }
+
     function testRealOracle_pricesWmonInUsdcSensibly() external onlyFork {
         uint256 v = oracle.quote(WMON, 1_000e18); // value of 1,000 MON in USDC raw units
         emit log_named_uint("1,000 WMON in USDC raw", v);

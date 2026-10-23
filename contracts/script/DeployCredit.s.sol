@@ -36,6 +36,7 @@ contract DeployCredit is Script {
         MockChogGenesis chog;
         MockUSDC usdc;
         TestToken wmon;
+        TestToken chogToken; // mock $CHOG: held in vaults, never collateral
         MockOracle oracle;
         ChogCreditFactory factory;
         bool lp;
@@ -55,6 +56,7 @@ contract DeployCredit is Script {
         d.chog = new MockChogGenesis(d.deployer);
         d.usdc = new MockUSDC();
         d.wmon = new TestToken("Mock Wrapped MON", "mWMON", 18);
+        d.chogToken = new TestToken("Mock CHOG", "mCHOG", 18);
         d.oracle = new MockOracle();
         d.oracle.setPrice(address(d.wmon), vm.envOr("WMON_PRICE_USDC", uint256(20_000)));
         uint256 seed = vm.envOr("SEED_CHOGS", uint256(0));
@@ -73,7 +75,9 @@ contract DeployCredit is Script {
     function _params(Deployed memory d) internal view returns (ChogCreditFactory.Params memory p) {
         p.collections = new address[](1);
         p.collections[0] = address(d.chog);
-        p.extraTokens = new address[](0);
+        // $CHOG is vault-allowed so it travels with the Chog, but it is not collateral (no liquidity to liquidate into).
+        p.extraTokens = new address[](1);
+        p.extraTokens[0] = address(d.chogToken);
         p.rescuer = vm.envOr("RESCUER", address(0));
         p.pool = ChogCreditPool.PoolConfig({
             loanToken: address(d.usdc),
@@ -139,6 +143,10 @@ contract DeployCredit is Script {
         require(r.creditModule() == address(pl), "pool not bound");
         require(r.isCollectionAllowed(address(d.chog)), "collection not allowlisted");
         require(r.isTokenAllowed(address(d.wmon)), "collateral not vault-allowed");
+        require(r.isTokenAllowed(address(d.chogToken)), "CHOG token not vault-allowed");
+        for (uint256 i; i < pl.collateralCount(); ++i) {
+            require(pl.collateralAt(i).token != address(d.chogToken), "CHOG token must not be collateral");
+        }
         require(address(pl.registry()) == address(r), "pool wiring");
         require(address(pl.oracle()) == address(d.oracle), "oracle wiring");
         require(d.usdc.decimals() == 6, "usdc decimals");
@@ -156,6 +164,7 @@ contract DeployCredit is Script {
         vm.serializeAddress(k, "mockChogGenesis", address(d.chog));
         vm.serializeAddress(k, "mockUsdc", address(d.usdc));
         vm.serializeAddress(k, "mockWmon", address(d.wmon));
+        vm.serializeAddress(k, "mockChogToken", address(d.chogToken));
         vm.serializeAddress(k, "mockOracle", address(d.oracle));
         vm.serializeAddress(k, "factory", address(d.factory));
         vm.serializeAddress(k, "registry", address(r));

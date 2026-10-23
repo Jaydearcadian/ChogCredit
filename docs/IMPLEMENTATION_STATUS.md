@@ -140,6 +140,7 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Credit-module binder | **Closed:** `ChogCreditFactory` binds the pool in its constructor | `docs/evidence/GATE_D.md` |
 | Debt-bearing package sales | **Done in source (Gate E1):** buyer-signed bounds on debt, collateral value and health, optional atomic payoff; 29 new tests, fork test with real holders, 21/21 mutants caught. Not deployed, not audited, legal review pending | `docs/evidence/GATE_E1.md` |
 | LP-position collateral | **Done in source (Gate E2):** oracle-priced Uniswap V3 positions, vault custody, unwind-first liquidation; maths matches the real position manager to the wei on a fork; real end-to-end liquidation on a fork; invariants and mutation checks. Not deployed, not audited | `docs/evidence/GATE_E2.md` |
+| $CHOG held in vaults | **Done (Gate E3):** allowed as a vault-only token with zero credit value; not collateral (no liquidity). Real token tested on a fork. Implementation of the real token not reviewed | `docs/evidence/GATE_E3.md` |
 | Second-market adapter | **Not built** (deferred by the project owner until after the rest) | n/a |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |

@@ -68,6 +68,11 @@ abstract contract CreditBase is Test {
 
     function _noLp() internal pure returns (ChogCreditPool.LpConfig memory lp) {}
 
+    /// @dev Override to allow more tokens in vaults that are not collateral; the default is none.
+    function _extraTokens() internal virtual returns (address[] memory) {
+        return new address[](0);
+    }
+
     /// @dev Override to enable Uniswap V3 positions; the default is none.
     function _lpConfig() internal virtual returns (ChogCreditPool.LpConfig memory) {
         return _noLp();
@@ -85,7 +90,7 @@ abstract contract CreditBase is Test {
         factory = new ChogCreditFactory(
             ChogCreditFactory.Params({
                 collections: collections,
-                extraTokens: new address[](0),
+                extraTokens: _extraTokens(),
                 rescuer: address(0),
                 pool: pc,
                 collaterals: cols,

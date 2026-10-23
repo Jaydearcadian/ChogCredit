@@ -190,9 +190,19 @@
         },
         "chogToken": {
           "enable": false,
-          "reason": "CHOG/WMON pool returns ~2.4 WMON for any sale; no liquidation depth"
+          "reason": "CHOG/WMON pool holds ~47 CHOG; selling 10,000 CHOG returns ~2.4 WMON. No liquidation depth, so it cannot be collateral.",
+          "vaultAllowlist": true,
+          "countsAsCredit": false
         }
-      }
+      },
+      "vaultOnlyTokens": [
+        {
+          "symbol": "CHOG",
+          "address": "0x350035555E10d9AfAF1566AaebfCeD5BA6C27777",
+          "decimals": 18,
+          "note": "Pass as ChogCreditFactory.Params.extraTokens on any real deployment. Held in a vault and sold with the Chog; worth zero as credit and always withdrawable. A fork test moved real CHOG with no transfer fee. The token is a minimal clone of a shared implementation whose controls were not reviewed."
+        }
+      ]
     },
     "testnet": {
       "chainId": 10143,

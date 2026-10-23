@@ -294,7 +294,7 @@ Fallback if the chain is slow: the same script on a local fork, labelled as such
 9. **Proof.** 279 tests, 37 + 21 mutants caught, a real mainnet-fork liquidation, a real debt-bearing sale with real Chog holders. Honest footer: testnet, mock assets, no audit.
 10. **The ask / what's next.** Testnet deployment, audit, the marketplace adapter, then mainnet.
 
-**The $CHOG bonus, honestly.** We have not integrated $CHOG, and our liquidity measurement shows its pool is too thin to be collateral. Do not claim the bonus. A possible later idea is a fee discount paid in $CHOG; it is not built.
+**The $CHOG bonus, honestly.** $CHOG cannot be collateral (its pool is too thin). What we did build: a vault can hold $CHOG, worth zero credit, so it travels with the Chog in a package sale (Gate E3). That is a small, honest integration; do not present it as more. A fee discount paid in $CHOG is not built.
 
 **Final wow moment.** The Pause Drill: the presenter flips the (mock) oracle off live, Borrow greys out, Repay stays green, and the Chog bubble says "Prices are napping. Repay still works." Then flips it back. It shows safety, personality and craft in 10 seconds.
 
