@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { parseAbi } from 'viem';
-import { ABI, loadWalletPositions, maxWithdrawable, previewBorrowPowerGain, type AccountView, type PositionRow } from '../chain/api';
+import { ABI, MAX_POSITIONS, loadWalletPositions, maxWithdrawable, previewBorrowPowerGain, type AccountView, type PositionRow } from '../chain/api';
 import { fmt, fmtUsdc, healthNumber, parseAmount } from '../chain/format';
 import { hasPositions } from '../chain/config';
 import { statusOf, type Status } from '../chain/status';
@@ -350,6 +350,7 @@ function PositionAdder({ acct }: { acct: AccountView }) {
     return () => { live = false; };
   }, [pc, dep, wallet, tick, tx.stage, faucet.stage]);
   const done = tx.stage === 'confirmed' || tx.stage === 'final';
+  const full = acct.positions.length >= MAX_POSITIONS && !done;
   const sel = list?.find((x) => x.id === picked) ?? null;
   const add = async () => {
     if (!sel) return;
@@ -374,10 +375,11 @@ function PositionAdder({ acct }: { acct: AccountView }) {
       ))}
       {sel && <div className="card"><div className="kv"><span>Borrow limit now</span><span className="num">{fmtUsdc(acct.data.borrowPower)} USDC</span></div><span className="tiny muted">An estimate of the new limit is shown on your account once the position is in. Per-account caps can count less.</span></div>}
       <div className="note">{Icon.lock()}<span>The position moves into your vault. It stays while it backs a loan; Withdraw gives it back when the loan allows.</span></div>
+      {full && <div className="banner paused" role="status">{Icon.lock()}<div><b>This vault is full</b><p>A vault holds up to {MAX_POSITIONS} pool positions. Withdraw one to add another.</p></div></div>}
       <TxSteps title={done ? 'Added' : `Add position #${sel ? String(sel.id) : ''}`} tx={tx} />
       <Bottom>
         {test && !tx.busy && <button className="btn secondary block" disabled={faucet.busy} onClick={mint}>{faucet.busy ? <Busy /> : 'Get a test position'}</button>}
-        {done ? <Done /> : <><button className="btn cta block" disabled={!sel || !sel.accepted || tx.busy} onClick={add}>{tx.busy ? <Busy /> : sel ? `Add position #${String(sel.id)}` : 'Pick a position'}</button><Cancel /></>}
+        {done ? <Done /> : <><button className="btn cta block" disabled={!sel || !sel.accepted || tx.busy || full} onClick={add}>{tx.busy ? <Busy /> : full ? 'Vault is full' : sel ? `Add position #${String(sel.id)}` : 'Pick a position'}</button><Cancel /></>}
       </Bottom>
     </>
   );

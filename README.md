@@ -64,3 +64,14 @@ npm run dev                                # http://127.0.0.1:5173/?dev=1
 - Legal review is pending for selling accounts that carry debt. The Chog team has not confirmed use of the Chog name or art, so art is a neutral placeholder.
 - Admin and emergency-recovery roles are switched off. Phone wallets over WalletConnect need a WalletConnect project ID (`VITE_WALLETCONNECT_PROJECT_ID`).
 - Real browser wallets and phones have had limited testing; the browser walks use a stand-in wallet.
+
+## Keeping testnet prices real
+
+The testnet price source is a mock oracle. `app/scripts/price-keeper.mjs` copies the live MON/USD Chainlink price from Monad mainnet onto it, and onto the mock Uniswap pool so pool positions stay priceable:
+
+```bash
+cd app && KEEPER_KEY=<deployer testnet key> node scripts/price-keeper.mjs            # every 5 minutes
+cd app && KEEPER_KEY=<deployer testnet key> node scripts/price-keeper.mjs --once     # one pass
+```
+
+It refuses mainnet, skips while a Pause Drill is on, skips a stale feed, and writes only when the price moved by 0.5% or 30 minutes passed. The key must be the oracle owner (the deployer) and must be a testnet-only key.
