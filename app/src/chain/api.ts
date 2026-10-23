@@ -1,5 +1,5 @@
 import type { Abi, Address, Hex, PublicClient } from 'viem';
-import { zeroAddress } from 'viem';
+import { parseAbi, zeroAddress } from 'viem';
 import vaultAbi from '../abi/AccountVault.json';
 import registryAbi from '../abi/ChogAccountRegistry.json';
 import escrowAbi from '../abi/ChogCreditEscrow.json';
@@ -7,12 +7,13 @@ import poolAbi from '../abi/ChogCreditPool.json';
 import chogAbi from '../abi/MockChogGenesis.json';
 import erc20Abi from '../abi/ERC20Mock.json';
 import coordinatorAbi from '../abi/AccountTransferCoordinator.json';
-import type { Deployment } from './config';
+import pmAbi from '../abi/PositionManager.json';
+import { hasPositions, type Deployment } from './config';
 import type { Wallet } from './wallet';
 
 export const ABI = {
   vault: vaultAbi as Abi, registry: registryAbi as Abi, escrow: escrowAbi as Abi,
-  pool: poolAbi as Abi, chog: chogAbi as Abi, erc20: erc20Abi as Abi, coordinator: coordinatorAbi as Abi,
+  pool: poolAbi as Abi, chog: chogAbi as Abi, erc20: erc20Abi as Abi, coordinator: coordinatorAbi as Abi, pm: pmAbi as Abi,
 };
 
 export type PoolAccount = {
@@ -25,7 +26,11 @@ export type ChogRow = { id: number; key: Hex; state: ChogState; vault: Address |
 
 export type TokenRow = { symbol: string; address: Address; decimals: number; counts: boolean; accounted: bigint; waiting: bigint; wallet: bigint };
 
+/** A Uniswap V3 position: what it is and what the pool would count it for. */
+export type PositionRow = { id: bigint; pair: string; fee: number; value: bigint; valueOk: boolean; accepted: boolean; withdrawAllowed?: boolean };
+
 export type AccountView = {
+  positions: PositionRow[];
   id: number; key: Hex; vault: Address; escrowed: boolean; data: PoolAccount; tokens: TokenRow[];
   usdcWallet: bigint; borrowRateBps: bigint; poolLiquidity: bigint; releaseBlocker: number; stateNonce: bigint;
 };
@@ -95,7 +100,9 @@ export async function loadAccount(pc: PublicClient, dep: Deployment, user: Addre
     const accounted = rest[i * 3] as bigint, held = rest[i * 3 + 1] as bigint, wallet = rest[i * 3 + 2] as bigint;
     return { ...t, accounted, waiting: held > accounted ? held - accounted : 0n, wallet };
   });
+  const positions = hasPositions(dep) ? await loadVaultPositions(pc, dep, key, vault) : [];
   return {
+    positions,
     id, key, vault, escrowed, data, tokens, usdcWallet: tokens[1].wallet,
     borrowRateBps: rate, poolLiquidity: liquidity, releaseBlocker: Number(blocker), stateNonce: nonce,
   };
@@ -229,3 +236,40 @@ export async function loadLend(pc: PublicClient, dep: Deployment, user: Address 
 }
 
 export const sharesFor = (pc: PublicClient, dep: Deployment, assets: bigint) => read<bigint>(pc, dep.pool, ABI.pool, 'convertToShares', [assets]);
+
+
+const SYMBOL: Record<string, string> = {};
+async function pairOf(pc: PublicClient, a: Address, b: Address) {
+  const sym = async (t: Address) => SYMBOL[t.toLowerCase()] ??= await read<string>(pc, t, parseAbi(['function symbol() view returns (string)']) as Abi, 'symbol').catch(() => `${t.slice(0, 6)}…`);
+  return `${(await sym(a)).replace(/^m/, '')} / ${(await sym(b)).replace(/^m/, '')}`;
+}
+
+async function describePosition(pc: PublicClient, dep: Deployment, id: bigint): Promise<PositionRow> {
+  const pmAddr = dep.mockPositionManager!;
+  const pos = (await read<unknown[]>(pc, pmAddr, ABI.pm, 'positions', [id])) as unknown[];
+  // positions(): nonce, operator, token0, token1, fee, tickLower, tickUpper, liquidity, ...
+  const [token0, token1, fee] = [pos[2] as Address, pos[3] as Address, Number(pos[4])];
+  const [accepted, value, pair] = await Promise.all([
+    read<boolean>(pc, dep.pool, ABI.pool, 'positionAccepted', [id]).catch(() => false),
+    read<[boolean, bigint]>(pc, dep.pool, ABI.pool, 'positionValue', [id]).catch(() => [false, 0n] as [boolean, bigint]),
+    pairOf(pc, token0, token1),
+  ]);
+  return { id, pair, fee, value: value[1], valueOk: value[0], accepted };
+}
+
+/** Positions in a wallet, listed through the position manager's enumeration (the real one has it too). */
+export async function loadWalletPositions(pc: PublicClient, dep: Deployment, user: Address): Promise<PositionRow[]> {
+  if (!hasPositions(dep)) return [];
+  const n = Number(await read<bigint>(pc, dep.mockPositionManager!, ABI.pm, 'balanceOf', [user]));
+  const ids = await Promise.all(Array.from({ length: Math.min(n, 20) }, (_, i) => read<bigint>(pc, dep.mockPositionManager!, ABI.pm, 'tokenOfOwnerByIndex', [user, BigInt(i)])));
+  return Promise.all(ids.map((id) => describePosition(pc, dep, id)));
+}
+
+async function loadVaultPositions(pc: PublicClient, dep: Deployment, key: Hex, vault: Address): Promise<PositionRow[]> {
+  const n = Number(await read<bigint>(pc, vault, ABI.vault, 'positionCount'));
+  const ids = await Promise.all(Array.from({ length: n }, (_, i) => read<bigint>(pc, vault, ABI.vault, 'positionAt', [BigInt(i)])));
+  return Promise.all(ids.map(async (id) => ({
+    ...(await describePosition(pc, dep, id)),
+    withdrawAllowed: await read<boolean>(pc, dep.registry, ABI.registry, 'positionWithdrawAllowed', [key, id]).catch(() => false),
+  })));
+}

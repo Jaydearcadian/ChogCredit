@@ -12,6 +12,10 @@ export type Deployment = {
   mockChogToken: Address;
   mockUsdc: Address;
   mockWmon: Address;
+  /** Pool positions as collateral: a mock Uniswap V3 position manager and pool, when the deployment has them. */
+  lpEnabled?: boolean;
+  mockPositionManager?: Address;
+  mockUniswapPool?: Address;
   /** The wallet that deployed, which owns the mock price source on a test deployment. */
   deployer?: Address;
   /** Test deployments: hands one mock Chog to each address. */
@@ -47,3 +51,5 @@ export async function loadDeployment(): Promise<Deployment> {
 
 /** Test deployments use mock assets and a mock oracle. Never show them as real money. */
 export const isTestDeployment = (d: Deployment) => d.chainId !== 143;
+
+export const hasPositions = (d: Deployment) => !!d.lpEnabled && !!d.mockPositionManager && d.mockPositionManager !== '0x0000000000000000000000000000000000000000';

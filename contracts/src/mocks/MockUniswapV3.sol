@@ -110,6 +110,25 @@ contract MockPositionManager {
         require(o != address(0), "Invalid token ID");
     }
 
+    /// @dev ERC721Enumerable subset the real NonfungiblePositionManager has, so the app lists positions the same way.
+    ///      Linear scans: fine for a mock.
+    function balanceOf(address who) public view returns (uint256 n) {
+        for (uint256 i = 1; i < nextId; i++) {
+            if (_owner[i] == who) ++n;
+        }
+    }
+
+    function tokenOfOwnerByIndex(address who, uint256 index) external view returns (uint256) {
+        uint256 seen;
+        for (uint256 i = 1; i < nextId; i++) {
+            if (_owner[i] == who) {
+                if (seen == index) return i;
+                ++seen;
+            }
+        }
+        revert("index out of bounds");
+    }
+
     function approve(address spender, uint256 id) external {
         address o = ownerOf(id);
         require(msg.sender == o || isApprovedForAll[o][msg.sender], "not owner");

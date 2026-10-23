@@ -23,7 +23,7 @@ export default function Account() {
   const label = status === 'nodebt' ? '\u221e' : paused ? '--' : (healthNumber(d.healthFactorBps) ?? '--');
   const canBorrow = d.priceOk && d.availableToBorrow > 0n;
   const borrowWhy = !d.priceOk ? 'Borrow paused' : acct.poolLiquidity === 0n ? 'Pool is empty' : 'Limit reached';
-  const empty = acct.tokens.every((t) => t.accounted === 0n);
+  const empty = acct.tokens.every((t) => t.accounted === 0n) && acct.positions.length === 0;
 
   return (
     <Shell>
@@ -80,6 +80,12 @@ export default function Account() {
       </div>
 
       </>)}
+      {acct.positions.length > 0 && (
+        <section className="card">
+          <b className="small">Pool positions in the vault</b>
+          {acct.positions.map((x) => <div className="kv" key={String(x.id)}><span>#{String(x.id)}  {x.pair}</span><span className="num">{x.valueOk ? `$${fmtUsdc(x.value)}` : 'No price now'}</span></div>)}
+        </section>
+      )}
       <Bubble>{empty && !owes ? "Hm, what's in here?" : BUBBLE[status]}</Bubble>
 
       <div className="row small" style={{ marginTop: 8 }}>
