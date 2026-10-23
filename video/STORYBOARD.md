@@ -20,3 +20,5 @@
 | 8 | 1:21 | Close | Cream. Wordmark with the pink full stop, URL typed in. | Chog Credit. Live on Monad testnet. Look around first, no wallet needed. |
 
 Rebuild: `node app/e2e/footage.mjs` (after `app/e2e/reset.sh`), `node video/clips.mjs`, `cd video/demo && node build.mjs && npx hyperframes render -o renders/chog-credit-demo.mp4`.
+
+Generated assets (not committed, about 25 MB): `video/demo/assets/` holds the voiceover WAVs (`npx hyperframes tts "<line>" -o assets/vo/sN.wav -v am_adam -s 0.98`, then `npx hyperframes transcribe` for word timings), the ambient bed and trimmed effects (ffmpeg, from the bundled `media-use` effects), the Baloo 2 and Gaegu fonts from Google Fonts, and `gsap.min.js`. The script lines are in the table above.
