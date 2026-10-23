@@ -1,6 +1,6 @@
 # Debt-Bearing Package Sales: Specification (draft v0.1)
 
-Status: **design only, nothing implemented.** Builds on the debt-free sale in `AccountTransferCoordinator`. Open decisions are in section 9. Risk reference: R-09 (Critical), R-30 (legal).
+Status: **design only, nothing implemented.** Builds on the debt-free sale in `AccountTransferCoordinator`. Decisions in section 9 are settled; legal review (item 5) remains an external dependency. Risk reference: R-09 (Critical), R-30 (legal).
 
 ## 1. What is being sold
 
@@ -118,7 +118,7 @@ Residual risks, to document and not hide:
 - Fork test: a real Chog with a real USDC loan on the mainnet fork, including an oracle-outage case.
 - Static analysis: re-run Slither and review new findings.
 
-## 9. Decisions needed before building
+## 9. Decisions (accepted: all six recommendations below were approved by the project owner)
 
 1. **Payoff in v1?** It adds a repay step and a token restriction. Recommendation: yes, because it is the cleanest way for a seller to hand over a smaller loan.
 2. **Payment token.** Recommendation: any token when `debtRepay == 0`, and the loan token only when `debtRepay > 0`.

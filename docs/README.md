@@ -12,6 +12,7 @@ This documentation set describes the revised Chogathon product: financial utilit
 - [`MONAD_REFERENCE.md`](MONAD_REFERENCE.md): verified Monad network facts, Chog contract reads, token/infra/DEX/oracle addresses, pool depth, tooling notes and open items. Machine-readable copy in `../config/monad-reference.json`; re-verify with `../scripts/verify_monad_reference.py`.
 - [`BUILD_PLAN.md`](BUILD_PLAN.md): what the research changed, scope tiers, workstreams W0 to W9 with tests, a relative day plan against the Chogathon criteria, and decisions needed.
 - [`DEBT_BEARING_SALES_SPEC.md`](DEBT_BEARING_SALES_SPEC.md): draft design for selling a Chog account together with its debt (signed bounds, atomic payoff, attack table, test plan, open decisions). Not implemented.
+- [`LP_COLLATERAL_SPEC.md`](LP_COLLATERAL_SPEC.md): draft design for Uniswap V3 LP positions as vault collateral (oracle-based valuation, custody, liquidation unwind, attack table). Not implemented.
 - [`evidence/GATE_A.md`](evidence/GATE_A.md): exact toolchain, commands and results for the Foundry baseline.
 - [`evidence/GATE_B.md`](evidence/GATE_B.md): account registry and vault results, mutation check, and the limits to know before relying on them.
 - [`evidence/GATE_C.md`](evidence/GATE_C.md): NFT escrow, beneficial-owner control and release rules; invariants, mutation check and the trust assumptions to review.
