@@ -6,6 +6,7 @@ import {ChogCreditFactory} from "../src/credit/ChogCreditFactory.sol";
 import {ChogCreditPool} from "../src/credit/ChogCreditPool.sol";
 import {ChogAccountRegistry} from "../src/core/ChogAccountRegistry.sol";
 import {ChogCreditEscrow} from "../src/core/ChogCreditEscrow.sol";
+import {ChogFaucet} from "../src/mocks/ChogFaucet.sol";
 import {MockChogGenesis} from "../src/mocks/MockChogGenesis.sol";
 import {MockUSDC} from "../src/mocks/MockTokens.sol";
 import {MockOracle} from "../src/mocks/MockOracles.sol";
@@ -34,6 +35,8 @@ contract DeployCredit is Script {
         string commit;
         address deployer;
         MockChogGenesis chog;
+        ChogFaucet faucet;
+        uint256 deployBlock;
         MockUSDC usdc;
         TestToken wmon;
         TestToken chogToken; // mock $CHOG: held in vaults, never collateral
@@ -63,6 +66,10 @@ contract DeployCredit is Script {
         for (uint256 i = 1; i <= seed; i++) {
             d.chog.mint(d.deployer, i);
         }
+        // anyone can claim one mock Chog, so a test deployment can be tried without the deployer's help
+        d.faucet = new ChogFaucet(d.chog, seed + 1);
+        d.chog.grantRole(d.chog.MINTER_ROLE(), address(d.faucet));
+        d.deployBlock = block.number;
         d.lp = vm.envOr("ENABLE_LP", false);
         if (d.lp) _deployMockLp(d);
         d.factory = new ChogCreditFactory(_params(d));
@@ -162,6 +169,8 @@ contract DeployCredit is Script {
         vm.serializeString(k, "sourceCommit", d.commit);
         vm.serializeAddress(k, "deployer", d.deployer);
         vm.serializeAddress(k, "mockChogGenesis", address(d.chog));
+        vm.serializeAddress(k, "chogFaucet", address(d.faucet));
+        vm.serializeUint(k, "deployBlock", d.deployBlock);
         vm.serializeAddress(k, "mockUsdc", address(d.usdc));
         vm.serializeAddress(k, "mockWmon", address(d.wmon));
         vm.serializeAddress(k, "mockChogToken", address(d.chogToken));

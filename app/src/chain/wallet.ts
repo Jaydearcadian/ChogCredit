@@ -9,13 +9,18 @@ const injected = () => (window as unknown as { ethereum?: Eip1193 }).ethereum;
 
 export const hasInjected = () => !!injected();
 
-/** First default Anvil key. Dev builds only, and only when the URL asks for it (?dev=1). Never on a live network. */
-const ANVIL_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
+/** Anvil's well-known test keys. Dev builds only, local chain only, and only when the URL asks (?dev=1 is the first
+ *  account, ?dev=2 the second, so a seller and a buyer can be played in two tabs). Never on a live network. */
+const ANVIL_KEYS = [
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+  '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+] as const;
 export const devWalletAllowed = (chainId: number) => {
   if (!import.meta.env.DEV || chainId !== 31337) return false;
   try {
-    if (new URLSearchParams(location.search).has('dev')) sessionStorage.setItem('chog-credit:dev', '1'); // sticky for this tab: links drop the query
-    return sessionStorage.getItem('chog-credit:dev') === '1';
+    const q = new URLSearchParams(location.search).get('dev');
+    if (q !== null) sessionStorage.setItem('chog-credit:dev', q === '2' ? '2' : '1'); // sticky for this tab: links drop the query
+    return sessionStorage.getItem('chog-credit:dev') !== null;
   } catch { return new URLSearchParams(location.search).has('dev'); }
 };
 
@@ -42,7 +47,9 @@ export async function connectInjected(chainId: number): Promise<Wallet> {
 }
 
 export function connectDev(chainId: number): Wallet {
-  const account = privateKeyToAccount(ANVIL_KEY);
+  let i = 0;
+  try { i = sessionStorage.getItem('chog-credit:dev') === '2' ? 1 : 0; } catch { /* default to the first key */ }
+  const account = privateKeyToAccount(ANVIL_KEYS[i]);
   const client = createWalletClient({ account, chain: chainFor(chainId), transport: http() });
   return { address: account.address, client, account, kind: 'dev' };
 }

@@ -42,3 +42,31 @@ export function Amount({ label, unit, decimals, max, value, onChange, error, fix
     </div>
   );
 }
+
+/** A big mono figure without a range: for amounts that are your own call, like a sale price. */
+export function Figure({ label, unit, value, onChange, error, hint }: { label: string; unit: string; value: string; onChange(v: string): void; error?: string | null; hint?: string }) {
+  const id = useId();
+  return (
+    <div className={`amount ${error ? 'error' : ''}`}>
+      <label htmlFor={id}>{label}</label>
+      <div className="figure">
+        <input id={id} className="big" inputMode="decimal" autoComplete="off" placeholder="0.00" value={value} aria-invalid={!!error} aria-describedby={error ? `${id}-e` : undefined} onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))} />
+        <span className="unit">{unit}</span>
+      </div>
+      {hint && !error && <span className="tiny muted">{hint}</span>}
+      {error && <div id={`${id}-e`} role="alert" className="err">{Icon.alert}<span>{error}</span></div>}
+    </div>
+  );
+}
+
+/** A plain text field (addresses), label above, error below. */
+export function TextField({ label, value, onChange, error, placeholder }: { label: string; value: string; onChange(v: string): void; error?: string | null; placeholder?: string }) {
+  const id = useId();
+  return (
+    <div className={`amount ${error ? 'error' : ''}`}>
+      <label htmlFor={id}>{label}</label>
+      <input id={id} className="text-input" autoComplete="off" spellCheck={false} placeholder={placeholder} value={value} aria-invalid={!!error} aria-describedby={error ? `${id}-e` : undefined} onChange={(e) => onChange(e.target.value.trim())} />
+      {error && <div id={`${id}-e`} role="alert" className="err">{Icon.alert}<span>{error}</span></div>}
+    </div>
+  );
+}

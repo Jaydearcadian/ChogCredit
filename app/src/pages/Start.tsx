@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { parseAbi } from 'viem';
+import { TxSteps, useTx } from '../components/tx';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Bubble, ChogFrame, Icon, PixelKey, Slip } from '../components/brand';
 import { Shell } from '../components/chrome';
@@ -44,8 +46,10 @@ export function Connect() {
 
 /** S1 Pick your Chog (onboarding, cream). Each Chog is a card you can pick; the frame morphs into the next screen. */
 export function Pick() {
-  const { wallet, chogs } = useApp();
+  const { wallet, chogs, dep, test } = useApp();
   const nav = useNavigate();
+  const faucet = useTx();
+  const claim = () => faucet.run([{ address: dep.chogFaucet!, abi: parseAbi(['function claim() returns (uint256)']), functionName: 'claim', args: [] }]);
   if (!wallet) return <Navigate to="/" replace />;
   const go = (id: number, escrowed: boolean) => { setSelected(id); nav(escrowed ? '/account' : `/open/${id}`, { viewTransition: true }); };
   return (
@@ -59,6 +63,11 @@ export function Pick() {
           <Bubble>Hm, what's in here?</Bubble>
           <b>No Chog in this wallet.</b>
           <span className="small muted">Switch wallet, or check that the Chog sits in this one.</span>
+          {test && dep.chogFaucet && <>
+            <button className="btn cta block" disabled={faucet.busy} onClick={claim}>{faucet.busy ? 'Check your wallet' : 'Get a test Chog'}</button>
+            <span className="tiny muted">Test network only: a mock Chog Genesis, one per wallet. It is not the real collection.</span>
+          </>}
+          <TxSteps title="Test Chog" tx={faucet} />
         </div>
       )}
       {chogs?.map((c) => (

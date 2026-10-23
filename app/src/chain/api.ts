@@ -6,12 +6,13 @@ import escrowAbi from '../abi/ChogCreditEscrow.json';
 import poolAbi from '../abi/ChogCreditPool.json';
 import chogAbi from '../abi/MockChogGenesis.json';
 import erc20Abi from '../abi/ERC20Mock.json';
+import coordinatorAbi from '../abi/AccountTransferCoordinator.json';
 import type { Deployment } from './config';
 import type { Wallet } from './wallet';
 
 export const ABI = {
   vault: vaultAbi as Abi, registry: registryAbi as Abi, escrow: escrowAbi as Abi,
-  pool: poolAbi as Abi, chog: chogAbi as Abi, erc20: erc20Abi as Abi,
+  pool: poolAbi as Abi, chog: chogAbi as Abi, erc20: erc20Abi as Abi, coordinator: coordinatorAbi as Abi,
 };
 
 export type PoolAccount = {
@@ -150,6 +151,17 @@ export function reason(e: unknown): string {
     [/insufficient allowance|ERC20InsufficientAllowance/i, 'Approve the token first.'],
     [/ERC20InsufficientBalance|exceeds balance/i, 'Not enough in your wallet.'],
     [/user rejected|denied/i, 'You rejected it in the wallet. Nothing changed.'],
+    [/StateChanged/, 'The vault changed after the buyer signed. Ask them to sign again.'],
+    [/EpochChanged|SellerNotBeneficialOwner/, 'This Chog changed hands after the buyer signed.'],
+    [/Expired/, 'The offer ran out of time. Make a new one.'],
+    [/AlreadyUsed/, 'This signature was already used or cancelled.'],
+    [/InvalidSignature/, "The buyer's signature does not match these terms."],
+    [/HasLiabilities/, 'The account has a loan, so it needs the sale-with-loan path.'],
+    [/AlreadyLiquidatable/, 'The account can be liquidated right now, so it cannot be sold.'],
+    [/DebtAboveCeiling/, "The loan is now above the most the buyer agreed to."],
+    [/CollateralBelowFloor/, 'The vault is now worth less than the buyer agreed to.'],
+    [/HealthBelowFloor/, 'Health is now below what the buyer agreed to.'],
+    [/PaymentShortfall/, "The buyer's payment did not arrive in full."],
   ];
   for (const [re, text] of known) if (re.test(m)) return text;
   return m.split('\n')[0].slice(0, 160);

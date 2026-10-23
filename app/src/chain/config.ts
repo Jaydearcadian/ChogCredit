@@ -12,6 +12,10 @@ export type Deployment = {
   mockChogToken: Address;
   mockUsdc: Address;
   mockWmon: Address;
+  /** Test deployments: hands one mock Chog to each address. */
+  chogFaucet?: Address;
+  /** First block to read history from. */
+  deployBlock?: number;
 };
 
 const RPC: Record<number, string> = {
@@ -31,7 +35,8 @@ export function chainFor(chainId: number) {
 }
 
 export async function loadDeployment(): Promise<Deployment> {
-  const res = await fetch('/deployment.json', { cache: 'no-store' });
+  // A hosted build points at a committed manifest (VITE_DEPLOYMENT); local work uses public/deployment.json.
+  const res = await fetch(import.meta.env.VITE_DEPLOYMENT ?? '/deployment.json', { cache: 'no-store' });
   if (!res.ok) throw new Error('No deployment.json found. Run scripts/use-local-deployment.sh or point the app at a deployment.');
   return (await res.json()) as Deployment;
 }

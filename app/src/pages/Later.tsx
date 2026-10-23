@@ -4,7 +4,7 @@ import { Shell } from '../components/chrome';
 import { Chip } from '../components/status';
 import { useApp } from '../state';
 
-function Soon({ title, why }: { title: string; why: string }) {
+export function Soon({ title, why }: { title: string; why: string }) {
   const { wallet } = useApp();
   if (!wallet) return <Navigate to="/" replace />;
   return (
@@ -19,9 +19,6 @@ function Soon({ title, why }: { title: string; why: string }) {
     </Shell>
   );
 }
-export const Activity = () => <Soon title="Activity" why="The record of everything this account did: time, action, amount, and Submitted, Confirmed or Final." />;
-export const Sell = () => <Soon title="Sell with Vault" why="Sell the Chog with everything in its vault, loan included. The contracts are done; these screens come next." />;
-
 /** S18 Risk: the plain explainer. */
 export function Risk() {
   const { wallet } = useApp();
