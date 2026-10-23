@@ -38,7 +38,7 @@ export function Web3({ dep, children }: { dep: Deployment; children: ReactNode }
       ? [{ groupName: 'Popular', wallets: [metaMaskWallet, rabbyWallet, phantomWallet, coinbaseWallet, rainbowWallet, walletConnectWallet] }, { groupName: 'Other', wallets: [injectedWallet] }]
       : [{ groupName: 'Wallets', wallets: [injectedWallet, rabbyWallet, phantomWallet, coinbaseWallet] }];
     const connectors = connectorsForWallets(groups, { appName: 'Chog Credit', projectId: projectId ?? '' });
-    return createConfig({ chains: [chain], connectors, transports: { [chain.id]: http() }, ssr: false });
+    return createConfig({ chains: [chain], connectors, transports: { [chain.id]: http() }, ssr: true });
   }, [dep.chainId]);
   return (
     <WagmiProvider config={config}>
