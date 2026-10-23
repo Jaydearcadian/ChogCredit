@@ -90,18 +90,30 @@ Method: your Chief Brand Designer prompt, informed by ten design skills (motion,
 
 **Rule one: Chog's character and wordmark lead, ours supports.** We do not draw, redraw or "improve" Chog. Where the official art or wordmark is not yet cleared, the UI shows a neutral frame with the token id (see F).
 
-**Product signature: the C-Ring.**
-- A thick "C"-shaped ring (about 300 degrees of circle) in Monad purple, open on the right.
-- A small pink dot sits in the gap. It is the coin, and also the gauge needle: in-product the ring *is* the health meter, and the dot moves along it.
-- One shape serves as the logo mark, favicon, app icon, Account Card ring and loading spinner. That reuse is the point.
+**Decided: three marks, three jobs.** The first proposal (a C-shaped ring gauge) was retired as overused. Round two (brand board, section 6) produced the system below.
 
-**Lockup.** `[official CHOG wordmark]` + `Credit` in Baloo 2 ExtraBold, one cap-height apart, with the C-Ring to the left. Never place our mark over Chog art.
+| Mark | Job | Where it appears | Never |
+|---|---|---|---|
+| **A. The Slip** | Brand logo | Lockup, app icon, favicon, social, deck cover, the shape of the Account Card | In the app's top bar |
+| **C. The Brackets** | Top-bar glyph | App header and website nav, 28 to 32 px, always beside the words "Chog Credit" | As the app icon or favicon |
+| **B. The Pixel Key** | Prop | Stickers, the Chog bubble's "browsing" state, empty states, social | As a logo or an icon |
 
-**Construction.** Ring stroke = 1/6 of diameter; gap = 60 degrees; dot diameter = stroke width. Clear space = one stroke width on all sides. Minimum size 16 px (favicon uses the ring only). Mono version: cream on ink, no pink.
+Dropped: the C-Ring (overused ring gauge) and "The Full Stop" wordmark. The Health Ring stays as the plain gauge inside the app and is never a logo.
 
-**Variants.** (1) purple ring on ink (default), (2) ink ring on cream, (3) mono cream. App icon: ring centred on a violet-ink rounded square. Generate icon sets with the icon-generator skill from the final mark (Android + iOS), once the mark is approved.
+**Why the Slip.** A credit slip is a ticket stub or an IOU: it says "credit" and "you can hand this over" at once, it is playful, and it gives the product a signature shape. The pink square is the stamp; the dashed line is the tear line.
 
-**Do not.** Add a hedgehog or any new creature; put the ring over the Chog's face; use pink for status; recolour the ring by risk (the dot moves, the ring does not change colour; colour belongs to the chip next to it).
+**The Slip is also the Account Card.** The card takes the Slip's silhouette: two notches (24 px, centred on the card edge, filled with the page background) and a 2 px dashed tear line between the Chog above and the ledger numbers below. The Chog is on top; the numbers are the tear-off.
+
+**Lockup.** `[official CHOG wordmark]` + `Credit` in Baloo 2 ExtraBold, one cap-height apart, with the Slip to the left. Never place our marks over Chog art.
+
+**Construction (100-unit grid, drawn as SVG on the brand board).**
+- *Slip:* body x 8 to 92, y 26 to 74, corner radius 8; side notches radius 7 at mid-height; pink stamp 18 by 18 (radius 4) at x 19, y 41; text bars in cream; dashed perforation at x 66. At 32 px or smaller drop the text bars; at 16 px drop the perforation too (body + stamp only). Clear space = the notch diameter (14 units). Minimum size 16 px.
+- *Brackets:* two square brackets, stroke 10, round joins, x 18 to 36 and 64 to 82, y 18 to 82; pink block 28 by 28 (radius 6) centred. At 16 px use stroke 14.
+- *Pixel Key:* 12 by 6 pixel grid (96 by 48 units), one pixel = 8 units, pink 2 by 2 gem in the bow. Not drawn below 48 px wide.
+
+**Variants.** Purple on ink (default), deep purple `#46188D` on cream, mono cream on `#2D2556`. App icon: the Slip on a violet-ink rounded square with a 2 px Monad-purple border. Generate launcher sets (Android and iOS) with the icon-generator skill once the Slip artwork is final.
+
+**Do not.** Add a hedgehog or any new creature; put any mark over the Chog's face; use pink for status; use two of the three marks side by side in one bar; recolour a mark by risk.
 
 ---
 
@@ -154,10 +166,10 @@ Method: your Chief Brand Designer prompt, informed by ten design skills (motion,
 ### Motion identity (from the motion skill)
 - **Archetype:** Premium for money; Playful accent only on stickers and the Chog bubble.
 - **Signature easing:** `cubic-bezier(0.4, 0, 0.2, 1)`. Durations: **150 / 300 / 500 ms.** One entrance pattern: rise 12 px and fade, hero first, total stagger under 400 ms.
-- **Vault Door (500 ms):** two door halves slide shut over the card, the ring ticks once. Success only.
+- **Vault Door (500 ms):** two door halves slide shut over the card, the stamp pulses once. Success only.
 - **Borrow/repay confirmed:** one scale pop (1.0 to 1.04 to 1.0) plus a tick draw; the number counts up in 300 ms.
 - **Warning/danger:** a firm 300 ms horizontal shake, no overshoot, plus chip text. Never motion alone.
-- **Pending:** determinate steps ("1 of 2: approve USDC") with the C-Ring dot travelling the ring; Monad's speculative finality means we show **Submitted, then Confirmed, then Final** as three distinct states.
+- **Pending:** determinate steps ("1 of 2: approve USDC") with the dot travelling the Health Ring; Monad's speculative finality means we show **Submitted, then Confirmed, then Final** as three distinct states.
 - **Reduced motion:** fades only, no shake, no count-up, no door slide (a static closed-door state), no ambient loops. No parallax and no flashing anywhere.
 
 ### Data visualisation
@@ -172,7 +184,7 @@ Method: your Chief Brand Designer prompt, informed by ten design skills (motion,
 **The mascot is the Chog the user owns.** We introduce no new character. The collection is the character system, and the brand's job is to frame it.
 
 **Three components that never touch the art:**
-1. **Chog Frame.** A 2 px purple border with the C-Ring around the artwork, plus the token id in mono. The art inside is unaltered.
+1. **Chog Frame.** A 2 px purple border around the artwork, plus the token id in mono. The art inside is unaltered.
 2. **Chog Bubble.** A one-line handwritten speech bubble beside the card that reads the account state in text. The ring and chip repeat it, so nothing depends on the bubble alone.
 3. **Chog Stickers.** Flat pink and amber props (a coin, a padlock, sparkles, a tiny key) that sit around the frame, never on the face. They are props, not a character.
 
@@ -283,7 +295,7 @@ Fallback if the chain is slow: the same script on a local fork, labelled as such
 **Answering "is the Chog essential?"** Yes, structurally: no Chog, no vault. The Chog is the account's identity, its key, and the handle by which the whole package is sold.
 
 **Slide by slide (ten slides, dark ink background, one idea each).**
-1. **Title.** "Chog Credit. Put your Chog to work." Real Chog art in the Frame, C-Ring mark.
+1. **Title.** "Chog Credit. Put your Chog to work." Real Chog art in the Frame, the Slip logo.
 2. **The problem.** A Chog is a picture. It has an identity but no financial life. One sentence, one image.
 3. **The idea.** "Your Chog has a vault now." The Account Card, animated once.
 4. **How it works.** Vault, credit line, health, in three icons.
@@ -327,7 +339,7 @@ Fallback if the chain is slow: the same script on a local fork, labelled as such
 
 **Deck prompt.** *"Make a 10-slide dark deck from section I: one idea per slide, max 20 words, cream text on #141026, official Chog art inside the Chog Frame, mono numerals, pink sticker in one corner."*
 
-**Icons and app icon.** Draw the C-Ring as an SVG by hand (it's three shapes), then export launcher sets with the icon-generator skill.
+**Icons and app icon.** The Slip, Brackets and Pixel Key are already drawn as SVG on the brand board (section 6); export launcher sets for the Slip with the icon-generator skill.
 
 ---
 
@@ -347,10 +359,10 @@ Fallback if the chain is slow: the same script on a local fork, labelled as such
 - A Chog's floor is small. If anyone reads "credit against your NFT", they'll expect more than we offer. Our copy must keep saying the value is the vault.
 - Retention is our thinnest rubric item. Health watching and interest are real reasons to return, but alerts and a weekly report are not built, and I'd rather say so than invent streaks. Gamifying debt is a trap.
 - The `$CHOG` bonus is not claimed.
-- Fonts and the C-Ring are my proposals, not Chog's official assets.
+- Fonts and all three marks are my proposals, not Chog's official assets.
 
 **Decisions I need from you.**
-1. Is the C-Ring the logo direction you want (or should I draw two more options)?
+1. ~~Logo direction~~ Decided: the Slip for the brand, the Brackets in the top bar, the Pixel Key as a prop.
 2. Approve dark-only for the app and cream for the landing page?
 3. Baloo 2 plus Inter plus JetBrains Mono, with Gaegu only for the bubble: yes?
 4. Who contacts the Chog team about art and wordmark permission?
