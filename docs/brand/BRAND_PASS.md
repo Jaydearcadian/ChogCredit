@@ -172,6 +172,34 @@ Dropped: the C-Ring (overused ring gauge) and C, The Brackets. The Health Ring s
 - **Pending:** determinate steps ("1 of 2: approve USDC") with the dot travelling the Health Ring; Monad's speculative finality means we show **Submitted, then Confirmed, then Final** as three distinct states.
 - **Reduced motion:** fades only, no shake, no count-up, no door slide (a static closed-door state), no ambient loops. No parallax and no flashing anywhere.
 
+**Motion moments (live demos on brand board 7).** Vault Door 500 ms; health dot 300 ms; Confirmed pop plus tick draw 300 ms; number change (only changed digits roll) 300 ms; button press under 100 ms with a 200 ms settle, firing on release; Safe-to-Watch chip swap 300 ms; error shake 3 x 9 px in 300 ms with the message staying; the **Pause Drill** (Borrow locks while Repay does not move) 300 ms; transaction steps that fill only when the state is truly reached; skeleton loading 1.4 s shimmer after 100 ms; screen entrance 300 ms per item, 60 ms apart, under 400 ms total; the Chog bubble (250 ms, the only overshoot, 4%); an optional once-ever tear-off of the Slip's stub on the first borrow; and the landing hero (entrance under 500 ms, then a 6 px, 6 s card float as the only ambient loop). Each has a reduced-motion form.
+
+### Sound and haptics
+
+One sonic idea: **a stamp**. Sounds are warm sine and triangle tones, quiet (peak about 14 dB below full scale), none longer than 400 ms, two notes at most for a confirmation. Nothing is an alarm, and nothing is the only signal: every sound and buzz repeats something already visible and available as text to screen readers.
+
+| Moment | Heard (if sound is on) | Felt (ms on, off, on) |
+|---|---|---|
+| Chog goes in the vault | soft low thunk, 160 ms | 25 |
+| Submitted | nothing, on purpose | 8 |
+| Confirmed | two rising notes, about 250 ms | 15, 40, 15 |
+| Final | one quiet ping, 140 ms | 12 |
+| Repaid, debt-free | three-note rise, about 300 ms | 10, 30, 10, 30, 20 |
+| Error | two soft falling notes, 250 ms | 30, 50, 30 |
+| At risk (risk sounds on) | two low pulses, 270 ms | 20, 60, 20 |
+| Liquidatable (risk sounds on) | three low pulses, once | 40, 60, 40, 60, 40 |
+| Prices paused | two soft falling notes | 10 |
+| Chog bubble | tiny bloop, 80 ms | none |
+
+**Defaults and controls.**
+- **Sound is off by default.** It is offered once, in one sentence ("Want tiny sounds?"), after the first confirmed transaction. Never on page load, never a modal, never autoplay.
+- **Risk-alert sounds are a separate switch, also off.** Even when on, they play once and never repeat.
+- **Haptics are on where supported, and off when the device asks for reduced motion.** Maximum 250 ms in total, only on confirmations, errors and warnings, never on taps in lists.
+- Each is a plain setting with a clear label, kept per device.
+- Borrowing is not celebrated: Confirmed is a neutral two-note chime. The bright three-note rise is reserved for being debt-free.
+
+**Honest limits.** The browser Vibration API works on Android Chrome but not on iPhone Safari or desktop, so there the pattern is only shown, not felt. A wrapped native app could use the system's success, warning and error haptics instead; that has not been tested. The demo sounds are synthesised in the browser as a specification; production sounds are short audio files (a few KB each), loudness-checked.
+
 ### Data visualisation
 - The **Health Ring** is the hero chart: 270 degrees, ticks at the Watch / At risk / Liquidatable thresholds, the dot shows today. Always paired with the number and the label.
 - Collateral vs debt: a single stacked bar with a threshold marker; never a pie.
