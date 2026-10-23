@@ -66,20 +66,33 @@ contract SmokeCredit is Script {
         c.usdc.approve(address(c.pool), 5_000e6);
         uint256 shares = c.pool.supply(5_000e6);
 
+        // someone pays the Chog before its vault exists: a plain transfer to the predicted address
+        address predicted = c.registry.predictVault(address(c.chog), c.id);
+        c.wmon.mint(predicted, 1_000e18);
+
         // borrower side
         AccountVault vault = AccountVault(c.registry.createAccount(address(c.chog), c.id));
+        require(address(vault) == predicted, "vault not at the predicted address");
         c.chog.safeTransferFrom(c.me, address(c.escrow), c.id);
         c.wmon.mint(c.me, 100_000e18);
         c.wmon.approve(address(vault), 100_000e18);
         vault.depositERC20(address(c.wmon), 100_000e18); // 100,000 mWMON at $0.02 = $2,000; 40% LTV
         ChogCreditPool.AccountData memory d = c.pool.accountData(c.key);
-        require(d.priceOk && d.borrowPower == 800e6, "unexpected borrowing power");
+        require(d.priceOk && d.borrowPower == 800e6, "unexpected borrowing power (a payment must not count until claimed)");
 
         // the vault also holds mock $CHOG: it is allowed, worth nothing as collateral, and always withdrawable
         c.chogToken.mint(c.me, 1_000_000e18);
         c.chogToken.approve(address(vault), 1_000_000e18);
         vault.depositERC20(address(c.chogToken), 1_000_000e18);
         require(c.pool.accountData(c.key).borrowPower == 800e6, "CHOG must add no borrowing power");
+
+        // receive: claim the early payment (counts as collateral), then a plain $CHOG payment (counts as nothing)
+        require(vault.claimReceived(address(c.wmon)) == 1_000e18, "claim amount");
+        require(c.pool.accountData(c.key).borrowPower == 808e6, "claimed payment must count as collateral");
+        c.chogToken.mint(c.me, 5e18);
+        c.chogToken.transfer(address(vault), 5e18);
+        require(vault.claimReceived(address(c.chogToken)) == 5e18, "CHOG claim amount");
+        require(c.pool.accountData(c.key).borrowPower == 808e6, "claimed CHOG must add no borrowing power");
 
         c.pool.borrow(c.key, 500e6);
         require(c.pool.debtOf(c.key) == 500e6, "debt not recorded");
@@ -90,8 +103,8 @@ contract SmokeCredit is Script {
         c.pool.repay(c.key, type(uint256).max);
         require(c.pool.debtOf(c.key) == 0, "not repaid");
 
-        vault.withdrawERC20(address(c.wmon), 100_000e18, c.me);
-        vault.withdrawERC20(address(c.chogToken), 1_000_000e18, c.me);
+        vault.withdrawERC20(address(c.wmon), 101_000e18, c.me);
+        vault.withdrawERC20(address(c.chogToken), 1_000_005e18, c.me);
         c.escrow.release(address(c.chog), c.id, c.me);
         require(c.chog.ownerOf(c.id) == c.me, "Chog not returned");
         c.pool.redeem(shares);

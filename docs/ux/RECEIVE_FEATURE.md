@@ -67,7 +67,7 @@ Per-account collateral caps (`maxCounted`) still apply, so a large payment above
 
 ## Built so far
 
-`AccountVault.claimReceived(token)` is in, with 11 new tests (9 vault, 2 sale) and 7 hand-made mutants all caught: controller-only, escrow and allowlist gates, nonce bump, no double count, a payment sent before the vault exists, a fee-on-transfer token credited at what actually arrived, a fuzz that accounting never exceeds the balance, a claim voids a signed sale, and a stranger's unclaimed dust does not. Full suite: 281 passed, 0 failed (fork tests skipped without an RPC). Not done: the Anvil run of the whole path, slither on the change, and the Receive screen.
+`AccountVault.claimReceived(token)` is in, with 11 new tests (9 vault, 2 sale) and 7 hand-made mutants all caught: controller-only, escrow and allowlist gates, nonce bump, no double count, a payment sent before the vault exists, a fee-on-transfer token credited at what actually arrived, a fuzz that accounting never exceeds the balance, a claim voids a signed sale, and a stranger's unclaimed dust does not. Full suite: 281 passed, 0 failed (fork tests skipped without an RPC). Also done: a local Anvil run of the whole path (`SmokeCredit` now pays the predicted address before the vault exists, claims it as collateral, claims a $CHOG payment as zero credit; 23 transactions, 0 failed), slither on the change (only the same strict-equality notes the existing deposit code already has), and the Receive board (S22 to S25) in the wireframes. Not done: the app itself, and a testnet run.
 
 ## Which tokens can be received
 
