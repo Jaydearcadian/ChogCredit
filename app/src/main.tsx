@@ -5,6 +5,7 @@ import Account from './pages/Account';
 import { Add, Borrow, Release, Repay, Withdraw } from './pages/Flows';
 import Activity from './pages/Activity';
 import Explore from './pages/Explore';
+import Lend from './pages/Lend';
 import { Risk } from './pages/Later';
 import { SellComplete, SellSetup, SellSign } from './pages/Sell';
 import Open from './pages/Open';
@@ -25,6 +26,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<Connect />} />
           <Route path="/pick" element={<Pick />} />
           <Route path="/explore" element={<Explore />} />
+          <Route path="/lend" element={<Lend />} />
           <Route path="/open/:id" element={<Open />} />
           <Route path="/account" element={<Account />} />
           <Route path="/add" element={<Add />} />

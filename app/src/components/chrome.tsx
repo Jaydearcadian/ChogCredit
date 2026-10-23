@@ -13,6 +13,7 @@ const TABS: [string, string, ReactNode][] = [
   ['/explore', 'Chogs', I(<><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></>)],
   ['/borrow', 'Borrow', I(<><path d="M12 4v12M7 11l5 5 5-5" /><path d="M5 20h14" /></>)],
   ['/activity', 'Activity', I(<path d="M5 5h14M5 12h14M5 19h9" />)],
+  ['/lend', 'Lend', I(<><path d="M12 3v18M17 7.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 3 5 3 5 1.1 5 3-2.2 3-5 3-5-1.1-5-3" /></>)],
   ['/sell', 'Sell', I(<path d="M7 7h11l-3-3M17 17H6l3 3" />)],
   ['/risk', 'Risk', I(<><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.1" /></>)],
 ];

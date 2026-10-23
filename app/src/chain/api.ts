@@ -207,3 +207,25 @@ export async function loadPublicChogs(pc: PublicClient, dep: Deployment): Promis
   const owners = await many(pc, withVault.map((id) => ({ address: dep.mockChogGenesis, abi: ABI.chog, functionName: 'ownerOf', args: [BigInt(id)] })));
   return withVault.map((id, i) => ({ id, escrowed: owners[i].status === 'fulfilled' && (owners[i] as PromiseFulfilledResult<string>).value.toLowerCase() === dep.escrow.toLowerCase() }));
 }
+
+export type LendView = {
+  totalAssets: bigint; totalDebt: bigint; liquidity: bigint; utilizationBps: bigint; borrowRateBps: bigint; supplyCap: bigint;
+  shares: bigint; position: bigint; maxRedeem: bigint; usdcWallet: bigint; allowance: bigint; sharePrice: bigint;
+};
+
+/** The lender's side: pool totals, rates, and this wallet's share (zeros when no wallet is connected). */
+export async function loadLend(pc: PublicClient, dep: Deployment, user: Address | null): Promise<LendView> {
+  const me = user ?? zeroAddress;
+  const p = (fn: string, args: unknown[] = []) => read<bigint>(pc, dep.pool, ABI.pool, fn, args);
+  const [totalAssets, totalDebt, liquidity, utilizationBps, borrowRateBps, supplyCap, shares, maxRedeem, usdcWallet, allowance, sharePrice] = await Promise.all([
+    p('totalAssets'), p('totalDebt'), p('availableLiquidity'), p('utilizationBps'), p('borrowRateBps'), p('supplyCap'),
+    p('sharesOf', [me]), p('maxRedeem', [me]),
+    read<bigint>(pc, dep.mockUsdc, ABI.erc20, 'balanceOf', [me]),
+    read<bigint>(pc, dep.mockUsdc, ABI.erc20, 'allowance', [me, dep.pool]),
+    p('convertToAssets', [10n ** 12n]),
+  ]);
+  const position = shares === 0n ? 0n : await p('convertToAssets', [shares]);
+  return { totalAssets, totalDebt, liquidity, utilizationBps, borrowRateBps, supplyCap, shares, position, maxRedeem, usdcWallet, allowance, sharePrice };
+}
+
+export const sharesFor = (pc: PublicClient, dep: Deployment, assets: bigint) => read<bigint>(pc, dep.pool, ABI.pool, 'convertToShares', [assets]);
