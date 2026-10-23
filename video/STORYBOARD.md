@@ -2,7 +2,9 @@
 
 **Reference:** IBM Think kinetic typography (typewriter with a caret, echoing text stacks, line-art circles and grids, hard cuts between flat colour fields). Colours are Chog Credit's own: cream, ink, violet, and one pink square.
 
-**Footage** is the real app, recorded by `app/e2e/footage.mjs` against a fresh local chain running the same contracts as testnet. Waits are sped up by `video/clips.mjs`. Taps stay in real time with a pink pixel cursor and a violet ripple.
+**Footage** is the real app at desktop size (1280x800 at 1.5x), recorded by `VIEW=desktop node app/e2e/footage.mjs` against a fresh local chain running the same contracts as testnet. `video/clips-desktop.mjs` crops and speed-ramps it. Waits are sped up and taps stay in real time, shown by a pink pixel cursor and a violet ripple. In the film it plays in a large app window, and a camera pushes in on the numbers that matter.
+
+**QA pass 2 fixed:** the phone-sized footage was unreadable; loading frames showed at every cut; the voiceover ran ahead of the footage in scenes 3 and 7 (now split, with each half on its action); "$0.00" was held for six seconds; static holds and smeared echo type.
 
 **Sound:** local Kokoro voiceover (`hyperframes tts`), a synthesized D minor ambient pad as the bed, bundled effects (whoosh on cuts, soft ticks on typing, pops on badges, one riser into the closing mark). Stereo.
 

@@ -24,11 +24,11 @@
 <div id="root" data-composition-id="s8" data-width="1920" data-height="1080">
 <div class="bg-cream"></div>
 
-<div id="s8-word" class="disp" style="position:absolute;left:0;right:0;top:210px;text-align:center;font-size:260px">Chog Credit<span id="s8-dot" style="display:inline-block;width:.1em;height:.1em;background:var(--pink);margin-left:.04em"></span></div>
-<div id="s8-key" style="position:absolute;left:1380px;top:150px;transform:rotate(12deg)"><svg viewBox="0 0 96 48" width="180" height="90" shape-rendering="crispEdges"><g fill="#836EF9"><rect x="0" y="0" width="32" height="8"/><rect x="0" y="8" width="8" height="16"/><rect x="24" y="8" width="8" height="16"/><rect x="0" y="24" width="32" height="8"/><rect x="32" y="8" width="64" height="16"/><rect x="64" y="24" width="8" height="16"/><rect x="88" y="24" width="8" height="24"/></g><rect x="8" y="8" width="16" height="16" fill="#E845A4"/></svg></div>
-<div id="s8-sub" class="mono" style="position:absolute;left:0;right:0;top:560px;text-align:center;font-size:36px;letter-spacing:.12em;text-transform:uppercase;color:var(--v700)">Live on Monad testnet</div>
-<div id="s8-url" class="mono" style="position:absolute;left:0;right:0;top:640px;text-align:center;font-size:64px;color:var(--ink)"><span class="ch ">c</span><span class="ch ">h</span><span class="ch ">o</span><span class="ch ">g</span><span class="ch ">-</span><span class="ch ">c</span><span class="ch ">r</span><span class="ch ">e</span><span class="ch ">d</span><span class="ch ">i</span><span class="ch ">t</span><span class="ch ">.</span><span class="ch ">v</span><span class="ch ">e</span><span class="ch ">r</span><span class="ch ">c</span><span class="ch ">e</span><span class="ch ">l</span><span class="ch ">.</span><span class="ch ">a</span><span class="ch ">p</span><span class="ch ">p</span></div>
-<div id="s8-tag" class="pill" style="position:absolute;left:0;right:0;margin:0 auto;top:760px;width:max-content;background:var(--ink);color:#f9c230">Look around first. No wallet needed.</div>
+<div id="s8-word" class="disp" style="position:absolute;left:0;right:0;top:200px;text-align:center;font-size:260px">Chog Credit<span id="s8-dot" style="display:inline-block;width:.1em;height:.1em;background:var(--pink);margin-left:.04em"></span></div>
+<div id="s8-key" style="position:absolute;left:1380px;top:140px"><svg viewBox="0 0 96 48" width="180" height="90" shape-rendering="crispEdges"><g fill="#836EF9"><rect x="0" y="0" width="32" height="8"/><rect x="0" y="8" width="8" height="16"/><rect x="24" y="8" width="8" height="16"/><rect x="0" y="24" width="32" height="8"/><rect x="32" y="8" width="64" height="16"/><rect x="64" y="24" width="8" height="16"/><rect x="88" y="24" width="8" height="24"/></g><rect x="8" y="8" width="16" height="16" fill="#E845A4"/></svg></div>
+<div id="s8-sub" class="mono" style="position:absolute;left:0;right:0;top:550px;text-align:center;font-size:36px;letter-spacing:.12em;text-transform:uppercase;color:var(--v700)">Live on Monad testnet</div>
+<div id="s8-url" class="mono" style="position:absolute;left:0;right:0;top:630px;text-align:center;font-size:64px;color:var(--ink)"><span class="ch ">c</span><span class="ch ">h</span><span class="ch ">o</span><span class="ch ">g</span><span class="ch ">-</span><span class="ch ">c</span><span class="ch ">r</span><span class="ch ">e</span><span class="ch ">d</span><span class="ch ">i</span><span class="ch ">t</span><span class="ch ">.</span><span class="ch ">v</span><span class="ch ">e</span><span class="ch ">r</span><span class="ch ">c</span><span class="ch ">e</span><span class="ch ">l</span><span class="ch ">.</span><span class="ch ">a</span><span class="ch ">p</span><span class="ch ">p</span></div>
+<div id="s8-tag" class="pill" style="position:absolute;left:0;right:0;margin:0 auto;top:750px;width:max-content;background:var(--ink);color:#f9c230">Look around first. No wallet needed.</div>
 
 </div>
 <script>
@@ -44,13 +44,14 @@ function typeIn(tl, sel, t0, t1, caretSel){
 const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
 
 
-tl.fromTo('#s8-word',{opacity:0,y:50,scale:.96},{opacity:1,y:0,scale:1,duration:.7,ease:'power4.out'},.3);
-tl.fromTo('#s8-dot',{scale:0},{scale:1,duration:.4,ease:'back.out(3)'},1.0);
-tl.fromTo('#s8-key',{opacity:0,y:-40,rotation:30},{opacity:1,y:0,rotation:12,duration:.6,ease:'back.out(1.8)'},1.2);
-tl.fromTo('#s8-sub',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},1.8);
-typeIn(tl,'#s8-url',2.8,4.4);
-tl.fromTo('#s8-tag',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},4.2);
-tl.to('#root',{opacity:0,duration:.8,ease:'power2.in'},8.1);
+tl.fromTo('#s8-word',{opacity:0,y:50,scale:.96},{opacity:1,y:0,scale:1,duration:.6,ease:'power4.out'},.2);
+tl.fromTo('#s8-dot',{scale:0},{scale:1,duration:.4,ease:'back.out(3)'},.8);
+tl.fromTo('#s8-key',{opacity:0,y:-40,rotation:40},{opacity:1,y:0,rotation:12,duration:.6,ease:'back.out(1.8)'},1.0);
+tl.fromTo('#s8-sub',{opacity:0,y:20},{opacity:1,y:0,duration:.4,ease:'power3.out'},1.5);
+typeIn(tl,'#s8-url',2.2,3.6);
+tl.fromTo('#s8-tag',{opacity:0,y:20},{opacity:1,y:0,duration:.4,ease:'power3.out'},3.5);
+tl.fromTo('#s8-word',{scale:1},{scale:1.03,duration:5,ease:'none'},.8);
+tl.to('#root',{opacity:0,duration:.7,ease:'power2.in'},8.7);
 
 window.__timelines["s8"] = tl;
 </script>

@@ -3,12 +3,19 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
 const W = 1920, H = 1080;
-// Scene slots: [id, start, duration, background]
+// Scene slots: [id, start, duration, background]. s3 to s7 are the real app in a large window.
 const SC = [
-  ['s1', 0, 8, 'cream'], ['s2', 8, 12, 'ink'], ['s3', 20, 18, 'cream'], ['s4', 38, 12, 'ink'],
-  ['s5', 50, 11.5, 'cream'], ['s6', 61.5, 8, 'violet'], ['s7', 69.5, 11.5, 'ink'], ['s8', 81, 9, 'cream'],
+  ['s1', 0, 5.5, 'cream'], ['s2', 5.5, 9.5, 'ink'], ['s3', 15, 18.5, 'ink'], ['s4', 33.5, 12, 'ink'],
+  ['s5', 45.5, 13, 'ink'], ['s6', 58.5, 8, 'violet'], ['s7', 66.5, 14, 'ink'], ['s8', 80.5, 9.5, 'cream'],
 ];
-const VO_AT = { s1: 0.35, s2: 0.6, s3: 0.5, s4: 0.5, s5: 0.4, s6: 0.4, s7: 0.4, s8: 0.5 };
+const FOOTAGE = new Set(['s3', 's4', 's5', 's6', 's7']);
+const VO_AT = { s1: 0.3, s2: 0.25, s3: 0.4, s4: 0.4, s5: 0.4, s6: 0.3, s7: 0.4, s8: 0.5 };
+// A scene's voiceover can be split so each half lands on its action: [file, firstWord, endWord, offset in scene, start of the part in the full take].
+const VO_PARTS = {
+  s3: [['s3a', 0, 12, 2.6, 0], ['s3b', 12, 23, 11.4, 4.38]],
+  s7: [['s7a', 0, 9, 8.5, 0], ['s7b', 9, 20, 2.8, 3.93]],
+};
+const partsOf = (id, n) => VO_PARTS[id] ?? [[id, 0, n, VO_AT[id], 0]];
 const LANG = { es: ['ES', 'Español'], pt: ['PT', 'Português'], fr: ['FR', 'Français'], ja: ['JA', '日本語'] };
 
 // Narration, split into caption groups with a translation each. Joined, each scene's groups equal its voiceover text.
@@ -100,173 +107,176 @@ const scenes = {};
 
 // ---------- S1: the hook (cream, kinetic type) ----------
 scenes.s1 = scene('s1', 'cream', `
-<div id="s1-l1" class="disp" style="position:absolute;left:140px;top:150px;font-size:150px;white-space:nowrap">${chars('What if your ')}<span class="ch" style="color:var(--v700)">${[...'Chog'].map((c) => `<span class="ch" style="color:var(--v700)">${c}</span>`).join('')}</span></div>
-<div id="s1-l2" class="disp" style="position:absolute;left:140px;top:320px;font-size:150px;white-space:nowrap">${chars('could do more')}</div>
-<div id="s1-l3" class="disp" style="position:absolute;left:140px;top:490px;font-size:150px;white-space:nowrap">${chars('than sit in a wallet?')}</div>
-<div id="s1-echo" style="position:absolute;left:140px;top:490px;font-size:150px;white-space:nowrap;pointer-events:none" class="disp"></div>
-<svg id="s1-rings" viewBox="0 0 700 300" style="position:absolute;left:1140px;top:700px;width:680px;height:290px;overflow:visible" fill="none" stroke="#46188D" stroke-width="2.5">
+<div id="s1-l1" class="disp" style="position:absolute;left:140px;top:140px;font-size:150px;white-space:nowrap">${chars('What if your ')}${[...'Chog'].map((c) => `<span class="ch" style="color:var(--v700)">${c}</span>`).join('')}</div>
+<div id="s1-l2" class="disp" style="position:absolute;left:140px;top:300px;font-size:150px;white-space:nowrap">${chars('could do more')}</div>
+<div id="s1-l3" class="disp" style="position:absolute;left:140px;top:460px;font-size:150px;white-space:nowrap">${chars('than sit in a ')}<span style="position:relative;display:inline-block">${chars('wallet?')}<i id="s1-hl" style="position:absolute;left:-.06em;right:-.06em;bottom:.06em;height:.3em;background:#E845A4;opacity:.35;z-index:-1;transform-origin:0 50%"></i></span></div>
+<svg id="s1-rings" viewBox="0 0 700 300" style="position:absolute;left:1180px;top:690px;width:640px;height:274px;overflow:visible" fill="none" stroke="#46188D" stroke-width="2.5">
   <circle cx="40" cy="150" r="26" pathLength="1"/><circle cx="130" cy="150" r="56" pathLength="1"/><circle cx="290" cy="150" r="86" pathLength="1"/><circle cx="520" cy="150" r="118" pathLength="1"/>
   <path d="M0 150H700M40 20V280M130 -10V310M290 -30V330" stroke-width="1.2" opacity=".5" pathLength="1"/></svg>
-<div id="s1-panel" style="position:absolute;inset:0;background:var(--v700);clip-path:inset(0 100% 0 0)"></div>
-<div id="s1-l4" class="disp dark" style="position:absolute;left:140px;top:340px;font-size:190px;white-space:nowrap">${chars('What if it')}<br>${chars('worked for ')}<span class="ch" style="color:#f9a8d8">${chars('you?')}</span></div>
+<div id="s1-panel" style="position:absolute;inset:0;background:var(--v700)"></div>
+<div id="s1-l4" class="disp dark" style="position:absolute;left:140px;top:300px;font-size:200px;line-height:1;white-space:nowrap">${chars('What if it')}<br>${chars('worked for ')}<span style="display:inline-block" id="s1-you">${[...'you?'].map((c) => `<span class="ch" style="color:#f9a8d8">${c}</span>`).join('')}</span></div>
 `, `
-const L=0.35; // voiceover starts here
-typeIn(tl,'#s1-l1',0.5,1.55);
-typeIn(tl,'#s1-l2',1.55,2.35);
-typeIn(tl,'#s1-l3',2.35,3.6);
-tl.fromTo('#s1-rings circle',{strokeDasharray:1,strokeDashoffset:1},{strokeDashoffset:0,duration:1.2,ease:'power2.out',stagger:.14},2.0);
-tl.fromTo('#s1-rings path',{opacity:0},{opacity:.5,duration:.8},2.2);
-// echo stack of the last line, fading up like a trail (the reference's repeating type)
-const echo=document.getElementById('s1-echo'); for(let i=1;i<=4;i++){ const d=document.createElement('div'); d.textContent='than sit in a wallet?'; d.style.cssText='position:absolute;left:0;top:'+(i*74)+'px;opacity:0;color:#46188D'; echo.appendChild(d); tl.fromTo(d,{opacity:0},{opacity:.4-i*.08,duration:.25,ease:'power2.out'},3.7+i*.09); }
-tl.to(['#s1-l1','#s1-l2','#s1-l3','#s1-echo','#s1-rings'],{opacity:0,duration:.2,ease:'power2.in'},4.7);
-tl.to('#s1-panel',{clipPath:'inset(0 0% 0 0)',duration:.5,ease:'power4.inOut'},4.6);
-typeIn(tl,'#s1-l4',5.1,6.9);
+typeIn(tl,'#s1-l1',0.35,1.15);
+typeIn(tl,'#s1-l2',1.2,1.85);
+typeIn(tl,'#s1-l3',1.9,2.9);
+tl.fromTo('#s1-hl',{scaleX:0},{scaleX:1,duration:.3,ease:'power3.out'},2.85);
+tl.fromTo('#s1-rings circle',{strokeDasharray:1,strokeDashoffset:1},{strokeDashoffset:0,duration:1.0,ease:'power2.out',stagger:.12},1.2);
+tl.fromTo('#s1-rings path',{opacity:0},{opacity:.5,duration:.6},1.4);
+tl.fromTo('#s1-panel',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:.42,ease:'power4.inOut'},3.0);
+typeIn(tl,'#s1-l4',3.2,4.0);
+tl.fromTo('#s1-you',{y:0},{y:-14,duration:.16,ease:'power2.out',yoyo:true,repeat:1},4.05);
 `);
 
 // ---------- S2: the key, not the collateral (ink) ----------
 scenes.s2 = scene('s2', 'ink', `
-<div id="s2-key" style="position:absolute;left:140px;top:150px;transform-origin:0 50%">${keySvg(300)}</div>
-<div id="s2-a" class="disp dark" style="position:absolute;left:480px;top:140px;font-size:190px;white-space:nowrap">${chars('The key.')}</div>
-<div id="s2-b" class="disp dark" style="position:absolute;left:140px;top:420px;font-size:150px;white-space:nowrap;color:var(--v300)">${chars('Not the ')}<span style="position:relative;display:inline-block">${chars('collateral.')}<i id="s2-strike" style="position:absolute;left:0;right:0;top:56%;height:12px;background:var(--pink);transform-origin:0 50%"></i></span></div>
-<div id="s2-n" class="disp dark" style="position:absolute;left:140px;top:420px;font-size:130px;line-height:1.05;white-space:nowrap;opacity:0"><div>${chars('Never priced.')}</div><div style="color:var(--v300)">${chars('Never taken.')}</div></div>
-<svg id="s2-vault" viewBox="0 0 520 420" style="position:absolute;left:1180px;top:200px;width:560px;height:452px;opacity:0" fill="none" stroke="#836EF9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<div id="s2-meet" class="disp dark" style="position:absolute;left:140px;top:120px;font-size:96px">${chars('Meet Chog Credit')}<span id="s2-dot" style="display:inline-block;width:.12em;height:.12em;background:var(--pink);margin-left:.04em"></span></div>
+<div id="s2-key" style="position:absolute;left:140px;top:330px;transform-origin:0 50%">${keySvg(260)}</div>
+<div id="s2-a" class="disp dark" style="position:absolute;left:450px;top:300px;font-size:170px;white-space:nowrap">${chars('The key.')}</div>
+<div id="s2-b" class="disp" style="position:absolute;left:140px;top:520px;font-size:130px;white-space:nowrap;color:var(--v300)">${chars('Not the ')}<span style="position:relative;display:inline-block">${chars('collateral.')}<i id="s2-strike" style="position:absolute;left:0;right:0;top:56%;height:12px;background:var(--pink);transform-origin:0 50%"></i></span></div>
+<div id="s2-n" style="position:absolute;left:140px;top:250px;opacity:0">
+  <div class="disp dark" style="font-size:150px;line-height:1.02"><span id="s2-n1">${chars('Never priced.')}</span></div>
+  <div class="disp" style="font-size:150px;line-height:1.02;color:var(--v300)"><span id="s2-n2">${chars('Never taken.')}</span></div></div>
+<svg id="s2-vault" viewBox="0 0 520 420" style="position:absolute;left:1220px;top:230px;width:520px;height:420px;opacity:0" fill="none" stroke="#836EF9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
   <rect x="30" y="40" width="460" height="340" rx="36" pathLength="1"/><circle cx="260" cy="210" r="96" pathLength="1"/><circle cx="260" cy="210" r="34" fill="#E845A4" stroke="#0E0B1A" pathLength="1"/>
   <path d="M260 114V150M260 270V306M164 210H200M320 210H356" pathLength="1"/><path d="M110 380V410M410 380V410" pathLength="1"/></svg>
-<div id="s2-coin" style="position:absolute;left:1370px;top:120px;opacity:0"><svg width="130" height="130" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="#FCBB00" stroke="#0E0B1A" stroke-width="2"/><path d="M18 11v14M14 14.5h6.5a2.5 2.5 0 010 5H14" fill="none" stroke="#0E0B1A" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+<div id="s2-coin" style="position:absolute;left:1410px;top:150px;opacity:0"><svg width="120" height="120" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="#FCBB00" stroke="#0E0B1A" stroke-width="2"/><path d="M18 11v14M14 14.5h6.5a2.5 2.5 0 010 5H14" fill="none" stroke="#0E0B1A" stroke-width="2.2" stroke-linecap="round"/></svg></div>
 `, `
-tl.fromTo('#s2-key',{opacity:0,x:-60,rotation:-14,scale:.8},{opacity:1,x:0,rotation:-4,scale:1,duration:.7,ease:'back.out(1.6)'},1.6);
-typeIn(tl,'#s2-a',2.0,3.0);
-typeIn(tl,'#s2-b',3.6,5.0);
-tl.fromTo('#s2-strike',{scaleX:0},{scaleX:1,duration:.4,ease:'power3.out'},5.1);
-tl.to(['#s2-key','#s2-a','#s2-b'],{opacity:0,y:-30,duration:.25,ease:'power2.in'},6.0);
-tl.set('#s2-n',{opacity:1},6.25);
-typeIn(tl,'#s2-n > div:nth-child(1)',6.3,7.0);
-typeIn(tl,'#s2-n > div:nth-child(2)',7.3,8.0);
-tl.fromTo('#s2-vault',{opacity:0},{opacity:1,duration:.3},8.2);
-tl.fromTo('#s2-vault rect, #s2-vault circle, #s2-vault path',{strokeDasharray:1,strokeDashoffset:1},{strokeDashoffset:0,duration:1.1,ease:'power2.out',stagger:.08},8.2);
-tl.fromTo('#s2-coin',{opacity:0,y:-90,scale:.6,rotation:-30},{opacity:1,y:0,scale:1,rotation:8,duration:.6,ease:'back.out(2)'},9.4);
+typeIn(tl,'#s2-meet',0.3,1.1);
+tl.fromTo('#s2-dot',{scale:0},{scale:1,duration:.3,ease:'back.out(3)'},1.15);
+tl.fromTo('#s2-key',{opacity:0,x:-60,rotation:-14,scale:.8},{opacity:1,x:0,rotation:-4,scale:1,duration:.6,ease:'back.out(1.6)'},1.5);
+typeIn(tl,'#s2-a',2.0,2.9);
+typeIn(tl,'#s2-b',3.6,4.7);
+tl.fromTo('#s2-strike',{scaleX:0},{scaleX:1,duration:.35,ease:'power3.out'},4.75);
+tl.to(['#s2-meet','#s2-key','#s2-a','#s2-b'],{opacity:0,y:-30,duration:.22,ease:'power2.in'},5.05);
+tl.set('#s2-n',{opacity:1},5.25);
+typeIn(tl,'#s2-n1',5.3,5.9);
+typeIn(tl,'#s2-n2',6.25,6.9);
+tl.fromTo('#s2-vault',{opacity:0},{opacity:1,duration:.25},6.9);
+tl.fromTo('#s2-vault rect, #s2-vault circle, #s2-vault path',{strokeDasharray:1,strokeDashoffset:1},{strokeDashoffset:0,duration:1.0,ease:'power2.out',stagger:.07},6.9);
+tl.fromTo('#s2-coin',{opacity:0,y:-90,scale:.6,rotation:-30},{opacity:1,y:0,scale:1,rotation:8,duration:.55,ease:'back.out(2)'},8.1);
+tl.fromTo('#s2-n',{x:0},{x:-20,duration:3,ease:'none'},5.25);
 `);
 
-// ---------- S3: pick, open, add (cream + phone) ----------
-scenes.s3 = scene('s3', 'cream', `
-<div class="disp" style="position:absolute;left:140px;top:110px;font-size:62px;color:var(--v700);font-family:'JetBrains Mono';font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:26px">Real app. Real flow.</div>
-<div id="s3-r1" class="disp" style="position:absolute;left:140px;top:190px;font-size:170px"><span class="mono" style="font-size:42px;color:var(--v700);margin-right:24px;vertical-align:top;position:relative;top:16px">01</span>Pick.</div>
-<div id="s3-r2" class="disp" style="position:absolute;left:140px;top:380px;font-size:170px"><span class="mono" style="font-size:42px;color:var(--v700);margin-right:24px;vertical-align:top;position:relative;top:16px">02</span>Open.</div>
-<div id="s3-r3" class="disp" style="position:absolute;left:140px;top:570px;font-size:170px"><span class="mono" style="font-size:42px;color:var(--v700);margin-right:24px;vertical-align:top;position:relative;top:16px">03</span>Add.</div>
-<i id="s3-bar" style="position:absolute;left:140px;top:560px;width:900px;height:3px;background:var(--ink);opacity:.15;transform-origin:0 50%"></i>
-<div id="s3-c1" class="callout" style="left:760px;top:455px;opacity:0">The Chog moves in</div>
-<div id="s3-c2" class="callout" style="left:790px;top:690px;opacity:0">$800 borrowing power</div>
-${phone('s3', [['c3a', 0.3, 9.37], ['c3b', 9.67, 8.33]])}
-`, `
-${phoneIn('s3', .1)}
-tl.fromTo('#s3-r1',{opacity:0,x:-50},{opacity:1,x:0,duration:.5,ease:'power3.out'},.5);
-tl.fromTo('#s3-r2',{opacity:0,x:-50},{opacity:1,x:0,duration:.5,ease:'power3.out'},1.5);
-tl.fromTo('#s3-r3',{opacity:0,x:-50},{opacity:1,x:0,duration:.5,ease:'power3.out'},4.9);
-tl.fromTo('#s3-c1',{opacity:0,scale:.9,rotation:-4},{opacity:1,scale:1,rotation:-3,duration:.3,ease:'back.out(2)'},3.6);
-tl.to('#s3-c1',{opacity:0,duration:.25},6.6);
-tl.fromTo('#s3-c2',{opacity:0,scale:.9,rotation:3},{opacity:1,scale:1,rotation:2,duration:.3,ease:'back.out(2)'},15.2);
-`);
+// ---------- The real app, in a large window with a camera that pushes in on what matters ----------
+const WX = 160, WY = 92, VW = 1600, VH = 900, BAR = 40;
+function camJS(id, keys) {
+  // keys: [time, scale, focusX 0..1, focusY 0..1, duration]. The view is translated so the focus sits centred, clamped to the frame.
+  return keys.map(([t, s, fx, fy, d], i) => {
+    let x = VW / 2 - fx * VW * s, y = VH / 2 - fy * VH * s;
+    x = Math.min(0, Math.max(VW - VW * s, x)); y = Math.min(0, Math.max(VH - VH * s, y));
+    const to = `{scale:${s},x:${x.toFixed(1)},y:${y.toFixed(1)},duration:${d},ease:'power3.inOut'}`;
+    return i === 0 ? `tl.fromTo('#${id}-cam',{scale:${s},x:${x.toFixed(1)},y:${y.toFixed(1)},transformOrigin:'0 0'},{scale:${s},duration:0.01},${t});` : `tl.to('#${id}-cam',${to},${t});`;
+  }).join('\n');
+}
+function walk(id, bg, { vids, chapters, cam, overlays = '', js = '', css = '' }) {
+  const body = `
+<div class="chap" id="${id}-chap">${chapters.map(([t, n, label], i) => `<div class="chapi" id="${id}-ch${i}"><b>${n}</b><span>${label}</span></div>`).join('')}</div>
+<div class="win" id="${id}-win"><div class="bar"><i></i><i></i><i></i><span>Chog Credit · test build</span></div>
+  <div class="view"><div class="cam" id="${id}-cam">${vids.map(([n, st, d], i) => `<video id="${id}-v${i}" class="clip" src="assets/footage/${n}.mp4" data-start="${st}" data-duration="${d}" muted playsinline></video>`).join('')}</div><div class="scrim"></div></div></div>
+${overlays}`;
+  const cjs = `
+tl.fromTo('#${id}-win',{scale:.97,y:18},{scale:1,y:0,duration:.5,ease:'power3.out'},0);
+${chapters.map(([t], i) => `tl.fromTo('#${id}-ch${i}',{opacity:0,x:-24},{opacity:1,x:0,duration:.35,ease:'power3.out'},${t});` + (chapters[i + 1] ? `tl.to('#${id}-ch${i}',{opacity:0,x:24,duration:.2,ease:'power2.in'},${chapters[i + 1][0] - 0.2});` : '')).join('\n')}
+${camJS(id, cam)}
+${js}`;
+  return scene(id, bg, body, cjs, `
+.win{position:absolute;left:${WX}px;top:${WY}px;width:${VW}px;height:${VH + BAR}px;border-radius:22px;overflow:hidden;background:#0E0B1A;box-shadow:0 40px 100px rgba(0,0,0,.45),0 0 0 2px #2D2556}
+.bar{position:absolute;left:0;right:0;top:0;height:${BAR}px;display:flex;align-items:center;gap:9px;padding:0 18px;background:#181330;border-bottom:1px solid #2D2556}
+.bar i{width:12px;height:12px;border-radius:50%;background:#2D2556}.bar i:first-child{background:#E845A4}
+.bar span{margin-left:14px;font-family:'JetBrains Mono',monospace;font-size:16px;color:#9a93c9}
+.view{position:absolute;left:0;top:${BAR}px;width:${VW}px;height:${VH}px;overflow:hidden}
+.cam{position:absolute;left:0;top:0;width:${VW}px;height:${VH}px}
+.cam video{position:absolute;left:0;top:0;width:${VW}px;height:${VH}px;object-fit:cover}
+.scrim{position:absolute;left:0;right:0;bottom:0;height:340px;background:linear-gradient(rgba(14,11,26,0),rgba(14,11,26,.96) 62%)}
+.chap{position:absolute;left:${WX}px;top:26px;height:50px}
+.chapi{position:absolute;left:0;top:0;display:flex;align-items:center;gap:16px;white-space:nowrap;opacity:0}
+.chapi b{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:22px;color:#0E0B1A;background:#E845A4;border-radius:6px;padding:4px 10px}
+.chapi span{font-family:'Baloo 2';font-weight:800;font-size:40px;color:var(--cream50);letter-spacing:-.01em}
+.badge{position:absolute;opacity:0;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:22px;padding:14px 26px;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.badge .k{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--v700)}
+.badge .v{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:56px;line-height:1.05}
+.sticky{position:absolute;opacity:0;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:6px 24px}
+${css}`);
+}
+const pop = (sel, t, rot = -3) => `tl.fromTo('${sel}',{opacity:0,scale:.85,rotation:${rot - 4}},{opacity:1,scale:1,rotation:${rot},duration:.32,ease:'back.out(2.2)'},${t});`;
+const out = (sel, t) => `tl.to('${sel}',{opacity:0,y:-10,duration:.2,ease:'power2.in'},${t});`;
 
-// ---------- S4: borrow (ink + phone) ----------
-scenes.s4 = scene('s4', 'ink', `
-<div class="mono" style="position:absolute;left:140px;top:90px;font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:var(--v300)">You borrowed</div>
-<div id="s4-amt" class="mono dark" style="position:absolute;left:130px;top:120px;font-size:180px;line-height:1;letter-spacing:-.03em;white-space:nowrap">$<span id="s4-n">0.00</span></div>
-<div id="s4-chip" class="pill" style="position:absolute;left:140px;top:340px;background:#22343c;color:var(--safe);opacity:0"><svg width="30" height="30" viewBox="0 0 20 20"><path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6.5 10l2.5 2.5L13.5 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Safe</div>
-<div id="s4-rows" style="position:absolute;left:140px;top:430px;width:900px;color:var(--cream50);font-size:34px">
-  <div class="kvr"><span>Assets in vault</span><span class="mono">$2,000.00</span></div>
-  <div class="kvr"><span>You owe</span><span class="mono">$300.00</span></div>
-  <div class="kvr"><span>You can borrow</span><span class="mono">$500.00</span></div>
-  <div class="kvr"><span>Health</span><span class="mono" style="color:var(--safe)">4.33</span></div>
-</div>
-${phone('s4', [['c4', 0.3, 11.7]])}
-`, `
-${phoneIn('s4', .1, -2)}
-tl.fromTo('#s4-amt',{opacity:0,y:30},{opacity:1,y:0,duration:.5,ease:'power3.out'},.6);
-const o={v:0}; tl.to(o,{v:300,duration:1.3,ease:'power3.out',onUpdate:()=>{document.getElementById('s4-n').textContent=o.v.toFixed(2).replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');}},6.0);
-tl.fromTo('#s4-chip',{opacity:0,y:16},{opacity:1,y:0,duration:.35,ease:'power3.out'},7.6);
-document.querySelectorAll('#s4-rows .kvr').forEach((r,i)=>tl.fromTo(r,{opacity:0,x:-30},{opacity:1,x:0,duration:.4,ease:'power3.out'},4.2+i*.35));
-`, `#s4-rows .kvr{display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px dashed var(--ink700);opacity:0}#s4-rows .kvr span.mono{font-size:36px}`);
+// s3: open a vault (d3a content 9.73 s: landing 0, pick 2.2, open 4.0, waiting 6.0, account 7.13), then add WMON (d3b: add page 0, taps 1.3, tracker 4.8, account 6.32)
+scenes.s3 = walk('s3', 'ink', {
+  vids: [['d3a', 0, 9.73], ['d3b', 9.73, 8.77]],
+  chapters: [[0.1, '01', 'Pick a Chog, open its vault'], [9.73, '02', 'Add assets']],
+  cam: [[0, 1, .5, .5, 0], [0.4, 1.12, .38, .45, 1.6], [2.2, 1.25, .37, .3, .6], [4.0, 1.25, .37, .55, .6], [7.13, 1.0, .5, .5, .5], [7.6, 1.08, .5, .4, 1.6],
+        [9.73, 1, .5, .5, .01], [10.9, 1.4, .3, .25, .6], [14.5, 1.3, .3, .62, .5], [16.05, 1, .5, .5, .5], [16.5, 1.08, .55, .35, 1.6]],
+  overlays: `<div id="s3-o1" class="sticky" style="left:1240px;top:170px">The Chog moves in</div>
+<div id="s3-o2" class="badge" style="left:1420px;top:128px"><div class="k">You can borrow</div><div class="v">$800.00</div></div>`,
+  js: `${pop('#s3-o1', 7.4)}${out('#s3-o1', 9.5)}${pop('#s3-o2', 16.3, 2)}`,
+});
 
-// ---------- S5: sell with the loan (cream + phone + handshake) ----------
-scenes.s5 = scene('s5', 'cream', `
-<div class="disp" style="position:absolute;left:140px;top:90px;font-size:112px;line-height:1">Sell it<br><span style="color:var(--v700)">with the loan.</span></div>
-<div id="s5-seller" class="card5" style="left:140px;top:360px"><b>Seller</b><span class="mono">signs the offer</span></div>
-<div id="s5-buyer" class="card5" style="left:640px;top:360px"><b>Buyer</b><span class="mono">signs back</span></div>
-<svg id="s5-links" viewBox="0 0 1000 360" style="position:absolute;left:100px;top:540px;width:1000px;height:300px;overflow:visible" fill="none">
-  <path id="s5-p1" d="M170 20 C170 120 330 120 330 20" stroke="#46188D" stroke-width="4" stroke-dasharray="12 12" opacity="0"/>
-  <path id="s5-p2" d="M590 20 C590 150 330 150 330 20" stroke="#E845A4" stroke-width="4" stroke-dasharray="12 12" opacity="0"/></svg>
-<div id="s5-l1" class="pill" style="position:absolute;left:260px;top:580px;background:var(--ink);color:#f9c230;opacity:0">Offer link</div>
-<div id="s5-l2" class="pill" style="position:absolute;left:500px;top:665px;background:var(--ink);color:#f9c230;opacity:0">Signed link</div>
-<div id="s5-done" class="pill" style="position:absolute;left:140px;top:730px;font-size:26px;background:var(--v700);color:var(--cream50);opacity:0">Sold. Loan, vault and Chog move together.</div>
-<div id="s5-pk1" class="pix" style="left:270px;top:550px;opacity:0"></div><div id="s5-pk2" class="pix" style="left:690px;top:550px;opacity:0"></div>
-${phone('s5', [['c5', 0.3, 11.2]])}
-`, `
-${phoneIn('s5', .1)}
-tl.fromTo('#s5-seller',{opacity:0,y:30},{opacity:1,y:0,duration:.45,ease:'power3.out'},1.6);
-tl.fromTo('#s5-buyer',{opacity:0,y:30},{opacity:1,y:0,duration:.45,ease:'power3.out'},2.1);
-tl.set('#s5-p1',{opacity:1},3.4); tl.fromTo('#s5-p1',{strokeDashoffset:80},{strokeDashoffset:0,duration:.9,ease:'power2.out'},3.4);
-tl.fromTo('#s5-l1',{opacity:0,scale:.8},{opacity:1,scale:1,duration:.3,ease:'back.out(2)'},3.9);
-tl.set('#s5-pk1',{opacity:1},3.6); tl.to('#s5-pk1',{x:160,duration:.8,ease:'power2.inOut'},3.6); tl.to('#s5-pk1',{opacity:0,duration:.1},4.4);
-tl.set('#s5-p2',{opacity:1},5.6); tl.fromTo('#s5-p2',{strokeDashoffset:80},{strokeDashoffset:0,duration:.9,ease:'power2.out'},5.6);
-tl.fromTo('#s5-l2',{opacity:0,scale:.8},{opacity:1,scale:1,duration:.3,ease:'back.out(2)'},6.1);
-tl.set('#s5-pk2',{opacity:1},5.8); tl.to('#s5-pk2',{x:-260,duration:.8,ease:'power2.inOut'},5.8); tl.to('#s5-pk2',{opacity:0,duration:.1},6.6);
-tl.fromTo('#s5-done',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},7.6);
-`, `.card5{position:absolute;width:340px;height:150px;border-radius:24px;background:var(--ink);color:var(--cream50);border:2px solid var(--v500);padding:24px 28px;display:flex;flex-direction:column;justify-content:center;gap:6px;opacity:0}.card5 b{font-family:'Baloo 2';font-weight:800;font-size:54px;line-height:1}.card5 span{color:var(--v300);font-size:24px}`);
+// s4: borrow 300 (d4: account 0, form 1.2, wait 6.34, success 6.94, account 10.54)
+scenes.s4 = walk('s4', 'ink', {
+  vids: [['d4', 0, 12]],
+  chapters: [[0.1, '03', 'Borrow USDC']],
+  cam: [[0, 1, .5, .5, 0], [1.3, 1.45, .3, .2, .6], [4.6, 1.25, .32, .68, .5], [6.94, 1.4, .3, .28, .6], [10.54, 1, .5, .5, .5], [10.9, 1.08, .55, .35, 1.0]],
+  overlays: `<div id="s4-o1" class="badge" style="left:1420px;top:128px"><div class="k">Borrowed</div><div class="v">$<span id="s4-n">0.00</span></div></div>
+<div id="s4-o2" class="pill" style="position:absolute;left:1420px;top:300px;background:#22343c;color:var(--safe);opacity:0;font-size:28px"><svg width="30" height="30" viewBox="0 0 20 20"><path d="M10 2l7 3v5c0 4-3 7-7 8-4-1-7-4-7-8V5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M6.5 10l2.5 2.5L13.5 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Safe · health 4.33</div>`,
+  js: `${pop('#s4-o1', 7.1, 2)}
+const o={v:0}; tl.fromTo(o,{v:0},{v:300,duration:1.2,ease:'power3.out',onUpdate:()=>{document.getElementById('s4-n').textContent=o.v.toFixed(2);}},7.25);
+tl.fromTo('#s4-o2',{opacity:0,y:14},{opacity:1,y:0,duration:.3,ease:'power3.out'},8.5);`,
+});
 
-// ---------- S6: receive and lend (violet + phone) ----------
-const qr = (() => { let s = 7, r = []; const n = 21; const rnd = () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
-  const fin = (x, y) => (x < 7 && y < 7) || (x > n - 8 && y < 7) || (x < 7 && y > n - 8);
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let on = fin(x, y) ? ((x % (n - 7) < 7 && y % (n - 7) < 7) && (x % (n - 7) === 0 || x % (n - 7) === 6 || y % (n - 7) === 0 || y % (n - 7) === 6 || (x % (n - 7) > 1 && x % (n - 7) < 5 && y % (n - 7) > 1 && y % (n - 7) < 5))) : rnd() > .52; if (on) r.push(`<i class="q" style="left:${x * 22}px;top:${y * 22}px"></i>`); }
-  return r.join(''); })();
-scenes.s6 = scene('s6', 'violet', `
-<div id="s6-qr" style="position:absolute;left:140px;top:150px;width:462px;height:462px;background:var(--cream50);border-radius:28px;padding:0;overflow:hidden"><div style="position:absolute;left:0;top:0;width:462px;height:462px;transform:scale(1)"><div style="position:absolute;inset:0;transform:translate(0,0)">${qr}</div></div></div>
-<div id="s6-a" class="disp dark" style="position:absolute;left:660px;top:190px;font-size:118px">Get paid.</div>
-<div id="s6-b" class="disp" style="position:absolute;left:660px;top:330px;font-size:118px;color:#f9a8d8">Or earn.</div>
-<div id="s6-chips" style="position:absolute;left:660px;top:500px;display:flex;gap:14px;flex-wrap:wrap;width:480px"><span class="pill" style="background:var(--cream50);color:var(--ink)">Link</span><span class="pill" style="background:var(--cream50);color:var(--ink)">QR</span><span class="pill" style="background:var(--cream50);color:var(--ink)">Vault address</span><span class="pill" style="background:var(--pink);color:var(--ink950)">USDC only</span></div>
-${phone('s6', [['c6', 0.3, 7.7]])}
-`, `
-${phoneIn('s6', .1, -2)}
-tl.fromTo('#s6-qr',{opacity:0,scale:.85,rotation:-6},{opacity:1,scale:1,rotation:-2,duration:.6,ease:'back.out(1.5)'},.5);
-tl.fromTo('#s6-qr .q',{opacity:0},{opacity:1,duration:.02,stagger:{each:.0035,from:'random'}},.9);
-tl.fromTo('#s6-a',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},1.1);
-tl.fromTo('#s6-b',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},3.9);
-tl.fromTo('#s6-chips span',{opacity:0,scale:.8},{opacity:1,scale:1,duration:.3,ease:'back.out(2)',stagger:.12},2.0);
-`, `.q{position:absolute;width:22px;height:22px;background:var(--ink950)}`);
+// s5: sell with the loan (d5: account 0, form 1.2, link 7.09)
+scenes.s5 = walk('s5', 'ink', {
+  vids: [['d5', 0, 13]],
+  chapters: [[0.1, '04', 'Sell it, loan and all']],
+  cam: [[0, 1, .5, .5, 0], [1.4, 1.3, .33, .35, .6], [4.9, 1.3, .33, .62, .5], [7.09, 1.0, .5, .5, .4], [7.6, 1.3, .4, .85, .6]],
+  overlays: `<div id="s5-hs" class="hs" style="left:1190px;top:150px">
+  <div class="hc" id="s5-c1"><b>Seller</b><span>signs the offer</span></div>
+  <svg width="120" height="40" viewBox="0 0 120 40"><path id="s5-l1" d="M4 20H116" stroke="#E845A4" stroke-width="4" stroke-dasharray="10 10" fill="none"/></svg>
+  <div class="hc" id="s5-c2"><b>Buyer</b><span>signs back</span></div></div>
+<div id="s5-done" class="pill" style="position:absolute;left:1190px;top:330px;background:var(--v700);color:var(--cream50);opacity:0;font-size:24px">Loan, vault and Chog move together</div>`,
+  css: `.hs{position:absolute;display:flex;align-items:center;gap:6px}.hc{width:220px;border-radius:18px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);padding:14px 18px;opacity:0}.hc b{display:block;font-family:'Baloo 2';font-weight:800;font-size:40px;line-height:1}.hc span{font-family:'JetBrains Mono';font-size:18px;color:var(--v700)}`,
+  js: `tl.fromTo('#s5-c1',{opacity:0,y:20},{opacity:1,y:0,duration:.35,ease:'power3.out'},2.6);
+tl.fromTo('#s5-l1',{strokeDashoffset:120,opacity:0},{strokeDashoffset:0,opacity:1,duration:.8,ease:'power2.out'},3.0);
+tl.fromTo('#s5-c2',{opacity:0,y:20},{opacity:1,y:0,duration:.35,ease:'power3.out'},3.5);
+tl.fromTo('#s5-done',{opacity:0,y:14},{opacity:1,y:0,duration:.35,ease:'power3.out'},6.1);`,
+});
 
-// ---------- S7: pause drill, limits (ink + phone) ----------
-scenes.s7 = scene('s7', 'ink', `
-<div id="s7-lock" style="position:absolute;left:140px;top:120px"><svg width="220" height="220" viewBox="0 0 36 36"><rect x="7" y="15" width="22" height="16" rx="4" fill="#E845A4" stroke="#0E0B1A" stroke-width="1.6"/><path id="s7-sh" d="M12 15v-4a6 6 0 0112 0v4" fill="none" stroke="#B7AAFF" stroke-width="2.4" stroke-linecap="round"/><circle cx="18" cy="23" r="2.2" fill="#0E0B1A"/></svg></div>
-<div id="s7-t" class="disp dark" style="position:absolute;left:400px;top:120px;font-size:112px;line-height:1.02">Borrow<br>pauses.</div>
-<div id="s7-r" class="disp" style="position:absolute;left:400px;top:360px;font-size:112px;color:var(--safe)">Repay never.</div>
-<div id="s7-rows" style="position:absolute;left:140px;top:520px;width:900px;font-size:32px;color:var(--cream50)">
-  <div class="kvr"><span>Borrow up to</span><span class="mono">40% of value</span></div>
-  <div class="kvr"><span>Sold off below</span><span class="mono">65% of value</span></div>
-  <div class="kvr"><span>Pool lends at most</span><span class="mono">$15,000</span></div></div>
-${phone('s7', [['c7', 0.3, 11.2]])}
-`, `
-${phoneIn('s7', .1)}
-tl.fromTo('#s7-lock',{opacity:0,scale:.7},{opacity:1,scale:1,duration:.4,ease:'back.out(1.6)'},.5);
-tl.fromTo('#s7-sh',{y:-5},{y:0,duration:.3,ease:'power2.out'},2.4);
-tl.fromTo('#s7-t',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},1.0);
-tl.fromTo('#s7-r',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},3.2);
-document.querySelectorAll('#s7-rows .kvr').forEach((r,i)=>tl.fromTo(r,{opacity:0,x:-30},{opacity:1,x:0,duration:.4,ease:'power3.out'},5.0+i*.45));
-`, `#s7-rows .kvr{display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px dashed var(--ink700);opacity:0}#s7-rows .mono{font-size:34px}`);
+// s6: get paid, then lend (d6: get paid 0, lend 5)
+scenes.s6 = walk('s6', 'violet', {
+  vids: [['d6', 0, 8]],
+  chapters: [[0.1, '05', 'Get paid, or lend and earn']],
+  cam: [[0, 1, .5, .5, 0], [0.3, 1.5, .2, .44, .7], [3.0, 1.3, .32, .6, .5], [5.0, 1, .5, .5, .4], [5.5, 1.3, .35, .32, .6]],
+  overlays: `<div id="s6-o1" class="sticky" style="left:1250px;top:170px">Pay a Chog, even before its vault exists</div>`,
+  css: `#s6-o1{max-width:470px;font-size:40px;line-height:1.05}`,
+  js: `${pop('#s6-o1', 1.2)}${out('#s6-o1', 4.8)}`,
+});
+
+// s7: Pause Drill and the numbers (d7: account 0, risk 2.4, numbers 3.8, paused account 8.2)
+scenes.s7 = walk('s7', 'ink', {
+  vids: [['d7', 0, 14]],
+  chapters: [[0.1, '06', 'Every number on screen'], [8.2, '07', 'Prices pause. Repay never does.']],
+  cam: [[0, 1, .5, .5, 0], [2.6, 1.25, .35, .35, .6], [6.6, 1.35, .35, .4, .6], [8.2, 1, .5, .5, .4], [8.9, 1.32, .62, .5, .7]],
+  overlays: `<div id="s7-o1" class="badge" style="left:1300px;top:150px;width:380px"><div class="k">Pool limits</div><div class="v" style="font-size:34px;line-height:1.35">40% to borrow<br>65% to sell off<br>$15,000 cap</div></div>
+<div id="s7-o2" class="pill" style="position:absolute;left:1300px;top:150px;background:var(--pink);color:#0E0B1A;opacity:0;font-size:28px"><svg width="28" height="28" viewBox="0 0 36 36"><rect x="7" y="15" width="22" height="16" rx="4" fill="#0E0B1A"/><path d="M12 15v-4a6 6 0 0112 0v4" fill="none" stroke="#0E0B1A" stroke-width="3" stroke-linecap="round"/></svg>Borrow paused · Repay works</div>`,
+  js: `${pop('#s7-o1', 4.2, 2)}${out('#s7-o1', 8.0)}tl.fromTo('#s7-o2',{opacity:0,y:14},{opacity:1,y:0,duration:.32,ease:'back.out(2)'},9.4);`,
+});
 
 // ---------- S8: close (cream) ----------
 scenes.s8 = scene('s8', 'cream', `
-<div id="s8-word" class="disp" style="position:absolute;left:0;right:0;top:210px;text-align:center;font-size:260px">Chog Credit<span id="s8-dot" style="display:inline-block;width:.1em;height:.1em;background:var(--pink);margin-left:.04em"></span></div>
-<div id="s8-key" style="position:absolute;left:1380px;top:150px;transform:rotate(12deg)">${keySvg(180)}</div>
-<div id="s8-sub" class="mono" style="position:absolute;left:0;right:0;top:560px;text-align:center;font-size:36px;letter-spacing:.12em;text-transform:uppercase;color:var(--v700)">Live on Monad testnet</div>
-<div id="s8-url" class="mono" style="position:absolute;left:0;right:0;top:640px;text-align:center;font-size:64px;color:var(--ink)">${chars('chog-credit.vercel.app')}</div>
-<div id="s8-tag" class="pill" style="position:absolute;left:0;right:0;margin:0 auto;top:760px;width:max-content;background:var(--ink);color:#f9c230">Look around first. No wallet needed.</div>
+<div id="s8-word" class="disp" style="position:absolute;left:0;right:0;top:200px;text-align:center;font-size:260px">Chog Credit<span id="s8-dot" style="display:inline-block;width:.1em;height:.1em;background:var(--pink);margin-left:.04em"></span></div>
+<div id="s8-key" style="position:absolute;left:1380px;top:140px">${keySvg(180)}</div>
+<div id="s8-sub" class="mono" style="position:absolute;left:0;right:0;top:550px;text-align:center;font-size:36px;letter-spacing:.12em;text-transform:uppercase;color:var(--v700)">Live on Monad testnet</div>
+<div id="s8-url" class="mono" style="position:absolute;left:0;right:0;top:630px;text-align:center;font-size:64px;color:var(--ink)">${chars('chog-credit.vercel.app')}</div>
+<div id="s8-tag" class="pill" style="position:absolute;left:0;right:0;margin:0 auto;top:750px;width:max-content;background:var(--ink);color:#f9c230">Look around first. No wallet needed.</div>
 `, `
-tl.fromTo('#s8-word',{opacity:0,y:50,scale:.96},{opacity:1,y:0,scale:1,duration:.7,ease:'power4.out'},.3);
-tl.fromTo('#s8-dot',{scale:0},{scale:1,duration:.4,ease:'back.out(3)'},1.0);
-tl.fromTo('#s8-key',{opacity:0,y:-40,rotation:30},{opacity:1,y:0,rotation:12,duration:.6,ease:'back.out(1.8)'},1.2);
-tl.fromTo('#s8-sub',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},1.8);
-typeIn(tl,'#s8-url',2.8,4.4);
-tl.fromTo('#s8-tag',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},4.2);
-tl.to('#root',{opacity:0,duration:.8,ease:'power2.in'},8.1);
+tl.fromTo('#s8-word',{opacity:0,y:50,scale:.96},{opacity:1,y:0,scale:1,duration:.6,ease:'power4.out'},.2);
+tl.fromTo('#s8-dot',{scale:0},{scale:1,duration:.4,ease:'back.out(3)'},.8);
+tl.fromTo('#s8-key',{opacity:0,y:-40,rotation:40},{opacity:1,y:0,rotation:12,duration:.6,ease:'back.out(1.8)'},1.0);
+tl.fromTo('#s8-sub',{opacity:0,y:20},{opacity:1,y:0,duration:.4,ease:'power3.out'},1.5);
+typeIn(tl,'#s8-url',2.2,3.6);
+tl.fromTo('#s8-tag',{opacity:0,y:20},{opacity:1,y:0,duration:.4,ease:'power3.out'},3.5);
+tl.fromTo('#s8-word',{scale:1},{scale:1.03,duration:5,ease:'none'},.8);
+tl.to('#root',{opacity:0,duration:.7,ease:'power2.in'},8.7);
 `);
 
 // ---------- Captions: English karaoke plus an animated translation line ----------
@@ -274,25 +284,29 @@ function captionsScene() {
   let html = '', js = `const hide=(sel,t0,t1)=>{tl.to(sel,{opacity:0,duration:.14,ease:'power2.in'},t1-.14);tl.set(sel,{opacity:0,visibility:'hidden'},t1);};\n`;
   let gi = 0;
   for (const [id, start] of SC.map((s) => [s[0], s[1]])) {
-    const [lang, groups] = SCRIPT[id]; const dark = SC.find((s) => s[0] === id)[3] !== 'cream';
-    const all = groups.flatMap((g) => g[0].split(/\s+/)); const wt = wordTimes(id, all);
-    let wi = 0; const t0 = start + VO_AT[id];
-    groups.forEach(([en, tr], k) => {
-      const ws = en.split(/\s+/); const a = wt[wi][0], b = wt[wi + ws.length - 1][1]; const gs = t0 + a; let ge = t0 + b + (k === groups.length - 1 ? 0.8 : 0.35); if (k < groups.length - 1) { const nb = wt[wi + ws.length][0] + t0; ge = Math.min(ge, nb - 0.08); }
+    const [lang, groups] = SCRIPT[id]; const dark = SC.find((s) => s[0] === id)[3] !== 'cream'; const inWin = FOOTAGE.has(id);
+    const all = groups.flatMap((g) => g[0].split(/\s+/)); const raw = wordTimes(id, all);
+    // absolute start/end of every word, through whichever voiceover part carries it
+    const abs = raw.map(([a, b], i) => { const pt = partsOf(id, all.length).find(([, f, e]) => i >= f && i < e); const sh = start + pt[3] - pt[4]; return [a + sh, b + sh]; });
+    let wi = 0; const gs_ = [];
+    groups.forEach(([en, tr]) => { const ws = en.split(/\s+/); gs_.push({ en, tr, ws, i0: wi, gs: abs[wi][0], end: abs[wi + ws.length - 1][1] }); wi += ws.length; });
+    gs_.sort((x, y) => x.gs - y.gs);
+    gs_.forEach((g, k) => {
+      const nx = gs_[k + 1]; let ge = g.end + (nx ? 0.35 : 0.8); if (nx) ge = Math.min(ge, nx.gs - 0.08);
       const gid = `cap${gi++}`; const jp = lang === 'ja';
-      html += `<div id="${gid}" class="capg ${dark ? 'dk' : 'lt'}" style="opacity:0;visibility:hidden"><div class="en">${ws.map((w, j) => `<span id="${gid}w${j}" class="w">${esc(w)}</span>`).join(' ')}</div><div class="tr${jp ? ' jp' : ''}"><span class="tag">${LANG[lang][0]}</span><span id="${gid}t" class="tx">${esc(tr)}</span></div></div>\n`;
-      js += `tl.fromTo('#${gid}',{opacity:0,y:18,visibility:'visible'},{opacity:1,y:0,duration:.22,ease:'power3.out'},${(gs - 0.05).toFixed(3)});\n`;
-      ws.forEach((w, j) => { const [s0] = wt[wi + j]; js += `tl.fromTo('#${gid}w${j}',{color:'${dark ? '#B9B1D6' : '#7a7391'}'},{color:'${dark ? '#FAF9FC' : '#141026'}',duration:.12},${(t0 + s0).toFixed(3)});\n`; });
-      js += `tl.fromTo('#${gid}t',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:${Math.max(0.5, Math.min(1.4, (b - a) * 0.7)).toFixed(2)},ease:'power2.out'},${(gs + 0.1).toFixed(3)});\n`;
-      js += `hide('#${gid}',${gs.toFixed(3)},${ge.toFixed(3)});\n`;
-      wi += ws.length;
+      html += `<div id="${gid}" class="capg ${dark ? 'dk' : 'lt'}${inWin ? ' fw' : ''}" style="opacity:0;visibility:hidden"><div class="en">${g.ws.map((w, j) => `<span id="${gid}w${j}" class="w">${esc(w)}</span>`).join(' ')}</div><div class="tr${jp ? ' jp' : ''}"><span class="tag">${LANG[lang][0]}</span><span id="${gid}t" class="tx">${esc(g.tr)}</span></div></div>\n`;
+      js += `tl.fromTo('#${gid}',{opacity:0,y:18,visibility:'visible'},{opacity:1,y:0,duration:.22,ease:'power3.out'},${(g.gs - 0.05).toFixed(3)});\n`;
+      g.ws.forEach((w, j) => { js += `tl.fromTo('#${gid}w${j}',{color:'${dark ? '#B9B1D6' : '#7a7391'}'},{color:'${dark ? '#FAF9FC' : '#141026'}',duration:.12},${abs[g.i0 + j][0].toFixed(3)});\n`; });
+      js += `tl.fromTo('#${gid}t',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:${Math.max(0.5, Math.min(1.4, (g.end - g.gs) * 0.7)).toFixed(2)},ease:'power2.out'},${(g.gs + 0.1).toFixed(3)});\n`;
+      js += `hide('#${gid}',${g.gs.toFixed(3)},${ge.toFixed(3)});\n`;
     });
   }
   return `<template>
 <style>
 ${FONTS}
 #root{position:absolute;inset:0;font-family:'Inter',sans-serif}
-.capg{position:absolute;left:140px;bottom:92px;width:1000px;display:flex;flex-direction:column;gap:12px}
+.capg{position:absolute;left:140px;bottom:92px;width:1100px;display:flex;flex-direction:column;gap:10px}
+.capg.fw{left:210px;bottom:84px}
 .capg .en{font-size:52px;font-weight:600;line-height:1.18;letter-spacing:-.01em}
 .capg.lt .en{text-shadow:0 0 0 transparent}
 .capg .tr{display:flex;align-items:flex-start;gap:14px;font-size:34px;font-weight:500;color:var(--c);}
@@ -323,15 +337,15 @@ function execDur(id) { return String(readWavDuration(`assets/vo/${id}.wav`)); }
 function readWavDuration(p) { const b = readFileSync(p); const rate = b.readUInt32LE(24), ch = b.readUInt16LE(22), bits = b.readUInt16LE(34); let off = 12, dataLen = 0; while (off < b.length - 8) { const tag = b.toString('ascii', off, off + 4), len = b.readUInt32LE(off + 4); if (tag === 'data') { dataLen = len; break; } off += 8 + len; } return dataLen / (rate * ch * (bits / 8)); }
 
 const hosts = SC.map(([id, s, d]) => `<div id="${id}" data-composition-id="${id}" data-composition-src="compositions/${id}.html" data-start="${s}" data-duration="${d}" data-track-index="1" data-track-kind="graphics" data-width="${W}" data-height="${H}"></div>`).join('\n  ');
-const vo = SC.map(([id, s]) => { const d = readWavDuration(`assets/vo/${id}.wav`); return `<audio id="vo-${id}" src="assets/vo/${id}.wav" data-start="${(s + VO_AT[id]).toFixed(2)}" data-duration="${(d + 0.05).toFixed(2)}" data-volume="1" data-track-index="5"></audio>`; }).join('\n  ');
+const vo = SC.flatMap(([id, s]) => partsOf(id, 0).map(([f, , , off]) => { const d = readWavDuration(`assets/vo/${f}.wav`); return `<audio id="vo-${f}" src="assets/vo/${f}.wav" data-start="${(s + off).toFixed(2)}" data-duration="${(d + 0.05).toFixed(2)}" data-volume="1" data-track-index="5"></audio>`; })).join('\n  ');
 // cuts get a whoosh; the typed lines get keys; badges pop; one riser into the closing mark
 const SFX = [
   ...SC.slice(1).map(([id, s], i) => [`whoosh${i}`, 'whoosh', s - 0.15, 0.5]),
-  ['tick1', 'tick', 0.5, 0.5], ['tick2', 'tick', 1.55, 0.4], ['tick3', 'tick', 2.4, 0.4], ['tick4', 'tick', 5.1, 0.5],
-  ['pop1', 'pop', 10.1, 0.6], ['pop2', 'pop', 13.0, 0.5], ['pop3', 'pop', 14.9, 0.5],
-  ['pop4', 'pop', 24.6, 0.5], ['pop5', 'pop', 36.2, 0.55], ['pop6', 'pop', 45.6, 0.55],
-  ['pop7', 'pop', 54.0, 0.5], ['pop8', 'pop', 56.6, 0.5], ['pop9', 'pop', 57.6, 0.5], ['pop10', 'pop', 68.5, 0.5], ['pop11', 'pop', 74.0, 0.5], ['click1', 'click', 77.5, 0.6],
-  ['riser', 'riser', 78.8, 0.7], ['pop12', 'pop', 82.0, 0.7],
+  ['tick1', 'tick', 0.35, 0.45], ['tick2', 'tick', 1.2, 0.35], ['tick3', 'tick', 1.9, 0.35], ['tick4', 'tick', 3.2, 0.45],
+  ['tick5', 'tick', 5.8, 0.4], ['pop1', 'pop', 7.0, 0.5], ['tick6', 'tick', 7.5, 0.35], ['pop2', 'pop', 10.25, 0.5], ['tick7', 'tick', 10.8, 0.35], ['pop3', 'pop', 13.6, 0.55],
+  ['pop4', 'pop', 22.5, 0.45], ['pop5', 'pop', 31.5, 0.55], ['pop6', 'pop', 40.6, 0.55], ['pop7', 'pop', 42.0, 0.4],
+  ['pop8', 'pop', 48.1, 0.4], ['pop9', 'pop', 49.0, 0.4], ['pop10', 'pop', 51.6, 0.45], ['pop11', 'pop', 59.7, 0.45],
+  ['pop12', 'pop', 70.7, 0.45], ['pop13', 'pop', 75.9, 0.5], ['riser', 'riser', 77.7, 0.6], ['pop14', 'pop', 81.3, 0.6], ['tick8', 'tick', 82.7, 0.35],
 ];
 const SD = { click: 0.37, whoosh: 1.3, pop: 0.72, tick: 0.9, riser: 3.2 };
 const sfx = SFX.map(([id, f, t, v], i) => `<audio id="sfx-${id}" src="assets/sfx/${f}.wav" data-start="${t.toFixed(2)}" data-duration="${SD[f]}" data-volume="${v}" data-track-index="${10 + i}"></audio>`).join('\n  ');

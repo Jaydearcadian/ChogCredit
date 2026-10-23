@@ -20,20 +20,32 @@
 .pill{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:26px;letter-spacing:.06em;text-transform:uppercase}
 .callout{position:absolute;display:flex;align-items:center;gap:14px;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:8px 26px}
 .pix{position:absolute;width:var(--s,18px);height:var(--s,18px);background:var(--pink)}
-#s7-rows .kvr{display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px dashed var(--ink700);opacity:0}#s7-rows .mono{font-size:34px}</style>
+
+.win{position:absolute;left:160px;top:92px;width:1600px;height:940px;border-radius:22px;overflow:hidden;background:#0E0B1A;box-shadow:0 40px 100px rgba(0,0,0,.45),0 0 0 2px #2D2556}
+.bar{position:absolute;left:0;right:0;top:0;height:40px;display:flex;align-items:center;gap:9px;padding:0 18px;background:#181330;border-bottom:1px solid #2D2556}
+.bar i{width:12px;height:12px;border-radius:50%;background:#2D2556}.bar i:first-child{background:#E845A4}
+.bar span{margin-left:14px;font-family:'JetBrains Mono',monospace;font-size:16px;color:#9a93c9}
+.view{position:absolute;left:0;top:40px;width:1600px;height:900px;overflow:hidden}
+.cam{position:absolute;left:0;top:0;width:1600px;height:900px}
+.cam video{position:absolute;left:0;top:0;width:1600px;height:900px;object-fit:cover}
+.scrim{position:absolute;left:0;right:0;bottom:0;height:340px;background:linear-gradient(rgba(14,11,26,0),rgba(14,11,26,.96) 62%)}
+.chap{position:absolute;left:160px;top:26px;height:50px}
+.chapi{position:absolute;left:0;top:0;display:flex;align-items:center;gap:16px;white-space:nowrap;opacity:0}
+.chapi b{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:22px;color:#0E0B1A;background:#E845A4;border-radius:6px;padding:4px 10px}
+.chapi span{font-family:'Baloo 2';font-weight:800;font-size:40px;color:var(--cream50);letter-spacing:-.01em}
+.badge{position:absolute;opacity:0;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:22px;padding:14px 26px;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.badge .k{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--v700)}
+.badge .v{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:56px;line-height:1.05}
+.sticky{position:absolute;opacity:0;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:6px 24px}
+</style>
 <div id="root" data-composition-id="s7" data-width="1920" data-height="1080">
 <div class="bg-ink"></div>
 
-<div id="s7-lock" style="position:absolute;left:140px;top:120px"><svg width="220" height="220" viewBox="0 0 36 36"><rect x="7" y="15" width="22" height="16" rx="4" fill="#E845A4" stroke="#0E0B1A" stroke-width="1.6"/><path id="s7-sh" d="M12 15v-4a6 6 0 0112 0v4" fill="none" stroke="#B7AAFF" stroke-width="2.4" stroke-linecap="round"/><circle cx="18" cy="23" r="2.2" fill="#0E0B1A"/></svg></div>
-<div id="s7-t" class="disp dark" style="position:absolute;left:400px;top:120px;font-size:112px;line-height:1.02">Borrow<br>pauses.</div>
-<div id="s7-r" class="disp" style="position:absolute;left:400px;top:360px;font-size:112px;color:var(--safe)">Repay never.</div>
-<div id="s7-rows" style="position:absolute;left:140px;top:520px;width:900px;font-size:32px;color:var(--cream50)">
-  <div class="kvr"><span>Borrow up to</span><span class="mono">40% of value</span></div>
-  <div class="kvr"><span>Sold off below</span><span class="mono">65% of value</span></div>
-  <div class="kvr"><span>Pool lends at most</span><span class="mono">$15,000</span></div></div>
-
-<div class="phone" id="s7-phone"><div class="screen"><video id="s7-v0" class="clip" src="assets/footage/c7.mp4" data-start="0.3" data-duration="11.2" muted playsinline></video></div></div>
-
+<div class="chap" id="s7-chap"><div class="chapi" id="s7-ch0"><b>06</b><span>Every number on screen</span></div><div class="chapi" id="s7-ch1"><b>07</b><span>Prices pause. Repay never does.</span></div></div>
+<div class="win" id="s7-win"><div class="bar"><i></i><i></i><i></i><span>Chog Credit · test build</span></div>
+  <div class="view"><div class="cam" id="s7-cam"><video id="s7-v0" class="clip" src="assets/footage/d7.mp4" data-start="0" data-duration="14" muted playsinline></video></div><div class="scrim"></div></div></div>
+<div id="s7-o1" class="badge" style="left:1300px;top:150px;width:380px"><div class="k">Pool limits</div><div class="v" style="font-size:34px;line-height:1.35">40% to borrow<br>65% to sell off<br>$15,000 cap</div></div>
+<div id="s7-o2" class="pill" style="position:absolute;left:1300px;top:150px;background:var(--pink);color:#0E0B1A;opacity:0;font-size:28px"><svg width="28" height="28" viewBox="0 0 36 36"><rect x="7" y="15" width="22" height="16" rx="4" fill="#0E0B1A"/><path d="M12 15v-4a6 6 0 0112 0v4" fill="none" stroke="#0E0B1A" stroke-width="3" stroke-linecap="round"/></svg>Borrow paused · Repay works</div>
 </div>
 <script>
 const tl = gsap.timeline({ paused: true });
@@ -48,13 +60,15 @@ function typeIn(tl, sel, t0, t1, caretSel){
 const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
 
 
-tl.fromTo('#s7-phone',{opacity:0,y:140,rotation:7,scale:.96},{opacity:1,y:0,rotation:2,scale:1,duration:.8,ease:'power4.out'},0.1);
-tl.fromTo('#s7-lock',{opacity:0,scale:.7},{opacity:1,scale:1,duration:.4,ease:'back.out(1.6)'},.5);
-tl.fromTo('#s7-sh',{y:-5},{y:0,duration:.3,ease:'power2.out'},2.4);
-tl.fromTo('#s7-t',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},1.0);
-tl.fromTo('#s7-r',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},3.2);
-document.querySelectorAll('#s7-rows .kvr').forEach((r,i)=>tl.fromTo(r,{opacity:0,x:-30},{opacity:1,x:0,duration:.4,ease:'power3.out'},5.0+i*.45));
-
+tl.fromTo('#s7-win',{scale:.97,y:18},{scale:1,y:0,duration:.5,ease:'power3.out'},0);
+tl.fromTo('#s7-ch0',{opacity:0,x:-24},{opacity:1,x:0,duration:.35,ease:'power3.out'},0.1);tl.to('#s7-ch0',{opacity:0,x:24,duration:.2,ease:'power2.in'},7.999999999999999);
+tl.fromTo('#s7-ch1',{opacity:0,x:-24},{opacity:1,x:0,duration:.35,ease:'power3.out'},8.2);
+tl.fromTo('#s7-cam',{scale:1,x:0.0,y:0.0,transformOrigin:'0 0'},{scale:1,duration:0.01},0);
+tl.to('#s7-cam',{scale:1.25,x:0.0,y:0.0,duration:0.6,ease:'power3.inOut'},2.6);
+tl.to('#s7-cam',{scale:1.35,x:0.0,y:-36.0,duration:0.6,ease:'power3.inOut'},6.6);
+tl.to('#s7-cam',{scale:1,x:0.0,y:0.0,duration:0.4,ease:'power3.inOut'},8.2);
+tl.to('#s7-cam',{scale:1.32,x:-509.4,y:-144.0,duration:0.7,ease:'power3.inOut'},8.9);
+tl.fromTo('#s7-o1',{opacity:0,scale:.85,rotation:-2},{opacity:1,scale:1,rotation:2,duration:.32,ease:'back.out(2.2)'},4.2);tl.to('#s7-o1',{opacity:0,y:-10,duration:.2,ease:'power2.in'},8);tl.fromTo('#s7-o2',{opacity:0,y:14},{opacity:1,y:0,duration:.32,ease:'back.out(2)'},9.4);
 window.__timelines["s7"] = tl;
 </script>
 </template>
