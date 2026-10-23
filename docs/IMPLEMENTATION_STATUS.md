@@ -138,7 +138,8 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Credit pool, lender accounting, interest, liquidation, bad debt | **Done in source (Gate D):** immutable-parameter pool with shares, debt index, caps, fail-closed oracle behaviour; 15 stateful invariants at 256 runs x depth 500; 62/62 manual mutants caught; two rounding defects found by tests and fixed | `docs/evidence/GATE_D.md` (commit `c9c5f93`) |
 | Real oracle path | **Fork-tested only:** Chainlink + RedStone feeds on Monad via `ChainlinkPairOracle`; feed heartbeats and deviation thresholds NOT verified; default deployments use a mock oracle | `docs/evidence/GATE_D.md` |
 | Credit-module binder | **Closed:** `ChogCreditFactory` binds the pool in its constructor | `docs/evidence/GATE_D.md` |
-| LP-position collateral, second-market adapter, debt-bearing sales | **Not built** | n/a |
+| Debt-bearing package sales | **Done in source (Gate E1):** buyer-signed bounds on debt, collateral value and health, optional atomic payoff; 29 new tests, fork test with real holders, 21/21 mutants caught. Not deployed, not audited, legal review pending | `docs/evidence/GATE_E1.md` |
+| LP-position collateral, second-market adapter | **Not built** (LP has a draft spec) | `docs/LP_COLLATERAL_SPEC.md` |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |
 | Testnet deployment | Not performed/verified | Chain ID, deploy tx hashes, addresses, explorer links and code verification |

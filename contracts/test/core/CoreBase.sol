@@ -33,7 +33,7 @@ contract MockCreditModule is ICreditModule {
         return debt[key];
     }
 
-    function hasPendingOperation(bytes32 key) external view returns (bool) {
+    function hasPendingOperation(bytes32 key) external view virtual returns (bool) {
         require(!broken, "module down");
         return pending[key];
     }

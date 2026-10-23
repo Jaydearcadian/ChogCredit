@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
 import {ChogCreditEscrow} from "../../src/core/ChogCreditEscrow.sol";
+import {AccountTransferCoordinator} from "../../src/core/AccountTransferCoordinator.sol";
 import {ChogCreditFactory} from "../../src/credit/ChogCreditFactory.sol";
 import {ChogCreditPool} from "../../src/credit/ChogCreditPool.sol";
 import {ChainlinkPairOracle} from "../../src/credit/oracle/ChainlinkPairOracle.sol";
@@ -174,6 +175,62 @@ contract ChogCreditForkTest is Test {
             vm.stopPrank();
             assertEq(IChogFork(CHOG).ownerOf(id), holder, "the real Chog is back with its holder");
             assertEq(pool.debtOf(key), 0);
+        }
+    }
+
+    /// @dev A real Chog holder (token 1 a plain EOA, token 2 an EIP-7702-delegated EOA) sells an indebted account,
+    ///      with part of the payment repaying the real USDC loan, to a buyer who signed the bounds.
+    function testRealDebtBearingSale_withPayoff() external onlyFork {
+        _supplyRealUsdc(50_000e6);
+        AccountTransferCoordinator coord = AccountTransferCoordinator(escrow.coordinator());
+        (address buyer, uint256 buyerPk) = makeAddrAndKey("forkBuyer");
+        deal(USDC, buyer, 10_000e6);
+        vm.prank(buyer);
+        IERC20Fork(USDC).approve(address(coord), type(uint256).max);
+
+        for (uint256 id = 1; id <= 2; id++) {
+            _openRealAccount(id, 1_000_000e18);
+            vm.prank(holder);
+            pool.borrow(key, 1_000e6);
+            ChogCreditPool.AccountData memory d = pool.accountData(key);
+            address seller = holder;
+
+            AccountTransferCoordinator.DebtAcceptance memory a = AccountTransferCoordinator.DebtAcceptance({
+                key: key,
+                seller: seller,
+                buyer: buyer,
+                paymentToken: USDC,
+                price: 800e6,
+                stateNonce: vault.stateNonce(),
+                epoch: escrow.epochOf(key),
+                deadline: block.timestamp + 1 days,
+                salt: id,
+                pool: address(pool),
+                maxDebt: 600e6,
+                minCollateralValue: d.collateralValue * 99 / 100,
+                minHealthBps: 15_000,
+                debtRepay: 400e6
+            });
+            (uint8 v, bytes32 r, bytes32 sg) = vm.sign(buyerPk, coord.hashDebtAcceptance(a));
+            bytes memory sig = abi.encodePacked(r, sg, v);
+            uint256 sellerBefore = IERC20Fork(USDC).balanceOf(seller);
+
+            vm.prank(seller);
+            coord.executeDebtSale(a, sig);
+
+            assertEq(escrow.beneficialOwnerOf(key), buyer, "control moved to the buyer");
+            assertEq(IChogFork(CHOG).ownerOf(id), address(escrow), "the real Chog never left escrow");
+            assertEq(pool.debtOf(key), 600e6, "400 USDC of the price repaid the real loan");
+            assertEq(IERC20Fork(USDC).balanceOf(seller) - sellerBefore, 400e6, "seller got the rest");
+            assertEq(IERC20Fork(USDC).balanceOf(address(coord)), 0);
+            // the buyer can now repay and take the account apart
+            vm.startPrank(buyer);
+            IERC20Fork(USDC).approve(address(pool), type(uint256).max);
+            pool.repay(key, type(uint256).max);
+            vault.withdrawERC20(WMON, 1_000_000e18, buyer);
+            escrow.release(CHOG, id, buyer);
+            vm.stopPrank();
+            assertEq(IChogFork(CHOG).ownerOf(id), buyer);
         }
     }
 
