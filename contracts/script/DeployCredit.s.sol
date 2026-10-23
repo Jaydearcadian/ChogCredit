@@ -81,6 +81,17 @@ contract DeployCredit is Script {
         });
         p.collaterals = new ChogCreditPool.CollateralConfig[](1);
         p.collaterals[0] = ChogCreditPool.CollateralConfig(address(d.wmon), 4_000, 6_500, 800, 2_000_000 ether);
+        _requirePermittedCollateral(p.collaterals);
+    }
+
+    /// @dev The live CHOG token has no liquidation depth (docs/evidence/LIQUIDITY_MODEL.md), so it is never allowed as
+    ///      collateral by this script.
+    address internal constant CHOG_TOKEN = 0x350035555E10d9AfAF1566AaebfCeD5BA6C27777;
+
+    function _requirePermittedCollateral(ChogCreditPool.CollateralConfig[] memory cols) internal pure {
+        for (uint256 i; i < cols.length; ++i) {
+            require(cols[i].token != CHOG_TOKEN, "CHOG token is not permitted as collateral");
+        }
     }
 
     function _checkMode(string memory mode, uint256 chainId) internal pure {
