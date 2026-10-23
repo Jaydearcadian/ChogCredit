@@ -8,6 +8,8 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 ///         price" the risk register forbids. Deployments using it must be labelled mock.
 contract MockOracle is IPriceOracle {
     address public owner;
+    /// @dev A second address that may only set prices (a testnet price keeper). It cannot pause prices or change who owns this.
+    address public keeper;
     mapping(address => uint256) public pricePerWholeToken; // loan-token raw units per 1 whole token
     bool public down;
 
@@ -15,8 +17,13 @@ contract MockOracle is IPriceOracle {
         owner = msg.sender;
     }
 
-    function setPrice(address token, uint256 priceRaw) external {
+    function setKeeper(address k) external {
         require(msg.sender == owner, "owner");
+        keeper = k;
+    }
+
+    function setPrice(address token, uint256 priceRaw) external {
+        require(msg.sender == owner || msg.sender == keeper, "owner or keeper");
         pricePerWholeToken[token] = priceRaw;
     }
 

@@ -1,4 +1,4 @@
-# Holder terms: design, not built
+# Holder terms: priority access and the tenure card are built; a rate discount is not
 
 **Question.** Chog Credit's account is keyed to a Chog. Should holders get terms that others cannot?
 
@@ -33,3 +33,11 @@ Rules for any option:
 - New config: `priorityUtilBps`, `priorityMinAge`. Both are constructor values, so a testnet redeploy is needed.
 - Tests: below the line anyone can borrow; above it only tenured vaults; the line moves with repayments.
 - App: show "Priority access" on Borrow when the pool is above the line, and say why a new vault is waiting.
+
+## Status
+
+Built and live on testnet:
+- **Tenure card** (option 1): the account shows "Holder since" the date the vault was opened, from the registry's own `createdAt`.
+- **Priority access** (option 2): `ChogCreditPool` takes `priorityUtilBps` (90%) and `priorityMinAge` (1 day) at deploy. A borrow that would leave the pool more than 90% used is refused with `PriorityAccessOnly` unless the vault has been open at least a day. It changes who gets scarce capacity and nothing else: not a limit, not a rate. The Borrow screen asks the pool first (`priorityRestricted`) and says why, how long the vault has been open and how long is left, before anything is signed. Tests: `contracts/test/credit/PriorityAccess.t.sol` (7) and `app/e2e/priority.mjs`.
+
+Not built: a per-account rate discount (option 4) and an off-pool rebate (option 3). Both stay out until after an audit and the payments review.

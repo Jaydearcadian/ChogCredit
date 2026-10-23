@@ -62,6 +62,9 @@ contract DeployCredit is Script {
         d.chogToken = new TestToken("Mock CHOG", "mCHOG", 18);
         d.oracle = new MockOracle();
         d.oracle.setPrice(address(d.wmon), vm.envOr("WMON_PRICE_USDC", uint256(20_000)));
+        // an optional price keeper (testnet only): may set prices, cannot pause them or change who owns the oracle
+        address keeper = vm.envOr("KEEPER", address(0));
+        if (keeper != address(0)) d.oracle.setKeeper(keeper);
         uint256 seed = vm.envOr("SEED_CHOGS", uint256(0));
         for (uint256 i = 1; i <= seed; i++) {
             d.chog.mint(d.deployer, i);
@@ -99,7 +102,10 @@ contract DeployCredit is Script {
             baseRateBps: 200,
             slope1Bps: 400,
             slope2Bps: 6_000,
-            optimalUtilBps: 8_000
+            optimalUtilBps: 8_000,
+            // Above 90% utilization after a borrow, only vaults open for a day or more may borrow (PRIORITY_UTIL_BPS=0 turns it off).
+            priorityUtilBps: uint16(vm.envOr("PRIORITY_UTIL_BPS", uint256(9_000))),
+            priorityMinAge: uint32(vm.envOr("PRIORITY_MIN_AGE", uint256(1 days)))
         });
         p.collaterals = new ChogCreditPool.CollateralConfig[](1);
         p.collaterals[0] = ChogCreditPool.CollateralConfig(address(d.wmon), 4_000, 6_500, 800, 600_000 ether);

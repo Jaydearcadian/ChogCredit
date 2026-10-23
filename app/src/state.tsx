@@ -69,6 +69,17 @@ function AppProvider({ dep, children }: { dep: Deployment; children: ReactNode }
     return () => { live = false; };
   }, [dep, pc, tick]);
 
+  // Testnet prices follow the real market. The hosted keeper writes only when the price has moved, so this is a cheap nudge, at most every ten minutes per browser.
+  useEffect(() => {
+    if (dep.chainId !== 10143) return;
+    try {
+      const last = Number(localStorage.getItem('chog-credit:keeper') ?? 0);
+      if (Date.now() - last < 10 * 60_000) return;
+      localStorage.setItem('chog-credit:keeper', String(Date.now()));
+    } catch { /* storage can be blocked; ping anyway */ }
+    fetch('/api/price-keeper').catch(() => undefined);
+  }, [dep.chainId]);
+
   const connect = useCallback(() => {
     setError(null);
     if (devWalletAllowed(dep.chainId)) { setDev(connectDev(dep.chainId)); return; }

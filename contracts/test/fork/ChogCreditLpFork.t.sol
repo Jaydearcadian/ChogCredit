@@ -110,7 +110,9 @@ contract ChogCreditLpForkTest is Test {
             baseRateBps: 200,
             slope1Bps: 400,
             slope2Bps: 6_000,
-            optimalUtilBps: 8_000
+            optimalUtilBps: 8_000,
+            priorityUtilBps: 0,
+            priorityMinAge: 0
         });
         p.collaterals = new ChogCreditPool.CollateralConfig[](1);
         p.collaterals[0] = ChogCreditPool.CollateralConfig(WMON, 4_000, 6_500, 800, 2_000_000 ether);

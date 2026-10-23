@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { parseAbi } from 'viem';
-import { ABI, MAX_POSITIONS, loadWalletPositions, maxWithdrawable, previewBorrowPowerGain, type AccountView, type PositionRow } from '../chain/api';
-import { fmt, fmtUsdc, healthNumber, parseAmount } from '../chain/format';
+import { ABI, MAX_POSITIONS, loadWalletPositions, priorityHeld, tenure, maxWithdrawable, previewBorrowPowerGain, type AccountView, type PositionRow } from '../chain/api';
+import { fmt, fmtUsdc, healthNumber, parseAmount, span } from '../chain/format';
 import { hasPositions } from '../chain/config';
 import { statusOf, type Status } from '../chain/status';
 import { Amount } from '../components/amount';
@@ -50,11 +50,20 @@ const Busy = () => <><span className="spin" aria-hidden="true" />Check your wall
 
 /** S8 Borrow, before you sign. */
 export function Borrow() {
-  const { dep } = useApp();
+  const { dep, pc, tick } = useApp();
   const { acct } = useAccount();
   const tx = useTx();
   const [text, setText] = useState('');
   const [firstSlip, setFirstSlip] = useState(false);
+  const [held, setHeld] = useState(false);
+  const askAmount = parseAmount(text, 6);
+  // The pool holds back newer vaults while it is busy; ask it about this amount so the screen can say so before anything is signed.
+  useEffect(() => {
+    if (!acct || !askAmount || askAmount <= 0n) { setHeld(false); return; }
+    let live = true;
+    priorityHeld(pc, dep, acct.key, askAmount).then((h) => live && setHeld(h));
+    return () => { live = false; };
+  }, [pc, dep, acct?.key, askAmount, tick]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!acct) return <Flow title="Borrow USDC"><FlowSkeleton /></Flow>;
   const d = acct.data;
   const max = d.priceOk ? (d.availableToBorrow < acct.poolLiquidity ? d.availableToBorrow : acct.poolLiquidity) : 0n;
@@ -63,7 +72,8 @@ export function Borrow() {
   const h = healthAfter(acct, owedAfter);
   const done = tx.stage === 'confirmed' || tx.stage === 'final';
   const error = !d.priceOk ? null : amount !== null && amount > max ? `Over your limit by ${fmtUsdc(amount - max)}. Most: ${fmtUsdc(max)}.` : null;
-  const ready = amount !== null && amount > 0n && !error && d.priceOk && !tx.busy;
+  const ready = amount !== null && amount > 0n && !error && d.priceOk && !tx.busy && !held;
+  const t = tenure(acct);
 
   const go = async () => {
     if (!ready || amount === null) return;
@@ -85,6 +95,7 @@ export function Borrow() {
   return (
     <Flow title="Borrow USDC">
       {!d.priceOk && <div className="banner paused" role="status">{Icon.pause}<div><b>Prices are paused</b><p>Borrowing is off until prices are back. Repaying still works.</p></div></div>}
+      {held && <div className="banner paused" role="status">{Icon.lock()}<div><b>The pool is busy</b><p>Above {(acct.priority.utilBps / 100).toFixed(0)}% of the pool in use, only vaults open {span(acct.priority.minAge)} or more can borrow. Yours has been open {span(t.age)}{t.waitSec > 0 ? `, so about ${span(t.waitSec)} to go` : ''}. A smaller amount may still work.</p></div></div>}
       <Amount label="How much do you want to borrow?" unit="USDC" decimals={6} max={max} value={text} onChange={setText}
         maxLabel={`Most you can borrow: ${fmtUsdc(max)}`} disabled={!d.priceOk} error={error} fixLabel={`Use ${fmtUsdc(max)}`} onFix={() => setText((Number(max) / 1e6).toFixed(2))} />
       <div className="card">

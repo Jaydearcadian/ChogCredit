@@ -62,7 +62,9 @@ abstract contract CreditBase is Test {
             baseRateBps: 200,
             slope1Bps: 400,
             slope2Bps: 6_000,
-            optimalUtilBps: 8_000
+            optimalUtilBps: 8_000,
+            priorityUtilBps: 0,
+            priorityMinAge: 0
         });
     }
 

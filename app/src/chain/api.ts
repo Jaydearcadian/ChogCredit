@@ -33,7 +33,23 @@ export type AccountView = {
   positions: PositionRow[];
   id: number; key: Hex; vault: Address; escrowed: boolean; data: PoolAccount; tokens: TokenRow[];
   usdcWallet: bigint; borrowRateBps: bigint; poolLiquidity: bigint; releaseBlocker: number; stateNonce: bigint;
+  /** When this vault was opened (unix seconds), and the pool's priority rule: above `utilBps` of pool use, only vaults open `minAge` seconds borrow. */
+  createdAt: number; priority: { utilBps: number; minAge: number };
+  /** The chain's own clock (latest block time), so ages match what the contract sees even if this device's clock is off. */
+  now: number;
 };
+
+/** How long a vault has been open and whether that earns priority access to pool capacity. */
+export function tenure(acct: Pick<AccountView, 'createdAt' | 'priority' | 'now'>) {
+  const age = Math.max(0, acct.now - acct.createdAt);
+  const on = acct.priority.utilBps > 0;
+  return { age, on, qualifies: !on || age >= acct.priority.minAge, waitSec: on ? Math.max(0, acct.priority.minAge - age) : 0 };
+}
+
+/** Would the pool hold this vault back from borrowing `amount` right now (it is busy and the vault is too new)? */
+export async function priorityHeld(pc: PublicClient, dep: Deployment, key: Hex, amount: bigint): Promise<boolean> {
+  try { return await read<boolean>(pc, dep.pool, ABI.pool, 'priorityRestricted', [key, amount]); } catch { return false; }
+}
 
 type Call = { address: Address; abi: Abi; functionName: string; args: unknown[] };
 /** Many reads at once. JSON-RPC batching (see wallet.ts) sends them in one request, so no Multicall3 is needed (local chains lack it). */
@@ -83,13 +99,17 @@ export async function loadAccount(pc: PublicClient, dep: Deployment, user: Addre
     { symbol: 'USDC', address: dep.mockUsdc, counts: false, decimals: 6 },
     { symbol: '$CHOG', address: dep.mockChogToken, counts: false, decimals: 18 },
   ];
-  const [escrowed, data, rate, liquidity, blocker, nonce, ...rest] = await Promise.all([
+  const [escrowed, data, rate, liquidity, blocker, nonce, info, pUtil, pAge, block, ...rest] = await Promise.all([
     read<boolean>(pc, dep.escrow, ABI.escrow, 'isEscrowed', [key]),
     read<PoolAccount>(pc, dep.pool, ABI.pool, 'accountData', [key]),
     read<bigint>(pc, dep.pool, ABI.pool, 'borrowRateBps'),
     read<bigint>(pc, dep.pool, ABI.pool, 'availableLiquidity'),
     read<number>(pc, dep.registry, ABI.registry, 'releaseBlocker', [key]),
     read<bigint>(pc, vault, ABI.vault, 'stateNonce'),
+    read<{ createdAt: bigint }>(pc, dep.registry, ABI.registry, 'accountInfo', [key]),
+    read<number>(pc, dep.pool, ABI.pool, 'priorityUtilBps').catch(() => 0),
+    read<number>(pc, dep.pool, ABI.pool, 'priorityMinAge').catch(() => 0),
+    pc.getBlock().then((b) => Number(b.timestamp)).catch(() => Math.floor(Date.now() / 1000)),
     ...tokenDefs.flatMap((t) => [
       read<bigint>(pc, vault, ABI.vault, 'accounted', [t.address]),
       read<bigint>(pc, t.address, ABI.erc20, 'balanceOf', [vault]),
@@ -105,6 +125,7 @@ export async function loadAccount(pc: PublicClient, dep: Deployment, user: Addre
     positions,
     id, key, vault, escrowed, data, tokens, usdcWallet: tokens[1].wallet,
     borrowRateBps: rate, poolLiquidity: liquidity, releaseBlocker: Number(blocker), stateNonce: nonce,
+    createdAt: Number(info.createdAt), priority: { utilBps: Number(pUtil), minAge: Number(pAge) }, now: Number(block),
   };
 }
 
@@ -160,6 +181,7 @@ export function reason(e: unknown): string {
     [/WithdrawalBlocked/, 'That would leave the loan under-covered. Repay some first, or take less.'],
     [/PriceUnavailable|priceOk/i, 'Prices are paused right now.'],
     [/ExceedsAccounted/, 'More than the vault holds.'],
+    [/PriorityAccessOnly/, 'The pool is busy, so only vaults that have been open longer can borrow right now. Try a smaller amount, or come back later.'],
     [/TooManyPositions/, `A vault holds up to ${MAX_POSITIONS} pool positions. Withdraw one first.`],
     [/PositionNotAccepted/, "That position's pool is not on the allowed list."],
     [/BorrowCapExceeded/, 'The pool has reached its borrow limit for now.'],
@@ -285,6 +307,7 @@ async function loadVaultPositions(pc: PublicClient, dep: Deployment, key: Hex, v
 export type RiskView = {
   collaterals: { token: Address; symbol: string; ltvBps: number; thresholdBps: number; bonusBps: number }[];
   borrowCap: bigint; accountDebtCap: bigint; supplyCap: bigint; closeFactorBps: number; totalDebt: bigint;
+  priorityUtilBps: number; priorityMinAge: number;
 };
 
 /** The numbers behind the Risk page, read from the pool so the page can never disagree with the contract. */
@@ -300,5 +323,6 @@ export async function loadRisk(pc: PublicClient, dep: Deployment): Promise<RiskV
     const symbol = (await read<string>(pc, c.token, sym, 'symbol').catch(() => 'token')).replace(/^m/, '');
     return { token: c.token, symbol, ltvBps: Number(c.ltvBps), thresholdBps: Number(c.thresholdBps), bonusBps: Number(c.bonusBps) };
   }));
-  return { collaterals, borrowCap, accountDebtCap, supplyCap, closeFactorBps: Number(closeFactorBps), totalDebt };
+  const [pUtil, pAge] = await Promise.all([p<number>('priorityUtilBps').catch(() => 0), p<number>('priorityMinAge').catch(() => 0)]);
+  return { collaterals, borrowCap, accountDebtCap, supplyCap, closeFactorBps: Number(closeFactorBps), totalDebt, priorityUtilBps: Number(pUtil), priorityMinAge: Number(pAge) };
 }
