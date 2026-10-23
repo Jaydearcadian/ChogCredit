@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom';
-import { fmtUsdc, healthNumber } from '../chain/format';
+import { tenure, type AccountView } from '../chain/api';
+import { fmtUsdc, healthNumber, shortDate, span } from '../chain/format';
 import { statusOf } from '../chain/status';
 import { Bubble, ChogFrame, Icon } from '../components/brand';
 import { ConnectGate, Shell } from '../components/chrome';
@@ -86,6 +87,7 @@ export default function Account() {
           {acct.positions.map((x) => <div className="kv" key={String(x.id)}><span>#{String(x.id)}  {x.pair}</span><span className="num">{x.valueOk ? `$${fmtUsdc(x.value)}` : 'No price now'}</span></div>)}
         </section>
       )}
+      {acct.escrowed && <TenureCard acct={acct} />}
       <Bubble>{empty && !owes ? "Hm, what's in here?" : BUBBLE[status]}</Bubble>
 
       <div className="row small" style={{ marginTop: 8 }}>
@@ -95,5 +97,24 @@ export default function Account() {
       </div>
       </div>
     </Shell>
+  );
+}
+
+/** How long this vault has been open, and whether that earns priority access to pool capacity when the pool is busy. */
+function TenureCard({ acct }: { acct: AccountView }) {
+  const t = tenure(acct);
+  return (
+    <section className="card" aria-label="Holder status">
+      <div className="kv"><span>Holder since</span><span className="num">{shortDate(acct.createdAt)}</span></div>
+      {t.on && (
+        <div className="kv">
+          <span>Priority access</span>
+          {t.qualifies
+            ? <span className="row" style={{ gap: 6, color: 'var(--safe)' }}>{Icon.check('currentColor', 16)}<b>Yes</b></span>
+            : <span className="small muted">in {span(t.waitSec)}</span>}
+        </div>
+      )}
+      {t.on && <span className="tiny muted">{t.qualifies ? `When the pool is over ${(acct.priority.utilBps / 100).toFixed(0)}% used, vaults like yours borrow first.` : `When the pool is over ${(acct.priority.utilBps / 100).toFixed(0)}% used, only vaults open ${span(acct.priority.minAge)} or more can borrow.`}</span>}
+    </section>
   );
 }

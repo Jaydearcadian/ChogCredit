@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Bubble, Icon, PixelKey } from '../components/brand';
 import { loadRisk, type RiskView } from '../chain/api';
-import { fmtUsdc } from '../chain/format';
+import { fmtUsdc, span } from '../chain/format';
 import { useApp } from '../state';
 import { LIQUIDATABLE_BELOW_BPS, RISK_BELOW_BPS, WATCH_BELOW_BPS } from '../chain/status';
 import { Shell } from '../components/chrome';
@@ -55,6 +55,7 @@ export function Risk() {
           <div className="kv"><span>One repayment covers up to</span><span className="num">{pct(r.closeFactorBps)} of the debt</span></div>
           <div className="kv"><span>Most one account can owe</span><span className="num">${fmtUsdc(r.accountDebtCap)}</span></div>
           <div className="kv"><span>Most the pool will lend</span><span className="num">${fmtUsdc(r.borrowCap)}</span></div>
+          {r.priorityUtilBps > 0 && <div className="kv"><span>Busy pool: vaults open {span(r.priorityMinAge)} borrow first above</span><span className="num">{pct(r.priorityUtilBps)} in use</span></div>}
           <span className="tiny muted">Pool limits are sized to how much can be sold on Monad without moving the price much (about $50,000 of WMON at 2%), so a bad day can be absorbed. They rise as that depth does.</span>
         </div>
       )}

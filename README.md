@@ -29,11 +29,11 @@ You do not need a wallet to look around. The **Chogs** tab lists every vault; an
 
 | | |
 |---|---|
-| Registry | `0x54Cd5CF6907eA09c5E279143A3dBc5450F92abc0` |
-| Pool | `0xB3b7b18d2aa26e5d763C98f18B6E38c783479476` |
-| Escrow | `0xf4e19B246F1b3c7d453c4541F04B310ED40d2C22` |
-| Sale coordinator | `0xba02316BB390EAf2737D6E725d38786D55Af334f` |
-| Test Chog faucet | `0x0be53D767B2eEB55fa5C7A7Ba271125fdaAabb48` |
+| Registry | `0x249e8498BaAB2f6f7367AaE30aaCC463037d6816` |
+| Pool | `0x78834F7Ca74FAfa8d296ae08A152eF4FfAf2D31B` |
+| Escrow | `0xD4223d5db0584fbC6cac674Ff4Be6dc8C90a796e` |
+| Sale coordinator | `0x2876cF7Ee17D4b200E2f59bFe6e1737B6ed65715` |
+| Test Chog faucet | `0x1bCD193ecC32480cCdBBf03c852018B2D88025a7` |
 | Mock USDC / WMON / $CHOG | `0x92A3890EF30589b5A67e34955C4628EC059DFd33` / `0x16E1Bd42F7C0FfD28D10919C87CaD22d05f2aA29` / `0x36f30B2E5fa115bC7D1A1a6177a523202aC1b730` |
 
 All assets are mocks, the price source is an owner-set mock, and the Chog collection is a mock. Nothing here touches the real Chog Genesis collection.
@@ -75,3 +75,9 @@ cd app && KEEPER_KEY=<deployer testnet key> node scripts/price-keeper.mjs --once
 ```
 
 `--dry` shows what it would write and writes nothing. It refuses mainnet, skips while a Pause Drill is on, skips a stale feed, and writes only when the price moved by 0.5% or 30 minutes passed. The key must be the oracle owner (the deployer) and must be a testnet-only key.
+
+The testnet runs this for you: `app/api/price-keeper.mjs` is the same pass as a Vercel function, called by a daily cron and by the app itself (at most every ten minutes per browser). Its key is a separate keeper wallet that the oracle lets set prices and nothing else (`MockOracle.keeper`), so the deployer key never leaves your machine.
+
+## Priority access
+
+When the pool would be more than 90% used after a borrow, only vaults open for a day or more may borrow. See `docs/HOLDER_TERMS.md`.
