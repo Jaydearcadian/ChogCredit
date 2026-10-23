@@ -67,8 +67,49 @@ export const devWalletAllowed = (chainId: number) => {
   } catch { return new URLSearchParams(location.search).has('dev'); }
 };
 
+/**
+ * A transport for public RPCs that limit requests per second (Monad's allow about 15, and count every call in a
+ * JSON-RPC batch). Requests go out at most ten a second and a rate-limited request waits and tries again, so a screen
+ * never hangs on an answer the node refused.
+ */
+function throttled(url: string) {
+  const perSecond = 10;
+  let sent: number[] = [];
+  let id = 0;
+  const slot = async () => {
+    for (;;) {
+      const now = Date.now();
+      sent = sent.filter((t) => now - t < 1000);
+      if (sent.length < perSecond) { sent.push(now); return; }
+      await new Promise((r) => setTimeout(r, 1000 - (now - sent[0]) + 5));
+    }
+  };
+  return custom({
+    async request({ method, params }: { method: string; params?: unknown }) {
+      for (let attempt = 0; ; attempt++) {
+        await slot();
+        const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }) });
+        const limited = res.status === 429;
+        const body = limited ? null : ((await res.json()) as { result?: unknown; error?: { code: number; message: string; data?: unknown } });
+        if (limited || /limited to \d+\/sec|rate limit/i.test(body?.error?.message ?? '')) {
+          if (attempt < 6) { await new Promise((r) => setTimeout(r, 400 * (attempt + 1))); continue; }
+        }
+        if (!body) throw new Error('The network is busy. Try again in a moment.');
+        if (body.error) throw Object.assign(new Error(body.error.message), body.error);
+        return body.result;
+      }
+    },
+  });
+}
+
+/**
+ * Reads. On Monad, contract reads made together are folded into one Multicall3 call and every request goes through
+ * the throttle above. A local chain has neither limit nor Multicall3, so there it batches JSON-RPC instead.
+ */
 export function publicClientFor(chainId: number): PublicClient {
-  return createPublicClient({ chain: chainFor(chainId), transport: http(undefined, { batch: true }) });
+  const chain = chainFor(chainId);
+  if (chainId === 31337) return createPublicClient({ chain, transport: http(undefined, { batch: true }) });
+  return createPublicClient({ chain, batch: { multicall: { wait: 24, batchSize: 65_536 } }, transport: throttled(chain.rpcUrls.default.http[0]) });
 }
 
 export async function connectProvider(eth: Eip1193, chainId: number, silent = false): Promise<Wallet> {

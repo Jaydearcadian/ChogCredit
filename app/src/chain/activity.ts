@@ -12,13 +12,20 @@ let rangeCap = 50_000n;
 
 /** Reads logs in windows no wider than the node allows, several windows at a time. */
 async function logsInRange(pc: PublicClient, address: Address[], events: AbiEvent[], from: bigint, to: bigint) {
-  const get = (f: bigint, t: bigint) => pc.getLogs({ address, events, fromBlock: f, toBlock: t });
+  const get = async (f: bigint, t: bigint) => {
+    for (let attempt = 0; ; attempt++) {
+      try { return await pc.getLogs({ address, events, fromBlock: f, toBlock: t }); } catch (e) {
+        if (attempt < 5 && /limited to \d+\/sec|rate|429/i.test(String((e as Error).message ?? e))) { await new Promise((r) => setTimeout(r, 700 * (attempt + 1))); continue; }
+        throw e;
+      }
+    }
+  };
   for (;;) {
     const windows: [bigint, bigint][] = [];
     for (let s = from; s <= to; s += rangeCap) windows.push([s, s + rangeCap - 1n > to ? to : s + rangeCap - 1n]);
     try {
       const out = [];
-      for (let i = 0; i < windows.length; i += 8) out.push(...(await Promise.all(windows.slice(i, i + 8).map(([f, t]) => get(f, t)))).flat());
+      for (let i = 0; i < windows.length; i += 4) out.push(...(await Promise.all(windows.slice(i, i + 4).map(([f, t]) => get(f, t)))).flat()); // stay under the node's rate limit
       return out;
     } catch (e) {
       const m = /limited to a (\d+) range/.exec(String((e as Error).message ?? e));
@@ -82,7 +89,10 @@ export async function loadActivity(pc: PublicClient, dep: Deployment, key: Hex, 
   try { finalized = (await pc.getBlock({ blockTag: 'finalized' })).number; } catch { finalized = latest > 2n ? latest - 2n : 0n; }
   if (dep.chainId === 31337) finalized = latest > 2n ? latest - 2n : 0n; // a local chain has no finality tag worth trusting
   const blocks = [...new Set(rows.map((r) => r.block))];
-  const times = new Map((await Promise.all(blocks.map((n) => pc.getBlock({ blockNumber: n })))).map((b) => [b.number, Number(b.timestamp)]));
+  const times = new Map<bigint, number>();
+  for (let i = 0; i < blocks.length; i += 6) {
+    for (const b of await Promise.all(blocks.slice(i, i + 6).map((n) => pc.getBlock({ blockNumber: n })))) times.set(b.number, Number(b.timestamp));
+  }
   const out = rows
     .map((r) => ({ ...r, time: times.get(r.block) ?? 0, final: r.block <= finalized }))
     .sort((x, y) => (x.block === y.block ? (x.id < y.id ? 1 : -1) : x.block < y.block ? 1 : -1));

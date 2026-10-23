@@ -31,6 +31,8 @@ export function chainFor(chainId: number) {
     name: chainId === 143 ? 'Monad' : chainId === 10143 ? 'Monad testnet' : 'Local chain',
     nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
     rpcUrls: { default: { http: [url] } },
+    // Monad has the canonical Multicall3; a local Anvil chain does not.
+    ...(chainId === 31337 ? {} : { contracts: { multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11' as const } } }),
   });
 }
 
