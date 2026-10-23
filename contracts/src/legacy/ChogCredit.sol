@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// LEGACY (pre-v0.2 prototype): mints its own account NFT. Not the Chog Credit identity design. Replaced in Gate B-D.
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -58,7 +59,9 @@ contract ChogCredit is Ownable, ReentrancyGuard {
     event Borrowed(uint256 indexed accountId, address indexed borrower, uint256 amount, uint256 totalDebt);
     event Repaid(uint256 indexed accountId, address indexed payer, uint256 amount, uint256 remainingDebt);
     event Liquidated(uint256 indexed accountId, address indexed liquidator, uint256 repaid, uint256 collateralSeized);
-    event RiskParametersUpdated(uint256 price, uint256 maxLtvBps, uint256 liquidationThresholdBps, uint256 annualInterestRateBps);
+    event RiskParametersUpdated(
+        uint256 price, uint256 maxLtvBps, uint256 liquidationThresholdBps, uint256 annualInterestRateBps
+    );
 
     constructor(
         address usdcAddress,
@@ -70,14 +73,22 @@ contract ChogCredit is Ownable, ReentrancyGuard {
         uint256 initialLiquidationThresholdBps,
         uint256 initialAnnualInterestRateBps
     ) Ownable(initialOwner) {
-        if (usdcAddress == address(0) || collateralAddress == address(0) || positionNFTAddress == address(0) || initialOwner == address(0)) revert InvalidAddress();
+        if (
+            usdcAddress == address(0) || collateralAddress == address(0) || positionNFTAddress == address(0)
+                || initialOwner == address(0)
+        ) revert InvalidAddress();
         uint8 decimals_ = IERC20MetadataLike(collateralAddress).decimals();
         if (decimals_ > 24) revert InvalidRiskParameters();
         usdc = IERC20(usdcAddress);
         collateralToken = IERC20(collateralAddress);
         positionNFT = ChogPositionNFT(positionNFTAddress);
         collateralDecimals = decimals_;
-        _setRiskParameters(initialCollateralPriceUsdcPerToken, initialMaxLtvBps, initialLiquidationThresholdBps, initialAnnualInterestRateBps);
+        _setRiskParameters(
+            initialCollateralPriceUsdcPerToken,
+            initialMaxLtvBps,
+            initialLiquidationThresholdBps,
+            initialAnnualInterestRateBps
+        );
     }
 
     modifier onlyAccountOwner(uint256 accountId) {
@@ -245,7 +256,8 @@ contract ChogCredit is Ownable, ReentrancyGuard {
         }
         if (block.timestamp > last) {
             uint256 denominator = BPS * YEAR;
-            uint256 numerator = principal * annualInterestRateBps * (block.timestamp - last) + _interestRemainder[accountId];
+            uint256 numerator =
+                principal * annualInterestRateBps * (block.timestamp - last) + _interestRemainder[accountId];
             uint256 interest = numerator / denominator;
             _interestRemainder[accountId] = numerator % denominator;
             if (interest > 0) {
@@ -256,8 +268,13 @@ contract ChogCredit is Ownable, ReentrancyGuard {
         }
     }
 
-    function _setRiskParameters(uint256 price, uint256 maxLtv, uint256 liquidationThreshold, uint256 annualRate) internal {
-        if (price == 0 || maxLtv == 0 || maxLtv >= liquidationThreshold || liquidationThreshold > BPS || annualRate > 3_000) revert InvalidRiskParameters();
+    function _setRiskParameters(uint256 price, uint256 maxLtv, uint256 liquidationThreshold, uint256 annualRate)
+        internal
+    {
+        if (
+            price == 0 || maxLtv == 0 || maxLtv >= liquidationThreshold || liquidationThreshold > BPS
+                || annualRate > 3_000
+        ) revert InvalidRiskParameters();
         collateralPriceUsdcPerToken = price;
         maxLtvBps = maxLtv;
         liquidationThresholdBps = liquidationThreshold;

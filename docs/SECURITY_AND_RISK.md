@@ -31,7 +31,7 @@ Likelihood labels are provisional until threat modeling, testing and audit.
 | R-06 | NFT accidentally released while assets, positions, debt, interest, fee, liquidation or adapter operation remains | Critical | On-chain debt/pending-operation checks at release; atomic state transition; state-machine invariant tests |
 | R-07 | Escrow safe-transfer callback accepts unsolicited/fake NFT | High | Expected-deposit nonce/state, collection allowlist, sender/owner check and callback tests |
 | R-08 | User misunderstands escrow and thinks a portfolio-bearing NFT remains in wallet/listable externally | High | Preflight disclosure, wallet-vs-beneficial-owner state, visible escrow status and release requirements; user testing |
-| R-09 | Debt-bearing sale is treated as an ordinary marketplace transfer | Critical | Coordinator-only transfer when debt active; signed buyer consent bound to account state/nonce/debt/health/deadline; no direct release; G4+ |
+| R-09 | Debt-bearing sale is treated as an ordinary marketplace transfer | Critical | Coordinator-only transfer when debt active; signed buyer consent bound to account state/nonce/debt/health/deadline; no direct release; G4+. IMPLEMENTED in source (Gate E1, `executeDebtSale`); legal review and audit pending |
 | R-10 | Chog floor-price manipulation produces excess credit | Critical | NFT collectible value is zero until approved sale/auction recovery, conservative pricing, depth/liquidity analysis, caps and stress tests |
 | R-11 | Portfolio position price is stale/manipulated or decimals are wrong | Critical | Verified oracle/adapter, freshness checks, sanity boundaries, full-precision arithmetic, downward collateral/upward debt rounding, fuzz tests |
 | R-12 | A position is marked as collateral but cannot be unwound in liquidation | Critical | Position-specific reviewed liquidation adapter; exact token amount valuation, slippage bounds and fork/integration testing; unsupported value zero |
@@ -53,6 +53,21 @@ Likelihood labels are provisional until threat modeling, testing and audit.
 | R-28 | Debt-transfer signature replay or stale state accepted | High | Typed signatures include chain, coordinator, account key, nonce/state hash, exact debt cap, health condition and expiry; replay tests |
 | R-29 | Collection configuration migration strands accounts | Critical | Versioned configuration, timelock, per-account migration plan, no silent collection replacement, migration tests |
 | R-30 | Legal/consumer-lending/market structure requirements are missed | High | Jurisdiction-specific legal review before public lending, custody-like escrow, external capital or public marketplace |
+| R-31 | The optional escrow rescuer (recovers tokens sent by plain `transferFrom`) is a privileged role; a compromised or malicious rescuer could take stranded Chogs, and it cannot be rotated | High | Disable it (address(0)) or make it a multisig/timelock; 3-day public delay and events; it can never touch recorded tokens (tested and in the invariant suite); UI must only use `safeTransferFrom` |
+| R-32 | The one-time credit-module bind is irreversible; a wrong or hostile module could lock every funded account | Critical | Bind in the deployment transaction (Gate D); bind is probed; module reads cannot revert or be return-bombed and fail closed; binder is a multisig or deployment contract |
+| R-33 | A signed buyer acceptance is replayed or revived after the account changed (deposit, sweep, ownership round trip) | High | Acceptance binds vault state nonce and escrow ownership epoch; digest single-use; chain-bound EIP-712 domain; buyer `cancel` (all covered by tests) |
+| R-34 | Live Chog Genesis collection admin: single 7702-delegated key holds `ADMIN_ROLE`; source unverified | Medium | Bytecode analysis found no burn, pause, filter or forced-transfer function and no executable delegatecall; still obtain verified source and written confirmation; metadata and royalty changes remain possible |
+| R-35 | Oracle outage or source disagreement blocks liquidation (the pool fails closed), letting bad debt build up in a fast market | High | Tested behaviour (`GATE_D.md` section 7.1); tune deviation bound and freshness windows from verified feed heartbeats; keep LTV conservative; consider an independent circuit-breaker/auction design before real funds |
+| R-36 | Feed parameters (`maxAge`, deviation bounds) are guesses; real heartbeats and thresholds of the Monad feeds are unverified | High | Confirm with the oracle operators and observe over time before any deployment; the default deployments use a mock oracle |
+| R-37 | Liquidators receive WMON and must sell into thin on-chain liquidity (about $1.2M best pool); LTV, bonus and caps are not derived from a market-impact model | High | Build a liquidity/impact model; start with small caps; no `$CHOG` collateral |
+| R-38 | No cross-asset-wide cap per collateral; one depositor can dominate WMON exposure | Medium | PARTLY MITIGATED: per-account `maxCounted` per collateral bounds any single liquidation (tested, mutation-checked). Pool-wide tracking is not possible because deposits bypass the pool; `borrowCap` and `accountDebtCap` bound total exposure. CHOG token must not be enabled as collateral (no liquidity) |
+| R-39 | Pool parameters, oracle and collateral list are immutable and there is no pause; a wrong parameter cannot be fixed in place | Medium | Deploy via the factory with reviewed parameters; plan migration; timelocked governance only if a multisig exists |
+| R-40 | Loan-token (USDC) administrator powers (blacklist, pause) could freeze the pool or vaults; collateral tokens that rebase would desynchronise vault accounting | Medium | Disclose; allowlist plain tokens only; monitor |
+| R-41 | Lender bad-debt socialisation with no reserve or withdrawal queue; lenders can only redeem up to pool cash | Medium | Disclosed in lender documentation; caps; reserve/queue design before public liquidity |
+| R-42 | LP valuation manipulated through the pool price | High | Valued at the oracle price only; pool further than the bound from the oracle makes the position unpriceable (fail closed); tested with a real swap on a fork (Gate E2) |
+| R-43 | Unwinding a position at a distorted pool price loses value | Medium | Same 2% bound applies before any unwind; larger gaps refuse the unwind. Residual loss up to the bound |
+| R-44 | Reliance on the third-party Uniswap V3 deployment and tokens inside it | Medium | Only the configured manager and factory-derived pools are accepted; tokens must be vault-allowed and be the loan token or a configured collateral; fee-on-transfer tokens are excluded by the vault's balance-delta checks |
+| R-45 | Test-method blind spot: `vm.expectRevert` + `new` ended tests at the first revert, hiding unchecked constructor validation (Gates C, D, E2) | Medium | FIXED and swept mechanically (Gate E2). Process rule: every revert test needs a non-vacuity or mutation check |
 
 ## 4. Mandatory security invariants
 
@@ -111,3 +126,29 @@ All critical/high findings must be fixed and retested. An audit applies to a spe
 - [ ] UI clearly distinguishes actual Chog NFT, test collection, mock token, simulated market and live contract state.
 
 Any unchecked item is a no-go for public real-funds lending.
+
+
+## Decided risk numbers (test deployment)
+
+**Pool limits, sized to measured exit depth.** The Uniswap V3 USDC/WMON 0.30% pool absorbs about $50,000 of WMON at roughly 2% impact (QuoterV2, `docs/evidence/LIQUIDITY_MODEL.md`). If the whole borrow cap went underwater at once, the collateral to sell is the cap divided by the 65% liquidation threshold. Caps keep that near half of the measured depth, so several liquidations and a thinner pool both fit.
+
+| Limit | Value | Why |
+| --- | --- | --- |
+| Pool borrow cap | $15,000 | $15,000 / 0.65 = about $23,000 of WMON to sell, under half of the $50,000 depth |
+| Account debt cap | $5,000 | One account is at most a third of the pool |
+| Supply cap | $25,000 | Lenders are never exposed beyond what the exit can carry |
+| Counted WMON per account | 600,000 | About $12,600 at the sample price, which is the 40% borrow limit for a full account debt cap |
+| Liquidity-position value per account | $12,500 | Same idea for pool positions |
+
+These are `DeployCredit.s.sol` defaults and can be overridden with `SUPPLY_CAP`, `BORROW_CAP` and `ACCOUNT_DEBT_CAP`. Re-measure depth before each deployment and raise caps only as depth rises. `$CHOG` stays at zero credit.
+
+**Status lines.** Health is liquidation value over debt. WMON borrows at 40% and liquidates at 65%, so a full borrow starts at 1.625.
+
+| State | Health | Price fall from a full borrow |
+| --- | --- | --- |
+| Safe | 1.50 or more | up to about 8% |
+| Watch | 1.25 to 1.50 | about 8% to 23% |
+| At risk | 1.00 to 1.25 | about 23% to 38% |
+| Liquidatable | below 1.00 | the contract's own line |
+
+The Risk screen reads LTV, threshold, bonus, close factor and caps from the pool, and the status lines come from `app/src/chain/status.ts`, so the page and the contract cannot drift apart.

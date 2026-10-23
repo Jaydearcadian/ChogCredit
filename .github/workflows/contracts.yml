@@ -1,0 +1,88 @@
+name: contracts
+
+on:
+  push:
+    paths: ["contracts/**", "app/**", ".github/workflows/contracts.yml", ".gitmodules"]
+  pull_request:
+    paths: ["contracts/**", "app/**", ".github/workflows/contracts.yml", ".gitmodules"]
+
+env:
+  FOUNDRY_VERSION: v1.8.6
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+      - run: forge --version
+      - run: forge fmt --check
+      - run: forge build --sizes
+      - run: forge test -vvv
+        env:
+          FOUNDRY_INVARIANT_RUNS: "128"
+          FOUNDRY_INVARIANT_DEPTH: "200"
+
+  fork:
+    # Live-collection checks against Monad mainnet state. Separate job so a flaky public RPC never hides unit results.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+      - run: forge test --match-path "test/fork/*" -vv
+        env:
+          MONAD_MAINNET_RPC_URL: https://rpc.monad.xyz
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+      - run: pip install slither-analyzer==0.11.6
+      - name: Slither (core only; known benign findings are listed in docs/evidence/GATE_C2.md)
+        run: slither . --filter-paths "lib|test|legacy|mocks|script" --fail-none
+
+  app:
+    # The web app: types, then a production build. ABIs come from the Foundry build, so build the contracts first.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: forge build
+        working-directory: contracts
+      - run: npm ci
+        working-directory: app
+      - run: npm run abis
+        working-directory: app
+      - run: npm run build
+        working-directory: app

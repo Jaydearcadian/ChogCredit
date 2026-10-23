@@ -1,0 +1,20 @@
+// A Uniswap V3 position as collateral: add it, borrow against it, it stays while the loan stands, repay, take it back.
+// Needs the local chain deployed with ENABLE_LP=true (see reset.sh).
+import { chromium } from 'playwright-core';
+import { mkdirSync } from 'node:fs';
+mkdirSync('shots', { recursive: true });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+const main = p.locator('main'); const final = () => p.getByText('Final on Monad.').first().waitFor({ timeout: 40000 });
+const shot = (n) => p.screenshot({ path: `shots/lp-${n}.png` });
+const step = async (s, fn) => { try { await fn(); console.log('ok  ', s); } catch (e) { console.log('FAIL', s, String(e.message).split('\n')[0]); await shot('fail'); console.log((await main.innerText().catch(() => '')).slice(0, 400)); await b.close(); process.exit(1); } };
+await step('open a vault', async () => { await p.goto('http://127.0.0.1:5173/?dev=1'); await p.getByRole('button', { name: 'Connect wallet' }).click(); await p.getByRole('button', { name: /No vault yet/ }).first().click(); await p.getByRole('button', { name: 'Open vault' }).click(); await p.getByRole('heading', { name: 'Vault opened.' }).waitFor({ timeout: 30000 }); await p.getByRole('button', { name: 'No thanks' }).click(); });
+await step('get a test position and see what it counts for', async () => { await p.getByRole('link', { name: 'Add assets' }).click(); await p.getByRole('tab', { name: 'Pool position' }).click(); await p.getByRole('button', { name: 'Get a test position' }).click(); await p.getByText(/Counts for/).waitFor({ timeout: 40000 }); await p.waitForTimeout(600); await shot('1-pick'); });
+await step('add it to the vault', async () => { await p.getByRole('button', { name: /^Add position #/ }).click(); await final(); await p.getByRole('link', { name: 'Back to account' }).click(); await p.getByText('Pool positions in the vault').waitFor({ timeout: 20000 }); await p.waitForTimeout(700); await shot('2-account'); });
+await step('borrow against it', async () => { await main.getByRole('link', { name: 'Borrow', exact: true }).click(); await p.getByLabel('How much do you want to borrow?', { exact: true }).fill('50'); await p.getByRole('button', { name: 'Borrow 50.00 USDC' }).click(); await final(); await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Repay', exact: true }).waitFor({ timeout: 20000 }); });
+await step('the position cannot leave while it backs the loan', async () => { await main.getByRole('link', { name: 'Withdraw', exact: true }).click(); await p.getByText('It backs your loan. Repay first.').waitFor({ timeout: 20000 }); await shot('3-locked'); });
+await step('repay, then take it back', async () => { await main.getByRole('link', { name: 'Cancel' }).click(); await main.getByRole('link', { name: 'Repay', exact: true }).click(); await p.getByRole('button', { name: /Repay all/ }).click(); await p.getByText('Debt-free. Look at you.').waitFor({ timeout: 40000 }); await final(); await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Withdraw', exact: true }).click(); await p.getByRole('button', { name: /^Withdraw position #/ }).click(); await p.getByText('Nothing in the vault').waitFor({ timeout: 40000 }); });
+await step('the Chog can go home', async () => { await p.getByRole('link', { name: 'Add assets' }).waitFor(); await p.goBack(); await main.getByRole('link', { name: 'Release the Chog' }).or(main.getByRole('link', { name: 'Release Chog' })).first().click(); await p.getByRole('button', { name: 'Release Chog' }).waitFor(); if (!(await p.getByRole('button', { name: 'Release Chog' }).isEnabled())) throw new Error('release still blocked'); });
+console.log('errors:', errs);
+await b.close();

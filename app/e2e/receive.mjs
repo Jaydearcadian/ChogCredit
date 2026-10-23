@@ -1,0 +1,23 @@
+// Pay a Chog before its vault exists, open the vault, and count what arrived. Local chain with cast.
+import { chromium } from 'playwright-core';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, mkdirSync } from 'node:fs';
+mkdirSync('shots', { recursive: true });
+const dep = JSON.parse(readFileSync('../public/deployment.json', 'utf8'));
+const K = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', R = 'http://127.0.0.1:8545';
+const cast = (...a) => execFileSync('cast', [...a, '--private-key', K, '--rpc-url', R], { stdio: 'ignore' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+const main = p.locator('main'); const final = () => p.getByText('Final on Monad.').first().waitFor({ timeout: 40000 });
+const shot = (n) => p.screenshot({ path: `shots/r-${n}.png` });
+const step = async (s, fn) => { try { await fn(); console.log('ok  ', s); } catch (e) { console.log('FAIL', s, String(e.message).split('\n')[0]); await shot('fail'); console.log((await main.innerText().catch(() => '')).slice(0, 400)); await b.close(); process.exit(1); } };
+let address;
+await step('the payer page works for a Chog with no vault yet', async () => { await p.goto('http://127.0.0.1:5173/pay/1'); await p.getByText('To this address').waitFor({ timeout: 15000 }); await p.getByText(/vault isn't open yet/).waitFor(); address = await p.locator('.share code').first().innerText(); await p.waitForTimeout(600); await shot('1-pay'); });
+await step('someone pays it: 100,000 WMON and 25 USDC arrive', async () => { cast('send', dep.mockWmon, 'mint(address,uint256)', address, '100000000000000000000000'); cast('send', dep.mockUsdc, 'faucet()'); cast('send', dep.mockUsdc, 'transfer(address,uint256)', address, '25000000'); });
+await step('open the vault', async () => { await p.goto('http://127.0.0.1:5173/?dev=1'); await p.getByRole('button', { name: 'Connect wallet' }).click(); await p.getByRole('button', { name: /No vault yet/ }).first().click(); await p.getByRole('button', { name: 'Open vault' }).click(); await p.getByRole('heading', { name: 'Vault opened.' }).waitFor({ timeout: 30000 }); await p.getByRole('button', { name: 'No thanks' }).click(); });
+await step('Get paid shows what is waiting and nothing counts yet', async () => { await p.getByRole('link', { name: 'Look around first' }).click().catch(() => {}); await p.goto('http://127.0.0.1:5173/receive'); });
+await step('connect again, see the waiting amounts', async () => { await p.getByRole('button', { name: 'Connect', exact: true }).first().click().catch(() => {}); await p.getByText('Waiting to add').waitFor({ timeout: 20000 }); await p.getByText(/100,000.00 WMON/).waitFor(); await p.getByText(/25.00 USDC/).waitFor(); await p.waitForTimeout(700); await shot('2-waiting'); });
+await step('add the WMON; it now counts', async () => { await p.locator('section.card', { hasText: 'WMON' }).getByRole('button', { name: 'Add to vault' }).click(); await final(); await p.waitForTimeout(500); await p.getByRole('link', { name: 'Back to account' }).click(); await p.getByText('$800.00').waitFor({ timeout: 20000 }); await shot('3-counted'); });
+console.log('errors:', errs);
+await b.close();

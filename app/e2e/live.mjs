@@ -1,0 +1,38 @@
+// The board's "wow moment", live: stay on the Account screen while the (mock) oracle is flipped from outside.
+// The chip should swap, Borrow should lock in place, and Repay should not move.
+import { chromium } from 'playwright-core';
+import { execSync } from 'node:child_process';
+import { readFileSync, mkdirSync } from 'node:fs';
+mkdirSync('shots', { recursive: true });
+const dep = JSON.parse(readFileSync('../public/deployment.json', 'utf8'));
+const K = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', R = 'http://127.0.0.1:8545';
+const cast = (sig, ...a) => execSync(`cast send ${dep.mockOracle} "${sig}" ${a.join(' ')} --private-key ${K} --rpc-url ${R}`, { stdio: 'ignore' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+const main = p.locator('main');
+const final = () => p.getByText('Final on Monad.').first().waitFor({ timeout: 40000 });
+await p.goto('http://127.0.0.1:5173/?dev=1'); await p.getByRole('button', { name: 'Connect wallet' }).click();
+await p.getByRole('button', { name: /No vault yet/ }).first().click(); await p.getByRole('button', { name: 'Open vault' }).click();
+await p.getByRole('heading', { name: 'Vault opened.' }).waitFor({ timeout: 30000 }); await p.getByRole('button', { name: 'No thanks' }).click();
+await p.getByRole('link', { name: 'Add assets' }).click(); await p.getByRole('button', { name: 'Get test tokens' }).click();
+await p.getByText(/In your wallet: 100,000.00/).waitFor({ timeout: 40000 });
+await p.getByRole('button', { name: /In your wallet/ }).click(); await p.getByRole('button', { name: /^Add .* WMON$/ }).click(); await final();
+await main.getByRole('link', { name: 'Back to account' }).click();
+await main.getByRole('link', { name: 'Borrow', exact: true }).click();
+await p.getByLabel('How much do you want to borrow?', { exact: true }).fill('400'); await p.getByRole('button', { name: 'Borrow 400.00 USDC' }).click(); await final();
+await main.getByRole('link', { name: 'Back to account' }).click();
+await main.getByRole('link', { name: 'Repay', exact: true }).waitFor({ timeout: 20000 });
+await p.waitForTimeout(900);
+const before = await main.getByRole('link', { name: 'Repay', exact: true }).boundingBox();
+const watch = p.evaluate(() => new Promise((res) => { let seen = false; const o = new MutationObserver(() => { if (document.querySelector('.swap > .out')) seen = true; }); o.observe(document.body, { subtree: true, childList: true }); setTimeout(() => { o.disconnect(); res(seen); }, 9000); }));
+cast('setDown(bool)', 'true');
+await p.getByText('Borrow paused').waitFor({ timeout: 15000 });
+await p.waitForTimeout(120); await p.screenshot({ path: 'shots/live-mid.png' });
+const swapping = (await watch) ? 1 : 0;
+await p.waitForTimeout(700); await p.screenshot({ path: 'shots/live-paused.png' });
+const after = await main.getByRole('link', { name: 'Repay', exact: true }).boundingBox();
+console.log('chip swap seen mid-flight:', swapping > 0, '| Repay moved:', Math.abs(before.x - after.x) > 1 || Math.abs(before.y - after.y) > 1 ? `yes (dy ${after.y - before.y})` : 'no');
+cast('setDown(bool)', 'false');
+await p.getByRole('link', { name: 'Borrow', exact: true }).first().waitFor({ timeout: 15000 });
+console.log('prices back: Borrow unlocked');
+await b.close();

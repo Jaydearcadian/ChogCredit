@@ -1,0 +1,38 @@
+/* Tokens from docs/brand/DESIGN.md and brand boards 1, 4 and 7. Change them there first. */
+:root {
+  /* ink (app) */
+  --ink-950: #0e0b1a; --ink-900: #141026; --ink-850: #181330; --ink-800: #211a40; --ink-700: #2d2556;
+  /* cream (landing, onboarding) */
+  --cream-50: #faf9fc; --cream-100: #f4f1e6; --cream-200: #e7e2d0; --cream-dot: #d9d3bf;
+  --text: var(--cream-50); --text-muted: #d2ccea; --text-on-cream: #141026; --muted-on-cream: #575070;
+  /* violet */
+  --purple-500: #836ef9; --purple-300: #b7aaff; --purple-btn: #6b52f0; --purple-700: #46188d; --link-light: #5b3fd6;
+  /* decoration only, never status */
+  --pink-500: #e845a4; --amber-400: #fcbb00; --pill: #f9c230;
+  /* status: icon + word + colour */
+  --safe: #72e4bc; --watch: #f9c230; --risk: #ea7c31; --danger: #c83846; --paused: #9a93c9;
+  --safe-tint: #22343c; --watch-tint: #3e2f1f; --risk-tint: #3e262d; --danger-tint: #3e1f32; --paused-tint: #211a40;
+
+  --font-display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-num: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Gaegu', cursive;
+
+  --r-pill: 6px; --r-chip: 12px; --r-field: 14px; --r-button: 16px; --r-frame: 16px; --r-card: 20px; --r-account: 24px;
+  --header: 60px; --tabbar: 68px;
+
+  /* motion (board 7) */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);       /* exits and settles */
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); /* the bubble and stickers only */
+  --dur-quick: 150ms; --dur-standard: 300ms; --dur-slow: 500ms; --dur-exit: 200ms;
+  --rise: 12px; --stagger: 60ms;
+}
+/* Phones: durations about 0.8x, stagger cut by a third. */
+@media (max-width: 520px) {
+  :root { --dur-quick: 120ms; --dur-standard: 240ms; --dur-slow: 400ms; --dur-exit: 160ms; --stagger: 40ms; }
+}
+/* Reduced motion: no movement, opacity kept, durations halved or more. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --rise: 0px; --dur-quick: 0ms; --dur-standard: 120ms; --dur-slow: 150ms; --dur-exit: 0ms; --stagger: 0ms; }
+}

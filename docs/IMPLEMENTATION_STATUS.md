@@ -123,11 +123,27 @@ This is not final collection approval. Verify from an official Chog source or ex
 
 | Evidence item | Current state | Required artifact |
 |---|---|---|
-| Exact Chog collection confirmed | Not verified | Official project/collection source + contract address + reviewer |
-| Solidity compile | Not verified | `forge build` log and source commit |
-| Foundry test suite | Not verified | `forge test -vvv` log |
-| Identity/registry tests | Not implemented for target identity | Test report for chain + collection + token key |
-| Escrow safety tests | Not implemented for target architecture | Test report incl. adversarial cases |
+| Exact Chog collection confirmed | **Partly.** `LIVE_READ_PASS` 2026-10-22: `0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763` on chain 143 reports `Chog Genesis`, supply 1,969 (matches the official mint page), ERC-721/2981. Address not yet printed on an official Chog page; contract not verified on Sourcify | Written confirmation from the Chog team + verified source/ABI; `scripts/verify_monad_reference.py mainnet` output |
+| Monad third-party addresses (USDC, WMON, Multicall3, Uniswap/Pancake V3, oracles, ERC-6551) | `LIVE_READ_PASS` 2026-10-22, mainnet block 115,697,336 and testnet block 73,328,862. Reference only, not approved integrations | `config/monad-reference.json`, `docs/MONAD_REFERENCE.md`, verifier script output |
+| Live-collection escrow behaviour | **Partly:** fork simulation of the full registry + escrow round trip (open, `safeTransferFrom` in, previous owner and strangers blocked, release) on the real contract for a plain and a 7702-delegated holder. Operator/marketplace flow on the live contract, admin-role behaviour and real on-chain transactions not tested | `contracts/test/fork/ChogGenesisFork.t.sol`, `docs/evidence/GATE_C.md` |
+| Chogathon application terms | Judging criteria seen; eligibility, license, prize terms and dates not established | Read the application page and rules; record answers |
+| Solidity compile | **Prototype only:** `LOCAL_BUILD_PASS` with Foundry 1.8.6, `network = "monad"`, solc 0.8.24, OZ 5.1.0 (commit `6bc452a`, fresh clone). v0.2 contracts do not exist yet | `docs/evidence/GATE_A.md` |
+| Foundry test suite | **Prototype only:** 11/11 unit tests pass; 3 mainnet-fork tests pass (local simulation). No fuzz/invariant tests | `docs/evidence/GATE_A.md` |
+| Identity/registry tests | **Done in source (Gate B):** 29 unit/fuzz tests + 1 fork test of the registry against the real collection; 5/5 manual mutants caught. Wallet-held mode only; escrow not built | `docs/evidence/GATE_B.md` (commit `69b6d6c`) |
+| Escrow safety tests | **Done in source (Gate C):** 21 escrow tests, 6 stateful invariants, 11/11 manual mutants caught, live-collection escrow round trip on a mainnet fork (simulation). Credit module is a mock; no real pool yet | `docs/evidence/GATE_C.md` (commit `0156112`) |
+| Static analysis | **Done (Slither 0.11.6, `src/core`):** only intentional or false-positive items; listed in `GATE_C2.md` | `docs/evidence/GATE_C2.md` |
+| Package sale (debt-free) | **Done in source:** buyer-signed, atomic, epoch/nonce-bound, 7702 and ERC-1271 buyers; fork simulation with real Chog and real USDC. Debt-bearing transfer not implemented | `docs/evidence/GATE_C2.md` |
+| Deployment script, local deployment | **Local chain only:** `DeployCore` + `SmokeCore` on Anvil, 7 txs, 0 failed. Testnet dry run only (about 1.6 MON); not broadcast | `docs/evidence/GATE_C2.md` |
+| Automated code review | One pass (`code-review` skill, high effort): 9 findings, 6 valid and fixed. Not independent | `docs/evidence/GATE_C2.md` |
+| Credit pool, lender accounting, interest, liquidation, bad debt | **Done in source (Gate D):** immutable-parameter pool with shares, debt index, caps, fail-closed oracle behaviour; 15 stateful invariants at 256 runs x depth 500; 62/62 manual mutants caught; two rounding defects found by tests and fixed | `docs/evidence/GATE_D.md` (commit `c9c5f93`) |
+| Real oracle path | **Fork-tested only:** Chainlink + RedStone feeds on Monad via `ChainlinkPairOracle`; feed heartbeats and deviation thresholds NOT verified; default deployments use a mock oracle | `docs/evidence/GATE_D.md` |
+| Credit-module binder | **Closed:** `ChogCreditFactory` binds the pool in its constructor | `docs/evidence/GATE_D.md` |
+| Debt-bearing package sales | **Done in source (Gate E1):** buyer-signed bounds on debt, collateral value and health, optional atomic payoff; 29 new tests, fork test with real holders, 21/21 mutants caught. Not deployed, not audited, legal review pending | `docs/evidence/GATE_E1.md` |
+| LP-position collateral | **Done in source (Gate E2):** oracle-priced Uniswap V3 positions, vault custody, unwind-first liquidation; maths matches the real position manager to the wei on a fork; real end-to-end liquidation on a fork; invariants and mutation checks. Not deployed, not audited | `docs/evidence/GATE_E2.md` |
+| $CHOG held in vaults | **Done (Gate E3):** allowed as a vault-only token with zero credit value; not collateral (no liquidity). Real token tested on a fork. Implementation of the real token not reviewed | `docs/evidence/GATE_E3.md` |
+| Receive (pay to a Chog) | **Contract done and run locally:** `AccountVault.claimReceived`, 11 tests + 7 mutants caught, Anvil smoke 23 txs / 0 failed, wireframes S22 to S25. App and testnet run not built | `docs/ux/RECEIVE_FEATURE.md` |
+| Testnet deployment (Monad testnet 10143) | **Broadcast:** mock assets, mock oracle, test Chog faucet. Registry `0x54Cd5CF6907eA09c5E279143A3dBc5450F92abc0`, pool `0xB3b7b18d2aa26e5d763C98f18B6E38c783479476`, escrow `0xf4e19B246F1b3c7d453c4541F04B310ED40d2C22`, coordinator `0xba02316BB390EAf2737D6E725d38786D55Af334f`, faucet `0x0be53D767B2eEB55fa5C7A7Ba271125fdaAabb48`, from block 73532353. Pool seeded with 10,000 mock USDC. Unaudited | `app/public/deployments/monad-testnet.json` |
+| Second-market adapter | **Not built** (deferred by the project owner until after the rest) | n/a |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |
 | Testnet deployment | Not performed/verified | Chain ID, deploy tx hashes, addresses, explorer links and code verification |
@@ -135,3 +151,6 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Independent audit | Not performed | Audit report, commit hash and remediation status |
 
 The next claim of completion must cite these artifacts, not just the presence of new files.
+
+| Lend, Receive, pool positions as collateral (app) | Done on the local chain; Lend and Receive on testnet | Pool limits sized to measured exit depth; Risk screen reads them from the pool |
+| App bundle | First load about 690 KB (was 1.09 MB); screens and the wallet layer load on demand | Wallet layer loads after first paint |
