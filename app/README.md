@@ -4,6 +4,12 @@ React + TypeScript + viem. No wallet library: it talks to the browser wallet dir
 
 Built so far: Connect, Pick your Chog, Open a vault, Account overview, Add assets, Borrow and Repay, Withdraw, Release, plus a Risk explainer. Not built yet: Sell, Activity, Lend, Receive, Settings. All of it runs against test deployments with mock assets.
 
+## Brand and motion
+
+Ported from the brand board and motion board, not just `DESIGN.md`: the Account Card (Chog frame, status chip, ring with one pink dot, Chog bubble, tear line with notches, the three numbers), the Slip (favicon and Connect page), the Full Stop wordmark, the Vault Door, the Confirmed pop and tick, the Submitted/Confirmed/Final steps, error shake, the press settle, and entrance rise with stagger (`src/styles/motion.css`). Sound and haptics follow the board's table (`src/feedback.ts`): sound off by default, offered once after the first confirmed transaction, risk sounds a separate switch. Onboarding uses the cream Chog register; money screens use the dark Ledger register.
+
+Not ported yet: the health-dot slide on change is a CSS transition (not the board's keyframes), digit roll, chip swap, Pause Drill, skeleton shimmer on every loading state, the once-ever tear-off, sticker sparkles on repay.
+
 ## Run it on a local chain
 
 ```

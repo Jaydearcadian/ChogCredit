@@ -1,0 +1,46 @@
+/* Ported from brand board 7 (Motion). Animate transform and opacity only. Reduced motion: movement off, opacity kept. */
+:root { --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); --rise: 12px; --stagger: 60ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(var(--rise)); } to { opacity: 1; transform: none; } }
+@keyframes vaultL { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes vaultR { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes stampPulse { 0%, 55% { transform: scale(1); } 75% { transform: scale(1.14); } 100% { transform: scale(1); } }
+@keyframes pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes tickDraw { from { stroke-dashoffset: 26; } to { stroke-dashoffset: 0; } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-9px); } 50% { transform: translateX(9px); } 70% { transform: translateX(-6px); } 85% { transform: translateX(4px); } }
+@keyframes stepLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes bubblePop { 0% { transform: scale(.9); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes tear { 0% { transform: translate(0, 0) rotate(0); } 40% { transform: translate(20px, -4px) rotate(5deg); } 100% { transform: translate(0, 0) rotate(0); } }
+@keyframes shimmer { from { transform: translateX(-120%); } to { transform: translateX(220%); } }
+@keyframes float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
+@keyframes chipIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.rise { animation: rise var(--t-base) var(--ease) both; }
+.rise:nth-child(2) { animation-delay: var(--stagger); } .rise:nth-child(3) { animation-delay: calc(var(--stagger) * 2); } .rise:nth-child(4) { animation-delay: calc(var(--stagger) * 3); } .rise:nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.door-l { animation: vaultL var(--t-slow) var(--ease) both; } .door-r { animation: vaultR var(--t-slow) var(--ease) both; }
+.stamp { animation: stampPulse 800ms var(--ease) both; transform-origin: 50% 50%; }
+.popit { animation: pop var(--t-base) var(--ease) both; }
+.tickdraw { stroke-dasharray: 26; animation: tickDraw var(--t-base) var(--ease) 80ms both; }
+.shakeit { animation: shake var(--t-base) var(--ease) both; }
+.step-line { transform-origin: 0 50%; animation: stepLine var(--t-base) var(--ease) both; }
+.bubble { animation: bubblePop 250ms var(--ease-pop) both; transform-origin: 0 100%; }
+.tearit { animation: tear var(--t-slow) var(--ease) both; transform-origin: 0 50%; }
+.chip-swap { animation: chipIn var(--t-base) var(--ease) both; }
+.floaty { animation: float 6s var(--ease) infinite alternate; }
+.shim { position: relative; overflow: hidden; background: var(--ink-800); border-radius: 12px; }
+.shim::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); animation: shimmer 1.4s var(--ease) 100ms infinite; }
+/* the pink health dot slides along the ring (300 ms) */
+.dot-g { transition: transform var(--t-base) var(--ease); transform-origin: 60px 60px; }
+/* press: under 100 ms down, 200 ms settle */
+.btn { transition: transform 90ms var(--ease), filter var(--t-fast) var(--ease); }
+.btn:active { transform: scale(.97); }
+.btn:not(:active) { transition: transform 200ms var(--ease), filter var(--t-fast) var(--ease); }
+
+@media (max-width: 480px) { :root { --t-base: 240ms; --t-slow: 400ms; --stagger: 40ms; } .floaty { animation: none; } } /* phones: about 0.8x, stagger cut by a third, no ambient loops */
+@media (prefers-reduced-motion: reduce) {
+  .rise, .door-l, .door-r, .stamp, .popit, .shakeit, .step-line, .bubble, .tearit, .floaty, .chip-swap, .shim::after { animation: none !important; }
+  .rise, .bubble, .popit, .chip-swap { opacity: 1; transform: none; }
+  .tickdraw { animation: none; stroke-dashoffset: 0; }
+  .dot-g { transition: none; }
+  .btn, .btn:not(:active) { transition: none; }
+  .btn:active { transform: none; }
+}

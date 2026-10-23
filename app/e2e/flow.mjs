@@ -34,7 +34,7 @@ await step('borrow', async () => {
   await p.getByText('Done and final on Monad.').waitFor({ timeout: 40000 });
   await shot(p, '11-borrowed');
 });
-await step('account with debt', async () => { await p.getByRole('link', { name: 'Back to account' }).click(); await p.getByText('Owed').waitFor(); await p.waitForTimeout(800); await shot(p, '12-account-debt'); });
+await step('account with debt', async () => { await p.getByRole('link', { name: 'Back to account' }).click(); await p.getByText('You owe').waitFor(); await p.waitForTimeout(800); await shot(p, '12-account-debt'); });
 await step('repay all', async () => {
   await p.getByRole('link', { name: 'Borrow', exact: true }).first().click();
   await p.getByRole('tab', { name: 'Repay' }).click();

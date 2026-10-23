@@ -1,7 +1,8 @@
 import { Link, Navigate } from 'react-router-dom';
 import { fmt, fmtUsdc, healthNumber } from '../chain/format';
 import { statusOf } from '../chain/status';
-import { LockNote, Ring, Shell, StatusChip, ArtBox } from '../components/parts';
+import { AccountCard } from '../components/brand';
+import { LockNote, Shell, StatusChip, ArtBox } from '../components/parts';
 import { useApp } from '../state';
 import { useAccount } from './useAccount';
 
@@ -20,23 +21,17 @@ export default function Account() {
   const label = status === 'nodebt' ? 'No loan' : status === 'paused' ? '--' : (healthNumber(d.healthFactorBps) ?? '--');
   const bannerStatus = status === 'nodebt' ? null : status;
 
+  const chip = bannerStatus ? <StatusChip status={bannerStatus} /> : (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 12, border: '2px solid var(--purple-500)', background: 'var(--ink-850)' }}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple-300)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 018 0v3" /></svg>
+      <span style={{ fontWeight: 600, fontSize: 15 }}>No loan</span>
+    </span>
+  );
+
   return (
     <Shell>
-      <div className="row rise">
-        <h1>Chog #{id}</h1>
-        {bannerStatus ? <StatusChip status={bannerStatus} /> : <span className="small muted">Debt-free</span>}
-      </div>
-      <div className="card rise" style={{ borderRadius: 'var(--r-account)', gap: 14 }}>
-        <ArtBox id={id!} height={110} />
-        <div className="row" style={{ alignItems: 'center' }}>
-          <Ring status={status} fill={fill} label={label} />
-          <div className="stack" style={{ gap: 2, flex: 1, paddingLeft: 12 }}>
-            <span className="small muted">Can borrow</span>
-            <span className="num" style={{ fontSize: 28 }}>{fmtUsdc(d.priceOk ? d.availableToBorrow : 0n)} <span className="small muted">USDC</span></span>
-            <span className="small muted">Owed <span className="num">{fmtUsdc(d.debt)}</span></span>
-          </div>
-        </div>
-      </div>
+      <h1 className="rise">Chog #{id}</h1>
+      <AccountCard s={{ id: id!, status, ringFill: fill, ringLabel: label, assets: fmtUsdc(d.collateralValue), owed: fmtUsdc(d.debt), borrow: fmtUsdc(d.priceOk ? d.availableToBorrow : 0n), chip, art: <ArtBox id={id!} height={150} /> }} />
 
       {status === 'paused' && (
         <div className="banner paused" role="status"><b>Prices paused</b><span className="small">We can't trust the latest price right now, so borrowing and withdrawing are paused. Your funds are not moving. Repaying and adding assets still work.</span></div>
@@ -71,7 +66,7 @@ export default function Account() {
         ))}
       </div>
       <p className="small muted" style={{ margin: 0 }}>Prices from the pool's oracle. Sample numbers on a test network.</p>
-      <Link to="/release" className="small">Release the Chog</Link>
+      <div className="row"><Link to="/release" className="small">Release the Chog</Link><Link to="/settings" className="small">Settings</Link></div>
     </Shell>
   );
 }

@@ -3,7 +3,9 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ABI, maxWithdrawable } from '../chain/api';
 import { fmt, fmtPlain, fmtUsdc, healthNumber, parseAmount } from '../chain/format';
 import { statusOf, type Status } from '../chain/status';
-import { LockNote, Ring, Shell, StatusChip, ArtBox } from '../components/parts';
+import { HealthRing } from '../components/brand';
+import { AmountField } from '../components/field';
+import { LockNote, Shell, StatusChip, ArtBox } from '../components/parts';
 import { TxStrip, useTx } from '../components/tx';
 import { useApp } from '../state';
 import { useAccount } from './useAccount';
@@ -18,7 +20,7 @@ function Preview({ status, bps }: { status: Status; bps: bigint }) {
   const label = status === 'nodebt' ? 'No loan' : (healthNumber(bps) ?? '--');
   return (
     <div className="row">
-      <Ring status={status} fill={status === 'nodebt' ? 1 : Math.min(1, Number(bps) / 25_000)} label={label} />
+      <HealthRing fill={status === 'nodebt' ? 1 : Math.min(1, Number(bps) / 25_000)} label={label} paused={status === 'paused'} />
       <div className="stack" style={{ flex: 1, paddingLeft: 12, gap: 6 }}>
         <span className="small muted">Health after</span>
         {status === 'nodebt' ? <span className="muted">Debt-free</span> : <StatusChip status={status} />}
@@ -60,7 +62,7 @@ export function Borrow() {
       : await tx.run([
           { address: dep.mockUsdc, abi: ABI.erc20, functionName: 'approve', args: [dep.pool, amount] },
           { address: dep.pool, abi: ABI.pool, functionName: 'repay', args: [acct.key, amount >= d.debt ? 2n ** 256n - 1n : amount] },
-        ]);
+        ], amount >= d.debt ? 'repaid' : 'confirmed');
     if (ok) setText('');
   };
   const repayAll = async () => {
@@ -68,7 +70,7 @@ export function Borrow() {
     await tx.run([
       { address: dep.mockUsdc, abi: ABI.erc20, functionName: 'approve', args: [dep.pool, buffer] },
       { address: dep.pool, abi: ABI.pool, functionName: 'repay', args: [acct.key, 2n ** 256n - 1n] },
-    ]);
+    ], 'repaid');
   };
 
   return (
@@ -86,14 +88,13 @@ export function Borrow() {
         </div>
       )}
       {mode === 'borrow' && !d.priceOk && <LockNote>Borrowing is paused while prices are unavailable.</LockNote>}
-      <div className="stack">
-        <label className="small muted" htmlFor="amt">Amount · {mode === 'borrow' ? `up to ${fmtUsdc(maxBorrow)}` : `wallet ${fmtUsdc(acct.usdcWallet)}`} USDC</label>
-        <div className="field">
-          <input id="amt" inputMode="decimal" placeholder="0" value={text} onChange={(e) => setText(e.target.value)} disabled={mode === 'borrow' && !d.priceOk} />
-          <button className="btn secondary" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setText(fmtPlain(mode === 'borrow' ? maxBorrow : maxRepay, 6))}>MAX</button>
-        </div>
-        {blocked && <span className="small" style={{ color: 'var(--risk)' }} role="alert">{blocked}</span>}
-      </div>
+      <AmountField
+        label={`Amount · ${mode === 'borrow' ? `up to ${fmtUsdc(maxBorrow)}` : `wallet ${fmtUsdc(acct.usdcWallet)}`} USDC`}
+        value={text} onChange={setText} error={amount !== null ? blocked : null} disabled={mode === 'borrow' && !d.priceOk}
+        fix={mode === 'borrow' && amount !== null && amount > maxBorrow ? `Use ${fmtUsdc(maxBorrow)}` : undefined}
+        onFix={() => setText(fmtPlain(maxBorrow, 6))}
+        onMax={() => setText(fmtPlain(mode === 'borrow' ? maxBorrow : maxRepay, 6))}
+      />
       <Preview status={prev.status} bps={prev.bps} />
       {mode === 'borrow' && (
         <div className="card">
@@ -147,15 +148,12 @@ export function Withdraw() {
         {held.map((t) => <button key={t.symbol} role="tab" aria-selected={token.symbol === t.symbol} className={`btn ${token.symbol === t.symbol ? '' : 'secondary'}`} style={{ minHeight: 44, padding: '0 14px' }} onClick={() => { setSym(t.symbol); setText(''); }}>{t.symbol}</button>)}
       </div>
       <div className="card"><div className="row"><b>{token.symbol}</b><span className="num">{fmt(token.accounted, token.decimals)} in vault</span></div></div>
-      <div className="field">
-        <input aria-label="Amount to withdraw" inputMode="decimal" placeholder="0" value={text} onChange={(e) => setText(e.target.value)} />
-        <button className="btn secondary" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => max !== null && setText(fmtPlain(max, token.decimals))}>MAX</button>
-      </div>
+      <AmountField label={`Amount of ${token.symbol} to take out`} value={text} onChange={setText}
+        error={over ? 'Taking out that much would leave the loan under-covered. Repay some first, or take less.' : null}
+        fix={over && max !== null ? `Use ${fmt(max, token.decimals)}` : undefined} onFix={() => max !== null && setText(fmtPlain(max, token.decimals))}
+        onMax={() => max !== null && setText(fmtPlain(max, token.decimals))} />
       {max !== null && (
-        <div className={over ? 'card' : 'card'} style={over ? { borderStyle: 'dashed' } : undefined}>
-          <span>You can take {fmt(max, token.decimals)} {token.symbol} out right now.</span>
-          {over && <span className="small muted">Taking out more would leave the loan under-covered. Repay some first, or take less.</span>}
-        </div>
+        <div className="card"><span>You can take {fmt(max, token.decimals)} {token.symbol} out right now.</span></div>
       )}
       <button className="btn big" disabled={!ready} onClick={go}>{amount ? `Withdraw ${text} ${token.symbol}` : 'Withdraw'}</button>
       <TxStrip stage={tx.stage} step={tx.step} message={tx.message} />

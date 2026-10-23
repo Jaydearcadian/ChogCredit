@@ -6,10 +6,12 @@ import Add from './pages/Add';
 import { Borrow, Release, Withdraw } from './pages/Credit';
 import { Activity, Risk, Sell } from './pages/Later';
 import Open from './pages/Open';
+import Settings from './pages/Settings';
 import { Connect, Pick } from './pages/Start';
 import { AppProvider } from './state';
 import './styles/tokens.css';
 import './styles/global.css';
+import './styles/motion.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/activity" element={<Activity />} />
           <Route path="/sell" element={<Sell />} />
           <Route path="/risk" element={<Risk />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </BrowserRouter>
     </AppProvider>

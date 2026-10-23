@@ -1,21 +1,26 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Bubble, Slip } from '../components/brand';
 import { ArtBox, Shell } from '../components/parts';
 import { useApp } from '../state';
 import { setSelected } from './useAccount';
 
-/** S0 Connect */
+/** S0 Connect. Chog register: cream, Baloo, one handwritten aside. */
 export function Connect() {
   const { wallet, connect, error, test } = useApp();
   if (wallet) return <Navigate to="/pick" replace />;
   return (
-    <Shell tabs={false}>
-      <div className="stack rise" style={{ marginTop: 24, gap: 20 }}>
-        <ArtBox id={1234} height={170} />
-        <h1>Your Chog can borrow.</h1>
-        <p className="muted" style={{ margin: 0 }}>Lock a Chog in a vault, add assets, borrow USDC against them. Repay and it is yours again.</p>
-        <button className="btn big" onClick={connect}>Connect wallet</button>
-        {error && <div className="banner risk" role="alert">{error}</div>}
-        {test && <p className="small muted" style={{ margin: 0 }}>Testnet. Sample numbers. Mock assets.</p>}
+    <Shell tabs={false} register="chog">
+      <div className="stack" style={{ marginTop: 16, gap: 20 }}>
+        <div className="rise" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span className="floaty"><Slip size={64} ink="#46188d" perf="#f4f1e6" label="Chog Credit" /></span>
+          <Bubble>Hm, what's in here?</Bubble>
+        </div>
+        <h1 className="display rise" style={{ fontSize: 'clamp(40px, 12vw, 56px)' }}>Your Chog can borrow.</h1>
+        <p className="rise" style={{ margin: 0 }}>Lock a Chog in a vault, add assets, borrow USDC against them. Repay and it is yours again.</p>
+        <div className="rise" style={{ position: 'relative' }}><ArtBox id={1234} height={150} /></div>
+        <button className="btn big rise" onClick={connect}>Connect wallet</button>
+        {error && <div className="banner risk" role="alert" style={{ color: '#141026' }}>{error}</div>}
+        {test && <p className="small muted rise" style={{ margin: 0 }}>Testnet. Sample numbers. Mock assets.</p>}
       </div>
     </Shell>
   );
@@ -27,8 +32,8 @@ export function Pick() {
   const nav = useNavigate();
   if (!wallet) return <Navigate to="/" replace />;
   return (
-    <Shell tabs={false}>
-      <h1>Pick your Chog</h1>
+    <Shell tabs={false} register="chog">
+      <h1 className="display" style={{ fontSize: 40 }}>Pick your Chog</h1>
       {chogs === null && <p className="muted">Looking in your wallet…</p>}
       {chogs?.length === 0 && (
         <div className="card" style={{ borderStyle: 'dashed' }}>

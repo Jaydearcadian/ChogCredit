@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { parseAbi } from 'viem';
 import { ABI, previewBorrowPowerGain } from '../chain/api';
 import { fmt, fmtPlain, fmtUsdc, parseAmount } from '../chain/format';
+import { AmountField } from '../components/field';
 import { Shell } from '../components/parts';
 import { TxStrip, useTx } from '../components/tx';
 import { useApp } from '../state';
@@ -57,14 +58,9 @@ export default function Add() {
           <button key={t.symbol} role="tab" aria-selected={sym === t.symbol} className={`btn ${sym === t.symbol ? '' : 'secondary'}`} style={{ minHeight: 44, padding: '0 14px' }} onClick={() => { setSym(t.symbol); setText(''); }}>{t.symbol}</button>
         ))}
       </div>
-      <div className="stack">
-        <label className="small muted" htmlFor="amt">Amount · wallet {fmt(token.wallet, token.decimals)} {token.symbol}</label>
-        <div className="field">
-          <input id="amt" inputMode="decimal" placeholder="0" value={text} onChange={(e) => setText(e.target.value)} />
-          <button className="btn secondary" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setText(fmtPlain(token.wallet, token.decimals))}>MAX</button>
-        </div>
-        {over && <span className="small" style={{ color: 'var(--risk)' }}>More than your wallet holds.</span>}
-      </div>
+      <AmountField label={`Amount · wallet ${fmt(token.wallet, token.decimals)} ${token.symbol}`} value={text} onChange={setText}
+        error={over ? 'More than your wallet holds.' : null} fix={over ? `Use ${fmt(token.wallet, token.decimals)}` : undefined}
+        onFix={() => setText(fmtPlain(token.wallet, token.decimals))} onMax={() => setText(fmtPlain(token.wallet, token.decimals))} />
       <div className="card">
         <div className="row"><span className="small muted">Borrow limit now</span><span className="num">{fmtUsdc(acct.data.borrowPower)} USDC</span></div>
         <div className="row"><span className="small muted">After adding</span><b className="num">{fmtUsdc(acct.data.borrowPower + gain)} USDC</b></div>
