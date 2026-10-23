@@ -41,18 +41,27 @@ const t0 = Date.now();
 const step = async (name, fn) => { const s = Date.now(); try { await fn(); console.log('ok  ', name, `${((Date.now() - s) / 1000).toFixed(1)}s`); } catch (e) { console.log('FAIL', name, String(e.message).split('\n')[0]); await shot('fail'); console.log((await main.innerText().catch(() => '')).slice(0, 500)); console.log(errs); await b.close(); process.exit(1); } };
 
 await step('connect', async () => { await p.goto(URL); await p.getByRole('button', { name: 'Connect wallet' }).click(); await p.getByRole('button', { name: 'Browser Wallet' }).click({ timeout: 5000 }).catch(() => {}); await p.getByRole('heading', { name: 'Pick your Chog' }).waitFor({ timeout: 30000 }); });
-await step('open the Chog that already has a vault (from the first run)', async () => {
-  await p.getByRole('button', { name: /In its vault/ }).first().click({ timeout: 30000 });
-  await main.getByRole('link', { name: 'Add assets' }).first().waitFor({ timeout: 30000 }); await p.waitForTimeout(800); await shot('2-account');
+await step('get a test Chog and open its vault (or reuse the one from an earlier run)', async () => {
+  const had = p.getByRole('button', { name: /In its vault/ }).first();
+  await had.or(p.getByRole('button', { name: /Get a test Chog/ })).first().waitFor({ timeout: 60000 });
+  if (await had.isVisible()) await had.click();
+  else {
+    await p.getByRole('button', { name: /Get a test Chog/ }).click();
+    await p.getByRole('button', { name: /No vault yet/ }).first().click({ timeout: 90000 });
+    await p.getByRole('button', { name: 'Open vault' }).click();
+    await p.getByRole('heading', { name: 'Vault opened.' }).waitFor({ timeout: 90000 });
+    await p.getByRole('button', { name: 'No thanks' }).click().catch(() => {});
+  }
+  await main.getByRole('link', { name: 'Add assets' }).first().waitFor({ timeout: 60000 }); await p.waitForTimeout(800); await shot('2-account');
 });
 await step('test tokens and add WMON', async () => {
   await main.getByRole('link', { name: 'Add assets' }).first().click(); await p.getByText(/How much WMON/).waitFor({ timeout: 30000 }); if (await p.getByRole('button', { name: 'Get test tokens' }).isVisible()) await p.getByRole('button', { name: 'Get test tokens' }).click();
   await p.getByText(/In your wallet: [1-9]/).waitFor({ timeout: 120000 });
-  await p.getByLabel('How much WMON do you want to add?', { exact: true }).fill('1000'); await p.getByRole('button', { name: 'Add 1,000.00 WMON' }).click(); await final();
+  await p.getByLabel('How much WMON do you want to add?', { exact: true }).fill('10000'); await p.getByRole('button', { name: 'Add 10,000.00 WMON' }).click(); await final();
 });
-await step('borrow 100 USDC', async () => {
+await step('borrow 50 USDC', async () => {
   await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Borrow', exact: true }).click({ timeout: 30000 });
-  await p.getByLabel('How much do you want to borrow?', { exact: true }).fill('100'); await p.getByRole('button', { name: 'Borrow 100.00 USDC' }).click(); await final(); await shot('3-borrowed');
+  await p.getByLabel('How much do you want to borrow?', { exact: true }).fill('50'); await p.getByRole('button', { name: 'Borrow 50.00 USDC' }).click(); await final(); await shot('3-borrowed');
 });
 await step('account shows the loan', async () => { await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Repay', exact: true }).waitFor({ timeout: 30000 }); await p.waitForTimeout(800); await shot('4-account'); });
 await step('repay all', async () => { await main.getByRole('link', { name: 'Repay', exact: true }).click(); await p.getByRole('button', { name: /Repay all/ }).click(); await p.getByText('Debt-free. Look at you.').waitFor({ timeout: 90000 }); await final(); });
