@@ -1,6 +1,6 @@
 # Uniswap V3 LP Positions as Collateral: Specification (draft v0.1)
 
-Status: **design only, nothing implemented.** Scope is one position type and one pool. Decisions needing approval are in section 10.
+Status: **design only, nothing implemented.** Scope is one position type and one pool. Decisions in section 10 are settled.
 
 ## 1. What and why
 
@@ -108,7 +108,7 @@ Notes:
 
 Residual risks: the Uniswap V3 deployment on Monad is third-party code we rely on; unwinding a very large position can still move the pool; LP value is correlated with the price of its own tokens, so a crash hits both collateral and borrowing power.
 
-## 10. Decisions needed
+## 10. Decisions (accepted: all five recommendations below were approved by the project owner)
 
 1. **Scope:** Uniswap V3 USDC/WMON 0.30% only? Recommendation: yes.
 2. **Positions per vault:** 2. Recommendation: yes.
