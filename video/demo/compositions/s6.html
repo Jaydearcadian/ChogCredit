@@ -1,0 +1,72 @@
+<template>
+<style>
+
+@font-face{font-family:'Baloo 2';font-weight:800;src:url('assets/fonts/Baloo2-800.ttf')}
+@font-face{font-family:'Gaegu';font-weight:700;src:url('assets/fonts/Gaegu-700.ttf')}
+:root{--cream:#F4F1E6;--cream50:#FAF9FC;--cream200:#E7E2D0;--dot:#D9D3BF;--ink:#141026;--ink950:#0E0B1A;--ink850:#181330;--ink800:#211A40;--ink700:#2D2556;--v500:#836EF9;--v300:#B7AAFF;--v700:#46188D;--pink:#E845A4;--amber:#FCBB00;--safe:#72E4BC;--muted:#575070}
+#root{position:absolute;inset:0;overflow:hidden;font-family:'Inter',sans-serif;color:var(--ink)}
+#root *{box-sizing:border-box}
+.bg-cream{position:absolute;inset:0;background:radial-gradient(ellipse at 85% 0%,rgba(131,110,249,.2),rgba(131,110,249,0) 55%),radial-gradient(var(--dot) 2px,transparent 2px) 0 0/40px 40px,var(--cream)}
+.bg-ink{position:absolute;inset:0;background:radial-gradient(ellipse at 15% 100%,rgba(131,110,249,.22),rgba(131,110,249,0) 55%),linear-gradient(rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,linear-gradient(90deg,rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,var(--ink)}
+.bg-violet{position:absolute;inset:0;background:radial-gradient(ellipse at 90% 100%,rgba(232,69,164,.28),rgba(232,69,164,0) 55%),radial-gradient(rgba(250,249,252,.14) 2px,transparent 2px) 0 0/40px 40px,var(--v700)}
+.disp{font-family:'Baloo 2',sans-serif;font-weight:800;letter-spacing:-.025em;line-height:.98}
+.mono{font-family:'JetBrains Mono',monospace;font-weight:600}
+.dark{color:var(--cream50)}
+.ch{opacity:0}
+.cr{display:inline-block;width:.42em;height:.42em;margin-left:.04em;background:var(--pink);opacity:0;vertical-align:baseline;position:absolute}
+.phone{position:absolute;left:1180px;top:84px;width:432px;height:912px;border-radius:64px;background:var(--ink950);box-shadow:0 40px 90px rgba(20,16,38,.4),0 0 0 3px var(--ink700);transform-origin:50% 100%}
+.phone .screen{position:absolute;inset:13px;border-radius:52px;overflow:hidden;background:#000}
+.phone video{position:absolute;left:0;top:0;width:406px;height:886px;object-fit:cover}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:26px;letter-spacing:.06em;text-transform:uppercase}
+.callout{position:absolute;display:flex;align-items:center;gap:14px;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:8px 26px}
+.pix{position:absolute;width:var(--s,18px);height:var(--s,18px);background:var(--pink)}
+
+.win{position:absolute;left:160px;top:92px;width:1600px;height:940px;border-radius:22px;overflow:hidden;background:#0E0B1A;box-shadow:0 40px 100px rgba(0,0,0,.45),0 0 0 2px #2D2556}
+.bar{position:absolute;left:0;right:0;top:0;height:40px;display:flex;align-items:center;gap:9px;padding:0 18px;background:#181330;border-bottom:1px solid #2D2556}
+.bar i{width:12px;height:12px;border-radius:50%;background:#2D2556}.bar i:first-child{background:#E845A4}
+.bar span{margin-left:14px;font-family:'JetBrains Mono',monospace;font-size:16px;color:#9a93c9}
+.view{position:absolute;left:0;top:40px;width:1600px;height:900px;overflow:hidden}
+.cam{position:absolute;left:0;top:0;width:1600px;height:900px}
+.cam video{position:absolute;left:0;top:0;width:1600px;height:900px;object-fit:cover}
+.scrim{position:absolute;left:0;right:0;bottom:0;height:340px;background:linear-gradient(rgba(14,11,26,0),rgba(14,11,26,.96) 62%)}
+.chap{position:absolute;left:160px;top:26px;height:50px}
+.chapi{position:absolute;left:0;top:0;display:flex;align-items:center;gap:16px;white-space:nowrap;opacity:0}
+.chapi b{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:22px;color:#0E0B1A;background:#E845A4;border-radius:6px;padding:4px 10px}
+.chapi span{font-family:'Baloo 2';font-weight:800;font-size:40px;color:var(--cream50);letter-spacing:-.01em}
+.badge{position:absolute;opacity:0;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:22px;padding:14px 26px;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.badge .k{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:20px;letter-spacing:.1em;text-transform:uppercase;color:var(--v700)}
+.badge .v{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:56px;line-height:1.05}
+.sticky{position:absolute;opacity:0;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:6px 24px}
+#s6-o1{max-width:470px;font-size:40px;line-height:1.05}</style>
+<div id="root" data-composition-id="s6" data-width="1920" data-height="1080">
+<div class="bg-violet"></div>
+
+<div class="chap" id="s6-chap"><div class="chapi" id="s6-ch0"><b>05</b><span>Get paid, or lend and earn</span></div></div>
+<div class="win" id="s6-win"><div class="bar"><i></i><i></i><i></i><span>Chog Credit · test build</span></div>
+  <div class="view"><div class="cam" id="s6-cam"><video id="s6-v0" class="clip" src="assets/footage/d6.mp4" data-start="0" data-duration="8" muted playsinline></video></div><div class="scrim"></div></div></div>
+<div id="s6-o1" class="sticky" style="left:1250px;top:170px">Pay a Chog, even before its vault exists</div>
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+
+function typeIn(tl, sel, t0, t1, caretSel){
+  const els = document.querySelectorAll(sel + ' .ch'); const n = els.length; if(!n) return;
+  const dt = (t1 - t0) / n;
+  els.forEach((e, i) => tl.set(e, { opacity: 1 }, t0 + i * dt));
+  if (caretSel) { const c = document.querySelector(caretSel); if (!c) return;
+    tl.set(c, { opacity: 1 }, t0); els.forEach((e, i) => { if (i % 3 === 2) tl.set(c, { opacity: (i / 3) % 2 ? 1 : 0.15 }, t0 + i * dt); }); tl.set(c, { opacity: 0 }, t1 + 0.5); }
+}
+const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
+
+
+tl.fromTo('#s6-win',{scale:.97,y:18},{scale:1,y:0,duration:.5,ease:'power3.out'},0);
+tl.fromTo('#s6-ch0',{opacity:0,x:-24},{opacity:1,x:0,duration:.35,ease:'power3.out'},0.1);
+tl.fromTo('#s6-cam',{scale:1,x:0.0,y:0.0,transformOrigin:'0 0'},{scale:1,duration:0.01},0);
+tl.to('#s6-cam',{scale:1.5,x:0.0,y:-144.0,duration:0.7,ease:'power3.inOut'},0.3);
+tl.to('#s6-cam',{scale:1.3,x:0.0,y:-252.0,duration:0.5,ease:'power3.inOut'},3);
+tl.to('#s6-cam',{scale:1,x:0.0,y:0.0,duration:0.4,ease:'power3.inOut'},5);
+tl.to('#s6-cam',{scale:1.3,x:0.0,y:0.0,duration:0.6,ease:'power3.inOut'},5.5);
+tl.fromTo('#s6-o1',{opacity:0,scale:.85,rotation:-7},{opacity:1,scale:1,rotation:-3,duration:.32,ease:'back.out(2.2)'},1.2);tl.to('#s6-o1',{opacity:0,y:-10,duration:.2,ease:'power2.in'},4.8);
+window.__timelines["s6"] = tl;
+</script>
+</template>

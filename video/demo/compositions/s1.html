@@ -1,0 +1,62 @@
+<template>
+<style>
+
+@font-face{font-family:'Baloo 2';font-weight:800;src:url('assets/fonts/Baloo2-800.ttf')}
+@font-face{font-family:'Gaegu';font-weight:700;src:url('assets/fonts/Gaegu-700.ttf')}
+:root{--cream:#F4F1E6;--cream50:#FAF9FC;--cream200:#E7E2D0;--dot:#D9D3BF;--ink:#141026;--ink950:#0E0B1A;--ink850:#181330;--ink800:#211A40;--ink700:#2D2556;--v500:#836EF9;--v300:#B7AAFF;--v700:#46188D;--pink:#E845A4;--amber:#FCBB00;--safe:#72E4BC;--muted:#575070}
+#root{position:absolute;inset:0;overflow:hidden;font-family:'Inter',sans-serif;color:var(--ink)}
+#root *{box-sizing:border-box}
+.bg-cream{position:absolute;inset:0;background:radial-gradient(ellipse at 85% 0%,rgba(131,110,249,.2),rgba(131,110,249,0) 55%),radial-gradient(var(--dot) 2px,transparent 2px) 0 0/40px 40px,var(--cream)}
+.bg-ink{position:absolute;inset:0;background:radial-gradient(ellipse at 15% 100%,rgba(131,110,249,.22),rgba(131,110,249,0) 55%),linear-gradient(rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,linear-gradient(90deg,rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,var(--ink)}
+.bg-violet{position:absolute;inset:0;background:radial-gradient(ellipse at 90% 100%,rgba(232,69,164,.28),rgba(232,69,164,0) 55%),radial-gradient(rgba(250,249,252,.14) 2px,transparent 2px) 0 0/40px 40px,var(--v700)}
+.disp{font-family:'Baloo 2',sans-serif;font-weight:800;letter-spacing:-.025em;line-height:.98}
+.mono{font-family:'JetBrains Mono',monospace;font-weight:600}
+.dark{color:var(--cream50)}
+.ch{opacity:0}
+.cr{display:inline-block;width:.42em;height:.42em;margin-left:.04em;background:var(--pink);opacity:0;vertical-align:baseline;position:absolute}
+.phone{position:absolute;left:1180px;top:84px;width:432px;height:912px;border-radius:64px;background:var(--ink950);box-shadow:0 40px 90px rgba(20,16,38,.4),0 0 0 3px var(--ink700);transform-origin:50% 100%}
+.phone .screen{position:absolute;inset:13px;border-radius:52px;overflow:hidden;background:#000}
+.phone video{position:absolute;left:0;top:0;width:406px;height:886px;object-fit:cover}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:26px;letter-spacing:.06em;text-transform:uppercase}
+.callout{position:absolute;display:flex;align-items:center;gap:14px;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:8px 26px}
+.pix{position:absolute;width:var(--s,18px);height:var(--s,18px);background:var(--pink)}
+</style>
+<div id="root" data-composition-id="s1" data-width="1920" data-height="1080">
+<div class="bg-cream"></div>
+
+<div id="s1-l1" class="disp" style="position:absolute;left:140px;top:140px;font-size:150px;white-space:nowrap"><span class="ch ">W</span><span class="ch ">h</span><span class="ch ">a</span><span class="ch ">t</span> <span class="ch ">i</span><span class="ch ">f</span> <span class="ch ">y</span><span class="ch ">o</span><span class="ch ">u</span><span class="ch ">r</span> <span class="ch" style="color:var(--v700)">C</span><span class="ch" style="color:var(--v700)">h</span><span class="ch" style="color:var(--v700)">o</span><span class="ch" style="color:var(--v700)">g</span></div>
+<div id="s1-l2" class="disp" style="position:absolute;left:140px;top:300px;font-size:150px;white-space:nowrap"><span class="ch ">c</span><span class="ch ">o</span><span class="ch ">u</span><span class="ch ">l</span><span class="ch ">d</span> <span class="ch ">d</span><span class="ch ">o</span> <span class="ch ">m</span><span class="ch ">o</span><span class="ch ">r</span><span class="ch ">e</span></div>
+<div id="s1-l3" class="disp" style="position:absolute;left:140px;top:460px;font-size:150px;white-space:nowrap"><span class="ch ">t</span><span class="ch ">h</span><span class="ch ">a</span><span class="ch ">n</span> <span class="ch ">s</span><span class="ch ">i</span><span class="ch ">t</span> <span class="ch ">i</span><span class="ch ">n</span> <span class="ch ">a</span> <span style="position:relative;display:inline-block"><span class="ch ">w</span><span class="ch ">a</span><span class="ch ">l</span><span class="ch ">l</span><span class="ch ">e</span><span class="ch ">t</span><span class="ch ">?</span><i id="s1-hl" style="position:absolute;left:-.06em;right:-.06em;bottom:.06em;height:.3em;background:#E845A4;opacity:.35;z-index:-1;transform-origin:0 50%"></i></span></div>
+<svg id="s1-rings" viewBox="0 0 700 300" style="position:absolute;left:1180px;top:690px;width:640px;height:274px;overflow:visible" fill="none" stroke="#46188D" stroke-width="2.5">
+  <circle cx="40" cy="150" r="26" pathLength="1"/><circle cx="130" cy="150" r="56" pathLength="1"/><circle cx="290" cy="150" r="86" pathLength="1"/><circle cx="520" cy="150" r="118" pathLength="1"/>
+  <path d="M0 150H700M40 20V280M130 -10V310M290 -30V330" stroke-width="1.2" opacity=".5" pathLength="1"/></svg>
+<div id="s1-panel" style="position:absolute;inset:0;background:var(--v700)"></div>
+<div id="s1-l4" class="disp dark" style="position:absolute;left:140px;top:300px;font-size:200px;line-height:1;white-space:nowrap"><span class="ch ">W</span><span class="ch ">h</span><span class="ch ">a</span><span class="ch ">t</span> <span class="ch ">i</span><span class="ch ">f</span> <span class="ch ">i</span><span class="ch ">t</span><br><span class="ch ">w</span><span class="ch ">o</span><span class="ch ">r</span><span class="ch ">k</span><span class="ch ">e</span><span class="ch ">d</span> <span class="ch ">f</span><span class="ch ">o</span><span class="ch ">r</span> <span style="display:inline-block" id="s1-you"><span class="ch" style="color:#f9a8d8">y</span><span class="ch" style="color:#f9a8d8">o</span><span class="ch" style="color:#f9a8d8">u</span><span class="ch" style="color:#f9a8d8">?</span></span></div>
+
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+
+function typeIn(tl, sel, t0, t1, caretSel){
+  const els = document.querySelectorAll(sel + ' .ch'); const n = els.length; if(!n) return;
+  const dt = (t1 - t0) / n;
+  els.forEach((e, i) => tl.set(e, { opacity: 1 }, t0 + i * dt));
+  if (caretSel) { const c = document.querySelector(caretSel); if (!c) return;
+    tl.set(c, { opacity: 1 }, t0); els.forEach((e, i) => { if (i % 3 === 2) tl.set(c, { opacity: (i / 3) % 2 ? 1 : 0.15 }, t0 + i * dt); }); tl.set(c, { opacity: 0 }, t1 + 0.5); }
+}
+const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
+
+
+typeIn(tl,'#s1-l1',0.35,1.15);
+typeIn(tl,'#s1-l2',1.2,1.85);
+typeIn(tl,'#s1-l3',1.9,2.9);
+tl.fromTo('#s1-hl',{scaleX:0},{scaleX:1,duration:.3,ease:'power3.out'},2.85);
+tl.fromTo('#s1-rings circle',{strokeDasharray:1,strokeDashoffset:1},{strokeDashoffset:0,duration:1.0,ease:'power2.out',stagger:.12},1.2);
+tl.fromTo('#s1-rings path',{opacity:0},{opacity:.5,duration:.6},1.4);
+tl.fromTo('#s1-panel',{clipPath:'inset(0 100% 0 0)'},{clipPath:'inset(0 0% 0 0)',duration:.42,ease:'power4.inOut'},3.0);
+typeIn(tl,'#s1-l4',3.2,4.0);
+tl.fromTo('#s1-you',{y:0},{y:-14,duration:.16,ease:'power2.out',yoyo:true,repeat:1},4.05);
+
+window.__timelines["s1"] = tl;
+</script>
+</template>

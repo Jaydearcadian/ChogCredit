@@ -5,3 +5,12 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/
 backend/dist/
+video/footage/
+video/demo/renders/
+video/demo/.media/
+video/demo/.hyperframes/
+video/demo/assets/footage/
+.agents/
+.claude/skills/
+skills-lock.json
+video/demo/assets/
