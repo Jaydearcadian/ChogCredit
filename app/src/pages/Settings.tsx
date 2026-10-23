@@ -41,10 +41,10 @@ export default function Settings() {
         <div className="kv"><span>Wallet</span><span className="num">{wallet ? short(wallet.address) : 'Not connected'}</span></div>
         {test && <span className="tiny muted">Test deployment: mock assets and a mock oracle.</span>}
       </div>
-      {devWalletAllowed(dep.chainId) && (
+      {(devWalletAllowed(dep.chainId) || (test && wallet && dep.deployer && wallet.address.toLowerCase() === dep.deployer.toLowerCase())) && (
         <div className="card dashed">
           <b>Test controls</b>
-          <span className="small muted">Local chain only. Moves the mock oracle so the Pause Drill and the health states can be seen.</span>
+          <span className="small muted">Test deployments only, and only for the wallet that owns the mock price source. Moves it so the Pause Drill and the health states can be shown live.</span>
           <div className="pair"><button className="btn quiet" onClick={() => oracle('setDown', [true])}>Pause prices</button><button className="btn quiet" onClick={() => oracle('setDown', [false])}>Resume prices</button></div>
           <div className="pair"><button className="btn quiet" onClick={() => oracle('setPrice', [dep.mockWmon, 9_000n])}>WMON price down</button><button className="btn quiet" onClick={() => oracle('setPrice', [dep.mockWmon, 20_000n])}>Reset price</button></div>
           <TxSteps title="Oracle" tx={tx} />

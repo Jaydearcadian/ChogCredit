@@ -12,6 +12,8 @@ export type Deployment = {
   mockChogToken: Address;
   mockUsdc: Address;
   mockWmon: Address;
+  /** The wallet that deployed, which owns the mock price source on a test deployment. */
+  deployer?: Address;
   /** Test deployments: hands one mock Chog to each address. */
   chogFaucet?: Address;
   /** First block to read history from. */
