@@ -1,5 +1,7 @@
 import { Navigate } from 'react-router-dom';
-import { Shell, StatusChip } from '../components/parts';
+import { Bubble, Icon, PixelKey } from '../components/brand';
+import { Shell } from '../components/chrome';
+import { Chip } from '../components/status';
 import { useApp } from '../state';
 
 function Soon({ title, why }: { title: string; why: string }) {
@@ -8,31 +10,39 @@ function Soon({ title, why }: { title: string; why: string }) {
   return (
     <Shell>
       <h1>{title}</h1>
-      <div className="card" style={{ borderStyle: 'dashed' }}><b>Not built yet.</b><span className="small muted">{why}</span></div>
+      <div className="card dashed" style={{ alignItems: 'flex-start', gap: 14 }}>
+        <PixelKey width={72} />
+        <Bubble>Hm, what's in here?</Bubble>
+        <b>Not built yet.</b>
+        <span className="small muted">{why}</span>
+      </div>
     </Shell>
   );
 }
+export const Activity = () => <Soon title="Activity" why="The record of everything this account did: time, action, amount, and Submitted, Confirmed or Final." />;
+export const Sell = () => <Soon title="Sell with Vault" why="Sell the Chog with everything in its vault, loan included. The contracts are done; these screens come next." />;
 
-export const Activity = () => <Soon title="Activity" why="The record of what happened to this account. Next after the money screens." />;
-export const Sell = () => <Soon title="Sell with vault" why="Sell setup, buyer review and signing (wireframe board D). The contracts are done; the screens are next." />;
-
-/** S18 Risk: plain explainer. The numbers are the app's sample thresholds. */
+/** S18 Risk: the plain explainer. */
 export function Risk() {
   const { wallet } = useApp();
   if (!wallet) return <Navigate to="/" replace />;
   return (
     <Shell>
       <h1>How risk works</h1>
-      <div className="card"><b>Your limit</b><span className="small muted">Each asset counts for part of its value. Safer assets count more. $CHOG is held but counts for nothing.</span></div>
       <div className="card">
-        <b>The four states</b>
-        <div className="row"><StatusChip status="safe" /><span className="small muted">comfortable</span></div>
-        <div className="row"><StatusChip status="watch" /><span className="small muted">keep an eye</span></div>
-        <div className="row"><StatusChip status="risk" /><span className="small muted">act soon</span></div>
-        <div className="row"><StatusChip status="danger" /><span className="small muted">can be liquidated</span></div>
-        <span className="small muted">The Watch and At risk lines shown in this app are sample values.</span>
+        <b>Your Chog is the key, not the collateral</b>
+        <span className="small muted">Only the assets in your vault back the loan. The Chog is never priced and never taken. $CHOG can sit in the vault but counts for nothing.</span>
       </div>
-      <div className="card" style={{ borderStyle: 'dashed' }}><span className="small muted">Testnet. Mock tokens. Mock oracle. Not audited. Not financial advice.</span></div>
+      <div className="card">
+        <b>Four states</b>
+        <div className="kv"><Chip status="safe" /><span>Comfortably within your limit.</span></div>
+        <div className="kv"><Chip status="watch" /><span>Getting close. Nothing to do yet.</span></div>
+        <div className="kv"><Chip status="risk" /><span>Add assets or repay soon.</span></div>
+        <div className="kv"><Chip status="danger" /><span>Others may repay your debt and take assets.</span></div>
+        <span className="tiny muted">The Watch and At risk lines in this test build are sample values.</span>
+      </div>
+      <div className="banner paused">{Icon.pause}<div><b>When prices pause</b><p>Borrowing and withdrawing stop until prices are back. Repaying and adding assets always work.</p></div></div>
+      <div className="card dashed"><span className="small muted">Testnet. Mock tokens and a mock oracle. Not audited. Not financial advice.</span></div>
     </Shell>
   );
 }

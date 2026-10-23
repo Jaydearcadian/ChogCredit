@@ -11,7 +11,13 @@ export const hasInjected = () => !!injected();
 
 /** First default Anvil key. Dev builds only, and only when the URL asks for it (?dev=1). Never on a live network. */
 const ANVIL_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as const;
-export const devWalletAllowed = (chainId: number) => import.meta.env.DEV && chainId === 31337 && new URLSearchParams(location.search).has('dev');
+export const devWalletAllowed = (chainId: number) => {
+  if (!import.meta.env.DEV || chainId !== 31337) return false;
+  try {
+    if (new URLSearchParams(location.search).has('dev')) sessionStorage.setItem('chog-credit:dev', '1'); // sticky for this tab: links drop the query
+    return sessionStorage.getItem('chog-credit:dev') === '1';
+  } catch { return new URLSearchParams(location.search).has('dev'); }
+};
 
 export function publicClientFor(chainId: number): PublicClient {
   return createPublicClient({ chain: chainFor(chainId), transport: http(undefined, { batch: true }) });

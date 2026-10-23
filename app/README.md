@@ -2,13 +2,25 @@
 
 React + TypeScript + viem. No wallet library: it talks to the browser wallet directly. Styling follows `docs/brand/DESIGN.md`; screens follow the wireframes (`docs/ux/`).
 
-Built so far: Connect, Pick your Chog, Open a vault, Account overview, Add assets, Borrow and Repay, Withdraw, Release, plus a Risk explainer. Not built yet: Sell, Activity, Lend, Receive, Settings. All of it runs against test deployments with mock assets.
+Built so far: Connect, Pick your Chog, Open a vault, Account overview, Add assets, Borrow and Repay, Withdraw, Release, plus Risk and Settings. Not built yet: Sell, Activity, Lend, Receive. All of it runs against test deployments with mock assets.
 
 ## Brand and motion
 
-Ported from the brand board and motion board, not just `DESIGN.md`: the Account Card (Chog frame, status chip, ring with one pink dot, Chog bubble, tear line with notches, the three numbers), the Slip (favicon and Connect page), the Full Stop wordmark, the Vault Door, the Confirmed pop and tick, the Submitted/Confirmed/Final steps, error shake, the press settle, and entrance rise with stagger (`src/styles/motion.css`). Sound and haptics follow the board's table (`src/feedback.ts`): sound off by default, offered once after the first confirmed transaction, risk sounds a separate switch. Onboarding uses the cream Chog register; money screens use the dark Ledger register.
+Screens are built from the brand board, not just `DESIGN.md`: board 4 (app screens: Account overview, Borrow preview, the Pause Drill), board 3 (the cream landing hero, used for Connect), board 2 (the Account Card), board 6 (the Slip, the Full Stop wordmark, the Pixel Key) and board 7 (motion, sound and haptics). Styles live in `src/styles/` as real stylesheets: `tokens.css`, `base.css`, `components.css`, `cream.css` (the Chog register) and `motion.css`.
 
-Not ported yet: the health-dot slide on change is a CSS transition (not the board's keyframes), digit roll, chip swap, Pause Drill, skeleton shimmer on every loading state, the once-ever tear-off, sticker sparkles on repay.
+Motion moments, all with a reduced-motion form:
+- screen entrance (rise 12 px, 60 ms stagger) and route changes through View Transitions, with the header and tab bar held still and the Chog frame morphing between Pick, Open and Account
+- Vault Door when a Chog goes in; the stamp pulses once
+- the health dot slides and the arc follows (300 ms); changed digits roll, up or down
+- Safe to Watch chip swap; the bubble pops (the only overshoot)
+- the Pause Drill: Borrow locks in place with the padlock closing, Repay does not move (checked by `e2e/live.mjs`)
+- transaction steps that fill only when reached, with the Confirmed pop and tick draw
+- error shake (3 x 9 px) with the message staying, and a one-tap fix
+- skeletons after 100 ms; button press under 100 ms with a 200 ms settle
+- the once-ever tear-off of the Slip's stub after the first borrow; sparkles and "Debt-free. Look at you." on a full repay
+- the landing card's 6 px float, wide screens only, with a pause control
+
+Sound and haptics follow board 7 (`src/feedback.ts`): sound off by default and offered once after the first confirmed transaction, risk sounds a separate switch, haptics off under reduced motion. The Account screen refreshes every 5 seconds while visible, so price moves play out in place.
 
 ## Run it on a local chain
 
@@ -23,7 +35,7 @@ npm run dev                            # http://127.0.0.1:5173/?dev=1
 
 ## Check it
 
-`npm run typecheck`, then with the dev server running: `node e2e/flow.mjs` walks the whole money flow in a headless browser and fails on the first broken step.
+`npm run typecheck`, then with the dev server running and after `./e2e/reset.sh`: `node e2e/flow.mjs` walks the money flow, `node e2e/motion.mjs` walks the motion moments, and `node e2e/live.mjs` flips the mock oracle from outside while the Account screen is open (the Pause Drill, live). Each fails on the first broken step.
 
 ## Honest limits
 

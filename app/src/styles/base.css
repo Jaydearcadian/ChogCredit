@@ -1,0 +1,28 @@
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0; background: var(--ink-950); color: var(--text);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input { font: inherit; color: inherit; }
+a { color: var(--purple-300); }
+:focus-visible { outline: 3px solid var(--purple-300); outline-offset: 2px; border-radius: 4px; }
+h1, h2, h3, p { margin: 0; }
+
+/* Ledger register type. Baloo 2 is for landing and onboarding (.display) only. */
+h1 { font-size: 26px; font-weight: 600; line-height: 1.15; letter-spacing: -0.01em; }
+h2 { font-size: 18px; font-weight: 600; }
+.display { font-family: var(--font-display); font-weight: 800; line-height: 0.98; letter-spacing: -0.02em; }
+.eyebrow { font-family: var(--font-num); font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+.num { font-family: var(--font-num); font-weight: 600; font-variant-numeric: tabular-nums; }
+.muted { color: var(--text-muted); }
+.small { font-size: 14px; }
+.tiny { font-size: 12px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.grow { flex: 1 1 0; min-width: 0; }

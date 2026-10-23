@@ -1,46 +1,118 @@
-/* Ported from brand board 7 (Motion). Animate transform and opacity only. Reduced motion: movement off, opacity kept. */
-:root { --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1); --rise: 12px; --stagger: 60ms; }
+/*
+ * Motion, from brand board 7. Premium for anything with money; playful only on the bubble and stickers.
+ * Transform and opacity only (plus SVG stroke draws). Never linear for movement. Entrances 30 to 50 percent longer
+ * than exits. Every moment has a reduced-motion form at the bottom of this file.
+ */
+
 @keyframes rise { from { opacity: 0; transform: translateY(var(--rise)); } to { opacity: 1; transform: none; } }
-@keyframes vaultL { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-@keyframes vaultR { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes stampPulse { 0%, 55% { transform: scale(1); } 75% { transform: scale(1.14); } 100% { transform: scale(1); } }
-@keyframes pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes tickDraw { from { stroke-dashoffset: 26; } to { stroke-dashoffset: 0; } }
-@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-9px); } 50% { transform: translateX(9px); } 70% { transform: translateX(-6px); } 85% { transform: translateX(4px); } }
-@keyframes stepLine { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes bubblePop { 0% { transform: scale(.9); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes tear { 0% { transform: translate(0, 0) rotate(0); } 40% { transform: translate(20px, -4px) rotate(5deg); } 100% { transform: translate(0, 0) rotate(0); } }
-@keyframes shimmer { from { transform: translateX(-120%); } to { transform: translateX(220%); } }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes sink-out { to { opacity: 0; transform: translateY(calc(var(--rise) * -0.5)); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer { from { transform: translateX(-120%); } to { transform: translateX(260%); } }
+
+/* Screen entrance: hero first, 60 ms apart, the whole stagger under 400 ms. */
+.enter > * { animation: rise var(--dur-standard) var(--ease) both; }
+.enter > :nth-child(2) { animation-delay: var(--stagger); }
+.enter > :nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.enter > :nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.enter > :nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.enter > :nth-child(n + 6) { animation-delay: calc(var(--stagger) * 5); }
+
+/* Route changes (View Transitions where the browser has them): the header and tab bar stay put, the content
+   leaves quickly and the next screen rises in. */
+::view-transition-old(root) { animation: sink-out var(--dur-exit) var(--ease-out) both; }
+::view-transition-new(root) { animation: rise var(--dur-standard) var(--ease) both; }
+::view-transition-old(app-header), ::view-transition-new(app-header),
+::view-transition-old(app-tabbar), ::view-transition-new(app-tabbar) { animation: none; }
+/* The Chog frame is one object across Pick, Open and Account: it morphs instead of fading. */
+::view-transition-group(chog-frame) { animation-duration: var(--dur-slow); animation-timing-function: var(--ease); }
+
+/* 1. Vault Door: two halves close over the frame, the stamp pulses once. 500 ms, once per escrow. */
+@keyframes door-l { from { transform: translateX(-101%); } to { transform: none; } }
+@keyframes door-r { from { transform: translateX(101%); } to { transform: none; } }
+@keyframes stamp { 0% { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; transform: scale(1.14); } 100% { opacity: 1; transform: scale(1); } }
+.door { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.door i { position: absolute; top: 0; bottom: 0; width: 50%; background: var(--purple-700); }
+.door i:first-child { left: 0; border-right: 2px solid var(--ink-700); animation: door-l var(--dur-slow) var(--ease) both; }
+.door i:nth-child(2) { right: 0; border-left: 2px solid var(--ink-700); animation: door-r var(--dur-slow) var(--ease) both; }
+.door b { position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 6px; background: var(--pink-500); border: 3px solid var(--ink-900); animation: stamp var(--dur-standard) var(--ease) var(--dur-slow) both; }
+
+/* 3. Confirmed: one pop (1.0 to 1.04) and the tick draws itself. Never repeats. */
+@keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 65% { transform: scale(1.04); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes draw { from { stroke-dashoffset: 26; } to { stroke-dashoffset: 0; } }
+.pop { animation: pop var(--dur-standard) var(--ease) both; }
+.tick { stroke-dasharray: 26; animation: draw var(--dur-standard) var(--ease) 80ms both; }
+
+/* 4. Digit roll: only the digits that change move, up when the number grows and down when it shrinks. */
+@keyframes roll-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+@keyframes roll-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.digit { display: inline-block; height: 1.2em; line-height: 1.2em; overflow: hidden; vertical-align: -0.22em; }
+.digit > i { display: flex; flex-direction: column; font-style: normal; }
+.digit > i > span { display: block; height: 1.2em; }
+.digit.up > i { animation: roll-up var(--dur-standard) var(--ease) both; }
+.digit.down > i { animation: roll-down var(--dur-standard) var(--ease) both; }
+
+/* 6. Chip swap: the old state rises out, the new one rises in. 300 ms. */
+@keyframes chip-out { to { opacity: 0; transform: translateY(-8px); } }
+@keyframes chip-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.swap { position: relative; display: inline-grid; }
+.swap > * { grid-area: 1 / 1; }
+.swap > .out { animation: chip-out var(--dur-standard) var(--ease) both; pointer-events: none; }
+.swap > .in { animation: chip-in var(--dur-standard) var(--ease) both; }
+
+/* 7. Error: three shakes of 9 px in 300 ms; the message stays. */
+@keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-9px); } 45% { transform: translateX(9px); } 65% { transform: translateX(-6px); } 85% { transform: translateX(4px); } }
+.shake { animation: shake var(--dur-standard) var(--ease) both; }
+
+/* 8. Pause Drill: Borrow locks, the padlock closes; Repay does not move. 300 ms. */
+@keyframes shackle { from { transform: translateY(-4px); } to { transform: none; } }
+.locking { animation: chip-in var(--dur-standard) var(--ease) both; }
+.locking .shackle { animation: shackle var(--dur-standard) var(--ease) 120ms both; }
+
+/* 9. Steps fill only when truly reached. */
+.steps .step.done .dot { animation: pop var(--dur-standard) var(--ease) both; }
+
+/* 11. Chog bubble: 250 ms, the only overshoot (4 percent). */
+@keyframes bubble { 0% { opacity: 0; transform: scale(0.9); } 70% { opacity: 1; transform: scale(1.04); } 100% { opacity: 1; transform: scale(1); } }
+.bubble.say { animation: bubble 250ms var(--ease-pop) both; transform-origin: 0 100%; }
+.bubble.out { animation: fade-out var(--dur-exit) var(--ease-out) both; }
+
+/* Stickers: a small hop when they arrive (playful register only). */
+@keyframes hop { 0% { opacity: 0; transform: translateY(6px) rotate(-12deg) scale(0.8); } 70% { opacity: 1; transform: translateY(-2px) rotate(4deg) scale(1.05); } 100% { opacity: 1; transform: none; } }
+.sticker.hop { animation: hop 320ms var(--ease-pop) both; }
+
+/* Debt-free sparkles: one burst, then still. */
+@keyframes spark { 0% { opacity: 0; transform: scale(0) rotate(-30deg); } 60% { opacity: 1; transform: scale(1.15) rotate(10deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+.spark { position: absolute; animation: spark var(--dur-standard) var(--ease-pop) both; }
+.spark:nth-child(2) { animation-delay: var(--stagger); } .spark:nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+
+/* 12. The once-ever tear-off: the Slip's stub tears away on the first borrow. 500 ms. */
+@keyframes tear { 0% { transform: none; } 55% { transform: translate(18px, -6px) rotate(8deg); } 100% { transform: translate(14px, 2px) rotate(4deg); } }
+.stub { animation: tear var(--dur-slow) var(--ease) 200ms both; transform-origin: 0 100%; }
+
+/* 13. Landing hero: entrance under 500 ms, then a 6 px, 6 s float. The only ambient loop: wide screens only, with a pause control. */
 @keyframes float { from { transform: translateY(0); } to { transform: translateY(-6px); } }
-@keyframes chipIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.float { animation: float 6s var(--ease) infinite alternate; }
+.float.paused { animation-play-state: paused; }
+@media (max-width: 720px) { .float { animation: none; } }
 
-.rise { animation: rise var(--t-base) var(--ease) both; }
-.rise:nth-child(2) { animation-delay: var(--stagger); } .rise:nth-child(3) { animation-delay: calc(var(--stagger) * 2); } .rise:nth-child(4) { animation-delay: calc(var(--stagger) * 3); } .rise:nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
-.door-l { animation: vaultL var(--t-slow) var(--ease) both; } .door-r { animation: vaultR var(--t-slow) var(--ease) both; }
-.stamp { animation: stampPulse 800ms var(--ease) both; transform-origin: 50% 50%; }
-.popit { animation: pop var(--t-base) var(--ease) both; }
-.tickdraw { stroke-dasharray: 26; animation: tickDraw var(--t-base) var(--ease) 80ms both; }
-.shakeit { animation: shake var(--t-base) var(--ease) both; }
-.step-line { transform-origin: 0 50%; animation: stepLine var(--t-base) var(--ease) both; }
-.bubble { animation: bubblePop 250ms var(--ease-pop) both; transform-origin: 0 100%; }
-.tearit { animation: tear var(--t-slow) var(--ease) both; transform-origin: 0 50%; }
-.chip-swap { animation: chipIn var(--t-base) var(--ease) both; }
-.floaty { animation: float 6s var(--ease) infinite alternate; }
-.shim { position: relative; overflow: hidden; background: var(--ink-800); border-radius: 12px; }
-.shim::after { content: ''; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); animation: shimmer 1.4s var(--ease) 100ms infinite; }
-/* the pink health dot slides along the ring (300 ms) */
-.dot-g { transition: transform var(--t-base) var(--ease); transform-origin: 60px 60px; }
-/* press: under 100 ms down, 200 ms settle */
-.btn { transition: transform 90ms var(--ease), filter var(--t-fast) var(--ease); }
-.btn:active { transform: scale(.97); }
-.btn:not(:active) { transition: transform 200ms var(--ease), filter var(--t-fast) var(--ease); }
+/* Hover lift for things you can pick (cards in the Chog list). */
+.pickable { transition: transform var(--dur-quick) var(--ease), border-color var(--dur-quick) var(--ease); }
+.pickable:hover { transform: translateY(-2px); border-color: var(--purple-500); }
+.pickable:active { transform: scale(0.99); }
 
-@media (max-width: 480px) { :root { --t-base: 240ms; --t-slow: 400ms; --stagger: 40ms; } .floaty { animation: none; } } /* phones: about 0.8x, stagger cut by a third, no ambient loops */
 @media (prefers-reduced-motion: reduce) {
-  .rise, .door-l, .door-r, .stamp, .popit, .shakeit, .step-line, .bubble, .tearit, .floaty, .chip-swap, .shim::after { animation: none !important; }
-  .rise, .bubble, .popit, .chip-swap { opacity: 1; transform: none; }
-  .tickdraw { animation: none; stroke-dashoffset: 0; }
-  .dot-g { transition: none; }
-  .btn, .btn:not(:active) { transition: none; }
-  .btn:active { transform: none; }
+  ::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(chog-frame) { animation: none; }
+  .enter > *, .pop, .bubble.say, .sticker.hop, .spark, .locking, .chip-in, .swap > .in { animation-name: fade-in-only; }
+  .door i { animation: none; transform: none; } /* a static, closed door */
+  .door b { animation: none; opacity: 1; }
+  .tick { animation: none; stroke-dashoffset: 0; } /* the tick fades in with its parent, no pop */
+  .digit.up > i, .digit.down > i { animation: none; transform: translateY(-50%); } /* numbers swap */
+  .swap > .out, .bubble.out { display: none; }
+  .shake { animation: none; } /* message only */
+  .locking .shackle, .stub, .float { animation: none; }
+  .skel::after { animation: none; }
+  .ring .dot, .ring .arc { transition: none; } /* the dot jumps */
+  .btn:active, .pickable:hover, .pickable:active { transform: none; }
 }
+@keyframes fade-in-only { from { opacity: 0; } to { opacity: 1; } }

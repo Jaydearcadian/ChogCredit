@@ -1,26 +1,27 @@
 import { useCallback, useRef, useState } from 'react';
+import type { Hex } from 'viem';
 import { reason, runTx, type TxCall, type TxStage } from '../chain/api';
+import { short } from '../chain/format';
 import { cue, type Cue } from '../feedback';
 import { useApp } from '../state';
+import { Icon } from './brand';
 
-const ORDER: TxStage[] = ['submitted', 'confirmed', 'final'];
-const WORD: Record<string, string> = { submitted: 'Submitted', confirmed: 'Confirmed', final: 'Final' };
-
-/** Runs one or more calls in order (for example approve, then deposit) and tracks the stage of the current one. */
+/** Runs one or more calls in order (approve, then the action) and tracks the stage of the last one. */
 export function useTx() {
   const { wallet, pc, refresh } = useApp();
   const [stage, setStage] = useState<TxStage | null>(null);
   const [step, setStep] = useState<{ i: number; n: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [hash, setHash] = useState<Hex | null>(null);
   const gen = useRef(0);
   const busy = stage === 'signing' || stage === 'submitted';
 
-  /** Resolves true once the last call is confirmed. Finality is tracked in the background and moves the stage on.
-   *  `confirmCue` lets a flow use its own moment (the door closing, being debt-free) instead of the plain confirmation. */
+  /** Resolves true once the last call is confirmed; finality moves the stage on in the background.
+   *  `confirmCue` lets a flow use its own moment (the door closing, being debt-free) instead of the plain one. */
   const run = useCallback(async (calls: TxCall[], confirmCue: Cue = 'confirmed'): Promise<boolean> => {
     if (!wallet) return false;
     const mine = ++gen.current;
-    setMessage(null);
+    setMessage(null); setHash(null);
     try {
       let finality: Promise<void> = Promise.resolve();
       for (let i = 0; i < calls.length; i++) {
@@ -32,7 +33,7 @@ export function useTx() {
           if (s === 'submitted') cue('submitted');
           if (s === 'confirmed' && last) cue(confirmCue);
           if (s === 'failed') cue('error');
-        }));
+        }, (h) => { if (gen.current === mine && last) setHash(h); }));
         if (!last) await finality; // the next step may depend on this one
       }
       refresh();
@@ -44,43 +45,43 @@ export function useTx() {
     }
   }, [wallet, pc, refresh]);
 
-  const reset = useCallback(() => { gen.current++; setStage(null); setStep(null); setMessage(null); }, []);
-  return { run, stage, step, message, busy, reset };
+  const reset = useCallback(() => { gen.current++; setStage(null); setStep(null); setMessage(null); setHash(null); }, []);
+  return { run, stage, step, message, hash, busy, reset };
 }
 
-/** Steps fill only when truly reached. Confirmed gets one pop and the tick draws itself (brand board 7). */
-export function TxStrip({ stage, step, message }: { stage: TxStage | null; step: { i: number; n: number } | null; message: string | null }) {
+const ORDER: TxStage[] = ['submitted', 'confirmed', 'final'];
+const WORD = { submitted: 'Submitted', confirmed: 'Confirmed', final: 'Final' } as Record<string, string>;
+
+/** Board 4: three facts, each step fills only when truly reached (the dot pops and its tick draws). */
+export function TxSteps({ title, tx }: { title: string; tx: ReturnType<typeof useTx> }) {
+  const { stage, step, message, hash } = tx;
   if (!stage) return null;
-  if (stage === 'rejected') return <div className="card" role="status"><b>Not sent</b><span className="small muted">You rejected it in the wallet. Nothing changed. You can try again.</span></div>;
-  if (stage === 'failed') return <div className="banner danger" role="alert"><b>Failed</b><span className="small">{message ?? 'The transaction did not go through.'} Nothing else changed.</span></div>;
-  if (stage === 'signing') return <div className="card" role="status"><b>Check your wallet{step && step.n > 1 ? ` (step ${step.i} of ${step.n})` : ''}</b></div>;
+  if (stage === 'rejected') return <div className="card" role="status"><b>Not sent</b><span className="small muted">You rejected it in the wallet. Nothing changed.</span></div>;
+  if (stage === 'failed') return <div className="banner danger" role="alert">{Icon.alert}<div><b>Didn't go through</b><p>{message ?? 'The transaction failed.'} Nothing else changed.</p></div></div>;
   const at = ORDER.indexOf(stage);
   return (
-    <div className="card" role="status" aria-live="polite" style={{ gap: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+    <div className="card" role="status" aria-live="polite">
+      <div className="row"><b className="small">{title}</b>{stage === 'signing' && <span className="tiny muted">Check your wallet{step && step.n > 1 ? ` · step ${step.i} of ${step.n}` : ''}</span>}</div>
+      <div className="steps">
         {ORDER.map((s, i) => (
-          <div key={s} style={{ display: 'contents' }}>
-            <div className="stack" style={{ alignItems: 'center', gap: 6, width: 76 }}>
-              <span style={{ width: 22, height: 22, borderRadius: '50%', boxSizing: 'border-box', border: `2px solid ${i <= at ? 'var(--safe)' : 'var(--ink-700)'}`, background: i <= at ? 'var(--safe)' : 'var(--ink-700)', transition: 'background var(--t-base) var(--ease), border-color var(--t-base) var(--ease)' }} />
-              <span className="small" style={{ color: i <= at ? 'var(--text)' : 'var(--text-muted)' }}>{WORD[s]}</span>
-            </div>
-            {i < ORDER.length - 1 && (
-              <div style={{ flex: 1, height: 2, background: 'var(--ink-700)', marginTop: 10 }}>
-                {i < at && <div className="step-line" style={{ height: 2, background: 'var(--safe)' }} />}
-              </div>
-            )}
-          </div>
+          <FragmentStep key={s} label={WORD[s]} done={i <= at} next={i === at + 1} line={i < ORDER.length - 1 ? i < at : null} />
         ))}
       </div>
-      {stage === 'confirmed' && (
-        <div className="row" style={{ justifyContent: 'flex-start', gap: 12 }}>
-          <div className="popit" style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--safe)', display: 'grid', placeItems: 'center', flex: 'none' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E0B1A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path className="tickdraw" d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-          </div>
-          <span className="small muted">In a block. Not final yet. We will update when it is.</span>
-        </div>
-      )}
-      {stage === 'final' && <span className="small muted">Done and final on Monad.</span>}
+      <span className="tiny muted">
+        {stage === 'final' ? 'Final on Monad.' : stage === 'confirmed' ? 'Confirmed means the network saw it. It is final a moment later.' : stage === 'submitted' ? 'Sent. Waiting for a block.' : 'Nothing is sent until you sign.'}
+        {hash && <> <span className="num">{short(hash)}</span></>}
+      </span>
     </div>
+  );
+}
+
+function FragmentStep({ label, done, next, line }: { label: string; done: boolean; next: boolean; line: boolean | null }) {
+  return (
+    <>
+      <div className={`step ${done ? 'done' : ''} ${next ? 'next' : ''}`}>
+        <span className="dot">{done && Icon.check()}</span>{label}
+      </div>
+      {line !== null && <div className={`line ${line ? 'done' : ''}`}><i /></div>}
+    </>
   );
 }

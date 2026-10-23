@@ -1,0 +1,29 @@
+/* The Chog register (brand board 3): cream paper with a faint dotted ledger grid and a soft violet glow. Onboarding,
+   empty and success states. Money never lives here. */
+.cream {
+  --text: var(--text-on-cream); --text-muted: var(--muted-on-cream); --purple-300: var(--link-light);
+  color: var(--text-on-cream);
+  background: radial-gradient(ellipse at 85% 0%, rgba(131, 110, 249, 0.16), rgba(131, 110, 249, 0) 55%),
+    radial-gradient(var(--cream-dot) 1.2px, transparent 1.2px) 0 0 / 24px 24px, var(--cream-100);
+}
+.cream .header { background: color-mix(in srgb, var(--cream-50) 86%, transparent); border-color: var(--cream-200); }
+.cream .header .addr { color: var(--muted-on-cream); }
+.cream .pill { background: var(--ink-900); color: var(--pill); }
+.cream .eyebrow { color: var(--purple-700); }
+.cream .lede { font-size: 18px; line-height: 1.5; color: var(--muted-on-cream); }
+.cream .btn.secondary { border-color: var(--purple-700); color: var(--text-on-cream); }
+.cream .btn.secondary:hover { background: rgba(70, 24, 141, 0.06); }
+.cream .card { background: var(--cream-50); border-color: var(--cream-200); }
+.cream .note svg { color: var(--purple-700); }
+.cream .step-card { background: var(--cream-100); border: 1px solid var(--cream-200); border-radius: 22px; padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.cream .step-card .n { font-family: var(--font-num); font-weight: 600; font-size: 14px; color: var(--purple-700); }
+.cream .step-card h3 { font-family: var(--font-display); font-weight: 800; font-size: 24px; line-height: 1.1; }
+.cream .step-card p { font-size: 15px; line-height: 1.5; color: var(--muted-on-cream); }
+.cream .trust { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; color: var(--muted-on-cream); }
+.cream .trust li { display: flex; gap: 10px; align-items: flex-start; }
+.cream .trust svg { flex: none; margin-top: 1px; }
+.cream a { color: var(--link-light); }
+.cream a.btn { color: var(--cream-50); }
+.cream a.btn.secondary, .cream a.btn.link { color: var(--text-on-cream); }
+/* An Account Card shown on cream keeps its own ink: it is the seam between the two registers. */
+.cream .account-card { --text: var(--cream-50); --text-muted: #d2ccea; --purple-300: #b7aaff; color: var(--cream-50); box-shadow: 0 28px 60px rgba(20, 16, 38, 0.28); }

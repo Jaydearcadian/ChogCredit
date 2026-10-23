@@ -1,60 +1,75 @@
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Bubble, Slip } from '../components/brand';
-import { ArtBox, Shell } from '../components/parts';
+import { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { Bubble, ChogFrame, Icon, PixelKey, Slip } from '../components/brand';
+import { Shell } from '../components/chrome';
+import { AccountCard } from '../components/status';
 import { useApp } from '../state';
 import { setSelected } from './useAccount';
 
-/** S0 Connect. Chog register: cream, Baloo, one handwritten aside. */
+/** S0 Connect: the landing hero from brand board 3, on a phone. Cream, Baloo, the Account Card as the seam. */
 export function Connect() {
   const { wallet, connect, error, test } = useApp();
+  const [still, setStill] = useState(false);
   if (wallet) return <Navigate to="/pick" replace />;
   return (
     <Shell tabs={false} register="chog">
-      <div className="stack" style={{ marginTop: 16, gap: 20 }}>
-        <div className="rise" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span className="floaty"><Slip size={64} ink="#46188d" perf="#f4f1e6" label="Chog Credit" /></span>
-          <Bubble>Hm, what's in here?</Bubble>
-        </div>
-        <h1 className="display rise" style={{ fontSize: 'clamp(40px, 12vw, 56px)' }}>Your Chog can borrow.</h1>
-        <p className="rise" style={{ margin: 0 }}>Lock a Chog in a vault, add assets, borrow USDC against them. Repay and it is yours again.</p>
-        <div className="rise" style={{ position: 'relative' }}><ArtBox id={1234} height={150} /></div>
-        <button className="btn big rise" onClick={connect}>Connect wallet</button>
-        {error && <div className="banner risk" role="alert" style={{ color: '#141026' }}>{error}</div>}
-        {test && <p className="small muted rise" style={{ margin: 0 }}>Testnet. Sample numbers. Mock assets.</p>}
+      <div className="eyebrow" style={{ marginTop: 8 }}>A Chogathon build · Monad {test ? 'testnet' : ''}</div>
+      <h1 className="display" style={{ fontSize: 'clamp(48px, 14vw, 72px)' }}>Put your Chog to work.</h1>
+      <p className="lede">A vault and a credit line for your Chog Genesis NFT. Add assets, borrow USDC from the pool, and your Chog stays safe in its vault while you owe.</p>
+      <div className="stack" style={{ gap: 10 }}>
+        <button className="btn cta block" onClick={connect}>Connect wallet</button>
+        {error && <div className="banner risk" role="alert">{Icon.alert}<div><b style={{ color: 'var(--text-on-cream)' }}>Couldn't connect</b><p>{error}</p></div></div>}
+        <div className="row tiny muted" style={{ justifyContent: 'flex-start', gap: 16 }}><span>Testnet only</span><span>Mock assets</span><span>Not audited</span></div>
       </div>
+
+      <div style={{ position: 'relative', margin: '18px 6px 34px' }}>
+        <div className={`float ${still ? 'paused' : ''}`}>
+          <AccountCard id={1234} status="safe" label="2.40" fill={0.94} assets="2,000.00" owed="600.00" borrow="340.00" bubble={false} />
+        </div>
+        <Bubble outlined style={{ position: 'absolute', left: -6, bottom: -26, fontSize: 21 }}>Your Chog has a vault now.</Bubble>
+        <button className="btn link tiny" onClick={() => setStill((v) => !v)} aria-pressed={still} style={{ position: 'absolute', right: 0, bottom: -44, height: 32 }}>{still ? 'Play animation' : 'Pause animation'}</button>
+      </div>
+      <p className="tiny muted" style={{ textAlign: 'center' }}>Sample data</p>
+
+      <ul className="trust">
+        <li>{Icon.safeCheck('#2b9a74')}<span>Your Chog is the key, not the collateral. It is never priced and never taken.</span></li>
+        <li>{Icon.safeCheck('#2b9a74')}<span>Prices down? Borrowing pauses, repaying never does.</span></li>
+        <li>{Icon.safeCheck('#2b9a74')}<span>Sell the whole vault, loan included.</span></li>
+        <li>{Icon.eye('#a07400')}<span>If prices fall far enough, others can repay your debt and take assets from the vault. That is the real risk.</span></li>
+      </ul>
+      <div className="row tiny muted" style={{ justifyContent: 'flex-start', gap: 10, marginTop: 8 }}><Slip size={28} ink="#46188d" perf="#f4f1e6" />Chog artwork and wordmark belong to their owners. Not financial advice.</div>
     </Shell>
   );
 }
 
-/** S1 Pick your Chog */
+/** S1 Pick your Chog (onboarding, cream). Each Chog is a card you can pick; the frame morphs into the next screen. */
 export function Pick() {
   const { wallet, chogs } = useApp();
   const nav = useNavigate();
   if (!wallet) return <Navigate to="/" replace />;
+  const go = (id: number, escrowed: boolean) => { setSelected(id); nav(escrowed ? '/account' : `/open/${id}`, { viewTransition: true }); };
   return (
     <Shell tabs={false} register="chog">
-      <h1 className="display" style={{ fontSize: 40 }}>Pick your Chog</h1>
-      {chogs === null && <p className="muted">Looking in your wallet…</p>}
+      <h1 className="display" style={{ fontSize: 44, marginTop: 8 }}>Pick your Chog</h1>
+      <p className="lede">It gets its own vault, and the Chog moves into it for safekeeping.</p>
+      {chogs === null && <div className="skel" style={{ height: 230 }} role="status" aria-label="Looking in your wallet" />}
       {chogs?.length === 0 && (
-        <div className="card" style={{ borderStyle: 'dashed' }}>
+        <div className="card" style={{ alignItems: 'flex-start', gap: 14 }}>
+          <PixelKey width={84} />
+          <Bubble>Hm, what's in here?</Bubble>
           <b>No Chog in this wallet.</b>
-          <span className="small muted">Switch wallet, or check the Chog sits in this one.</span>
+          <span className="small muted">Switch wallet, or check that the Chog sits in this one.</span>
         </div>
       )}
-      <div className="stack">
-        {chogs?.map((c) => (
-          <div key={c.id} className="card rise">
-            <ArtBox id={c.id} height={96} />
-            <div className="row">
-              <span className="muted">{c.state === 'escrowed' ? 'Vault open' : c.state === 'wallet' ? 'Vault ready, Chog in wallet' : 'No vault yet'}</span>
-              <button className="btn secondary" style={{ minHeight: 44 }} onClick={() => { setSelected(c.id); nav(c.state === 'escrowed' ? '/account' : `/open/${c.id}`); }}>
-                {c.state === 'escrowed' ? 'Open' : 'Select'}
-              </button>
-            </div>
+      {chogs?.map((c) => (
+        <button key={c.id} onClick={() => go(c.id, c.state === 'escrowed')} className="card pickable" style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
+          <ChogFrame id={c.id} height={120} prop={c.state === 'escrowed' ? 'lock' : null} />
+          <div className="row">
+            <span className="small">{c.state === 'escrowed' ? 'In its vault' : c.state === 'wallet' ? 'Vault ready. Chog in your wallet' : 'No vault yet'}</span>
+            <span className="row small" style={{ gap: 6, color: 'var(--link-light)', fontWeight: 600 }}>{c.state === 'escrowed' ? 'Open' : 'Select'}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></span>
           </div>
-        ))}
-      </div>
-      {chogs?.length ? <Link to="/" className="small">Use a different wallet</Link> : null}
+        </button>
+      ))}
     </Shell>
   );
 }

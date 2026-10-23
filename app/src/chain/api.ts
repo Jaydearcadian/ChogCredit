@@ -108,7 +108,7 @@ export type TxCall = { address: Address; abi: Abi; functionName: string; args: u
  * Sends one transaction and resolves once it is CONFIRMED (in a block). `finality` resolves later, when the block is
  * final, so a multi-step flow does not wait on finality between steps and the UI can show each stage honestly.
  */
-export async function runTx(w: Wallet, pc: PublicClient, call: TxCall, onStage: (s: TxStage, detail?: string) => void): Promise<{ finality: Promise<void> }> {
+export async function runTx(w: Wallet, pc: PublicClient, call: TxCall, onStage: (s: TxStage, detail?: string) => void, onHash?: (h: Hex) => void): Promise<{ finality: Promise<void> }> {
   onStage('signing');
   let hash: Hex;
   try {
@@ -118,6 +118,7 @@ export async function runTx(w: Wallet, pc: PublicClient, call: TxCall, onStage: 
     onStage(/reject|denied|user rejected/i.test(msg) ? 'rejected' : 'failed', reason(e));
     throw e;
   }
+  onHash?.(hash);
   onStage('submitted');
   const receipt = await pc.waitForTransactionReceipt({ hash });
   if (receipt.status !== 'success') { onStage('failed', 'The transaction reverted.'); throw new Error('reverted'); }
