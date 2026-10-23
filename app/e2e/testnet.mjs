@@ -15,7 +15,9 @@ const URL = process.env.APP_URL ?? 'https://chog-credit-jaydearcadians-projects.
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
 let authorized = false;
-await ctx.exposeBinding('__rpc', async (_s, method, params) => {
+// The public RPC allows about 15 requests a second; this stand-in wallet retries when it is refused, as a real wallet's own RPC would not need to.
+const retry = async (fn) => { for (let i = 0; ; i++) { try { return await fn(); } catch (e) { if (i < 6 && /limited|rate|429|unknown rpc/i.test(String(e.message ?? e))) { await new Promise((r) => setTimeout(r, 700 * (i + 1))); continue; } throw e; } } };
+await ctx.exposeBinding('__rpc', async (_s, method, params) => retry(async () => {
   switch (method) {
     case 'eth_requestAccounts': authorized = true; return [account.address];
     case 'eth_accounts': return authorized ? [account.address] : []; // like a real wallet: nothing until the user connects
@@ -25,7 +27,7 @@ await ctx.exposeBinding('__rpc', async (_s, method, params) => {
     case 'eth_signTypedData_v4': { const d = JSON.parse(params[1]); const { EIP712Domain, ...types } = d.types; return account.signTypedData({ domain: d.domain, types, primaryType: d.primaryType, message: d.message }); }
     default: return pub.request({ method, params });
   }
-});
+}));
 await ctx.addInitScript(() => { window.ethereum = { request: ({ method, params }) => window.__rpc(method, params ?? []), on() {}, removeListener() {} }; });
 const p = await ctx.newPage();
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
