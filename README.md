@@ -29,11 +29,11 @@ You do not need a wallet to look around. The **Chogs** tab lists every vault; an
 
 | | |
 |---|---|
-| Registry | `0xCCA628C8b9Ff5a432A39290b181FB02cF21Cf54C` |
-| Pool | `0x657cCC3B6cFd2580DEE4f9CfDD88e684d18c48c2` |
-| Escrow | `0x5Ed4bf3c4548BfdD5c2E6C62EDD4De0274A989BC` |
-| Sale coordinator | `0xF35f2ECDaeacA0b42106F7da68267163B208a14B` |
-| Test Chog faucet | `0xf0103bf69507b9a91C185C0687bEc0D0D0111d2B` |
+| Registry | `0x54Cd5CF6907eA09c5E279143A3dBc5450F92abc0` |
+| Pool | `0xB3b7b18d2aa26e5d763C98f18B6E38c783479476` |
+| Escrow | `0xf4e19B246F1b3c7d453c4541F04B310ED40d2C22` |
+| Sale coordinator | `0xba02316BB390EAf2737D6E725d38786D55Af334f` |
+| Test Chog faucet | `0x0be53D767B2eEB55fa5C7A7Ba271125fdaAabb48` |
 | Mock USDC / WMON / $CHOG | `0x92A3890EF30589b5A67e34955C4628EC059DFd33` / `0x16E1Bd42F7C0FfD28D10919C87CaD22d05f2aA29` / `0x36f30B2E5fa115bC7D1A1a6177a523202aC1b730` |
 
 All assets are mocks, the price source is an owner-set mock, and the Chog collection is a mock. Nothing here touches the real Chog Genesis collection.
