@@ -5,6 +5,7 @@ import { chromium } from 'playwright-core';
 import { createPublicClient, createWalletClient, http, defineChain } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { readFileSync, mkdirSync } from 'node:fs';
+import { parseAbi } from 'viem';
 mkdirSync('shots', { recursive: true });
 const w = JSON.parse(readFileSync('w.json', 'utf8')).data; const key = (Array.isArray(w) ? w[0] : w).private_key;
 const chain = defineChain({ id: 10143, name: 'Monad testnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: { default: { http: ['https://testnet-rpc.monad.xyz'] } } });
@@ -71,11 +72,17 @@ await step('borrow against it', async () => {
 await step('the position cannot leave while it backs the loan', async () => {
   await main.getByRole('link', { name: 'Withdraw', exact: true }).click(); await p.getByText('It backs your loan. Repay first.').first().waitFor({ timeout: 60000 }); await shot('lp-3-locked');
 });
+await step('get test USDC for the interest, as a real borrower would', async () => {
+  // The wallet holds exactly what it borrowed, so it cannot repay the interest that has accrued on top. The mock USDC has a public faucet.
+  const dep = JSON.parse(readFileSync('../public/deployments/monad-testnet.json', 'utf8'));
+  const h = await wal.writeContract({ address: dep.mockUsdc, abi: parseAbi(['function faucet()']), functionName: 'faucet', gasPrice: 100_000_000_000n });
+  await pub.waitForTransactionReceipt({ hash: h });
+});
 await step('repay, then take it back', async () => {
   await main.getByRole('link', { name: 'Cancel' }).click(); await main.getByRole('link', { name: 'Repay', exact: true }).click();
   await p.getByRole('button', { name: /Repay all/ }).click(); await p.getByText('Debt-free. Look at you.').waitFor({ timeout: 90000 }); await final();
   await main.getByRole('link', { name: 'Back to account' }).click(); await main.getByRole('link', { name: 'Withdraw', exact: true }).click();
-  await p.getByRole('button', { name: /^Withdraw position #/ }).first().click(); await final();
+  await p.getByRole('button', { name: /^Withdraw position #/ }).first().click(); await p.getByText('Nothing in the vault').waitFor({ timeout: 90000 });
 });
 console.log('total', ((Date.now() - t0) / 1000).toFixed(0), 's; errors:', errs);
 await b.close();
