@@ -11,7 +11,7 @@ const clips = {
 };
 for (const [name, [src, segs]] of Object.entries(clips)) {
   const parts = segs.map(([a, b, s], i) => `[0:v]trim=${a}:${b},setpts=(PTS-STARTPTS)/${s},fps=30,scale=780:1688[v${i}]`);
-  const fc = parts.join(';') + ';' + segs.map((_, i) => `[v${i}]`).join('') + `concat=n=${segs.length}:v=1:a=0[o]`;
+  const fc = parts.join(';') + ';' + segs.map((_, i) => `[v${i}]`).join('') + `concat=n=${segs.length}:v=1:a=0,tpad=stop_mode=clone:stop_duration=1.5[o]`;
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', F + src + '.mp4', '-filter_complex', fc, '-map', '[o]', '-c:v', 'libx264', '-crf', '17', '-pix_fmt', 'yuv420p', '-an', '-movflags', '+faststart', O + name + '.mp4']);
   const d = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', O + name + '.mp4']).toString().trim();
   console.log(name, (+d).toFixed(2) + 's');

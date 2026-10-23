@@ -156,7 +156,7 @@ scenes.s3 = scene('s3', 'cream', `
 <i id="s3-bar" style="position:absolute;left:140px;top:560px;width:900px;height:3px;background:var(--ink);opacity:.15;transform-origin:0 50%"></i>
 <div id="s3-c1" class="callout" style="left:760px;top:455px;opacity:0">The Chog moves in</div>
 <div id="s3-c2" class="callout" style="left:790px;top:690px;opacity:0">$800 borrowing power</div>
-${phone('s3', [['c3a', 0.3, 9.37], ['c3b', 9.67, 8.17]])}
+${phone('s3', [['c3a', 0.3, 9.37], ['c3b', 9.67, 8.33]])}
 `, `
 ${phoneIn('s3', .1)}
 tl.fromTo('#s3-r1',{opacity:0,x:-50},{opacity:1,x:0,duration:.5,ease:'power3.out'},.5);
@@ -178,7 +178,7 @@ scenes.s4 = scene('s4', 'ink', `
   <div class="kvr"><span>You can borrow</span><span class="mono">$500.00</span></div>
   <div class="kvr"><span>Health</span><span class="mono" style="color:var(--safe)">4.33</span></div>
 </div>
-${phone('s4', [['c4', 0.3, 11.53]])}
+${phone('s4', [['c4', 0.3, 11.7]])}
 `, `
 ${phoneIn('s4', .1, -2)}
 tl.fromTo('#s4-amt',{opacity:0,y:30},{opacity:1,y:0,duration:.5,ease:'power3.out'},.6);
@@ -199,7 +199,7 @@ scenes.s5 = scene('s5', 'cream', `
 <div id="s5-l2" class="pill" style="position:absolute;left:500px;top:665px;background:var(--ink);color:#f9c230;opacity:0">Signed link</div>
 <div id="s5-done" class="pill" style="position:absolute;left:140px;top:730px;font-size:26px;background:var(--v700);color:var(--cream50);opacity:0">Sold. Loan, vault and Chog move together.</div>
 <div id="s5-pk1" class="pix" style="left:270px;top:550px;opacity:0"></div><div id="s5-pk2" class="pix" style="left:690px;top:550px;opacity:0"></div>
-${phone('s5', [['c5', 0.3, 10.27]])}
+${phone('s5', [['c5', 0.3, 11.2]])}
 `, `
 ${phoneIn('s5', .1)}
 tl.fromTo('#s5-seller',{opacity:0,y:30},{opacity:1,y:0,duration:.45,ease:'power3.out'},1.6);
@@ -223,7 +223,7 @@ scenes.s6 = scene('s6', 'violet', `
 <div id="s6-a" class="disp dark" style="position:absolute;left:660px;top:190px;font-size:118px">Get paid.</div>
 <div id="s6-b" class="disp" style="position:absolute;left:660px;top:330px;font-size:118px;color:#f9a8d8">Or earn.</div>
 <div id="s6-chips" style="position:absolute;left:660px;top:500px;display:flex;gap:14px;flex-wrap:wrap;width:480px"><span class="pill" style="background:var(--cream50);color:var(--ink)">Link</span><span class="pill" style="background:var(--cream50);color:var(--ink)">QR</span><span class="pill" style="background:var(--cream50);color:var(--ink)">Vault address</span><span class="pill" style="background:var(--pink);color:var(--ink950)">USDC only</span></div>
-${phone('s6', [['c6', 0.3, 7.0]])}
+${phone('s6', [['c6', 0.3, 7.7]])}
 `, `
 ${phoneIn('s6', .1, -2)}
 tl.fromTo('#s6-qr',{opacity:0,scale:.85,rotation:-6},{opacity:1,scale:1,rotation:-2,duration:.6,ease:'back.out(1.5)'},.5);
@@ -242,7 +242,7 @@ scenes.s7 = scene('s7', 'ink', `
   <div class="kvr"><span>Borrow up to</span><span class="mono">40% of value</span></div>
   <div class="kvr"><span>Sold off below</span><span class="mono">65% of value</span></div>
   <div class="kvr"><span>Pool lends at most</span><span class="mono">$15,000</span></div></div>
-${phone('s7', [['c7', 0.3, 10.93]])}
+${phone('s7', [['c7', 0.3, 11.2]])}
 `, `
 ${phoneIn('s7', .1)}
 tl.fromTo('#s7-lock',{opacity:0,scale:.7},{opacity:1,scale:1,duration:.4,ease:'back.out(1.6)'},.5);
