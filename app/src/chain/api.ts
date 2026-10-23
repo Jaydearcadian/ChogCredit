@@ -150,6 +150,9 @@ async function untilFinal(pc: PublicClient, block: bigint, local: boolean) {
 }
 
 /** A short, plain reason. Raw selectors never lead the message. */
+/** The vault contract's own limit on pool positions held at once (AccountVault.MAX_POSITIONS). */
+export const MAX_POSITIONS = 2;
+
 export function reason(e: unknown): string {
   const m = String((e as { shortMessage?: string; message?: string }).shortMessage ?? (e as Error).message ?? e);
   const known: [RegExp, string][] = [
@@ -157,6 +160,10 @@ export function reason(e: unknown): string {
     [/WithdrawalBlocked/, 'That would leave the loan under-covered. Repay some first, or take less.'],
     [/PriceUnavailable|priceOk/i, 'Prices are paused right now.'],
     [/ExceedsAccounted/, 'More than the vault holds.'],
+    [/TooManyPositions/, `A vault holds up to ${MAX_POSITIONS} pool positions. Withdraw one first.`],
+    [/PositionNotAccepted/, "That position's pool is not on the allowed list."],
+    [/BorrowCapExceeded/, 'The pool has reached its borrow limit for now.'],
+    [/NothingToClaim/, 'Nothing has arrived to add.'],
     [/AssetsNotAccepted/, 'Lock the Chog in escrow first.'],
     [/insufficient allowance|ERC20InsufficientAllowance/i, 'Approve the token first.'],
     [/ERC20InsufficientBalance|exceeds balance/i, 'Not enough in your wallet.'],
