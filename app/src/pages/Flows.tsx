@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { parseAbi } from 'viem';
 import { ABI, maxWithdrawable, previewBorrowPowerGain, type AccountView } from '../chain/api';
 import { fmt, fmtUsdc, healthNumber, parseAmount } from '../chain/format';
 import { statusOf, type Status } from '../chain/status';
 import { Amount } from '../components/amount';
 import { Bubble, ChogFrame, Icon } from '../components/brand';
-import { Shell } from '../components/chrome';
+import { ConnectGate, Shell } from '../components/chrome';
 import { FlowSkeleton, Sparkles, TearOff, tearSeen } from '../components/moments';
 import { Chip, Num, Swap } from '../components/status';
 import { TxSteps, useTx } from '../components/tx';
@@ -34,7 +34,7 @@ function HealthAfter({ h }: { h: { status: Status; label: string } }) {
 /** A focused flow: Back and the screen's name in the header, no tab bar, the main action at the bottom (board 4, phone 2). */
 function Flow({ title, children }: { title: string; children: ReactNode }) {
   const { wallet, chogs } = useApp();
-  if (!wallet) return <Navigate to="/" replace />;
+  if (!wallet) return <Shell tabs={false} title={title} back="/account"><ConnectGate action={title.toLowerCase()} back="/account" /></Shell>;
   if (chogs && !chogs.some((c) => c.state === 'escrowed')) {
     return <Shell tabs={false} title={title} back="/pick"><h1>No Chog in a vault</h1><Bubble>Hm, what's in here?</Bubble><p className="muted">Open a vault for a Chog first.</p><Link to="/pick" viewTransition className="btn cta block">Pick a Chog</Link></Shell>;
   }

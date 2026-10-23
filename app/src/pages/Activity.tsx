@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { zeroAddress } from 'viem';
 import { loadActivity, type Row } from '../chain/activity';
 import { Bubble, PixelKey } from '../components/brand';
 import { Shell } from '../components/chrome';
@@ -25,15 +26,14 @@ export default function Activity() {
   const [range, setRange] = useState<{ from: bigint; complete: boolean } | null>(null);
 
   useEffect(() => {
-    if (!acct || !wallet) return;
+    if (!acct) return;
     let on = true;
-    const load = () => loadActivity(pc, dep, acct.key, acct.vault, wallet.address, span).then((r) => { if (on) { setRows(r.rows); setRange({ from: r.from, complete: r.complete }); setErr(null); } }).catch((e) => on && setErr(String(e.shortMessage ?? e.message ?? e)));
+    const load = () => loadActivity(pc, dep, acct.key, acct.vault, wallet?.address ?? zeroAddress, span).then((r) => { if (on) { setRows(r.rows); setRange({ from: r.from, complete: r.complete }); setErr(null); } }).catch((e) => on && setErr(String(e.shortMessage ?? e.message ?? e)));
     load();
     const t = setInterval(load, 8000);
     return () => { on = false; clearInterval(t); };
   }, [acct?.key, acct?.vault, wallet, pc, dep, tick, span]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!wallet) return <Navigate to="/" replace />;
   if (chogs && id === null) return <Shell><h1>Activity</h1><div className="card"><b>No Chog in a vault yet.</b><Link to="/pick" className="btn">Pick a Chog</Link></div></Shell>;
 
   return (

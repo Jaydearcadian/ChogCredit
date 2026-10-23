@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { parseAbi } from 'viem';
 import { TxSteps, useTx } from '../components/tx';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Bubble, ChogFrame, Icon, PixelKey, Slip } from '../components/brand';
-import { Shell } from '../components/chrome';
+import { ConnectGate, Shell } from '../components/chrome';
 import { AccountCard } from '../components/status';
 import { useApp } from '../state';
 import { setSelected } from './useAccount';
@@ -22,6 +22,7 @@ export function Connect() {
           <p className="lede">A vault and a credit line for your Chog Genesis NFT. Add assets, borrow USDC from the pool, and your Chog stays safe in its vault while you owe.</p>
           <div className="stack" style={{ gap: 10, maxWidth: 420 }}>
             <button className="btn cta block" onClick={connect}>Connect wallet</button>
+            <Link to="/explore" viewTransition className="btn secondary block">Look around first</Link>
             {error && <div className="banner risk" role="alert">{Icon.alert}<div><b style={{ color: 'var(--text-on-cream)' }}>Couldn't connect</b><p>{error}</p></div></div>}
             <div className="row tiny muted" style={{ justifyContent: 'flex-start', gap: 16 }}><span>Testnet only</span><span>Mock assets</span><span>Not audited</span></div>
           </div>
@@ -60,6 +61,7 @@ export function Pick() {
   const { wallet, chogs, dep, test } = useApp();
   const nav = useNavigate();
   const faucet = useTx();
+  if (!wallet) return <Shell tabs={false} register="chog" back="/explore"><ConnectGate action="pick your Chog" /></Shell>;
   const claim = () => faucet.run([{ address: dep.chogFaucet!, abi: parseAbi(['function claim() returns (uint256)']), functionName: 'claim', args: [] }]);
   if (!wallet) return <Navigate to="/" replace />;
   const go = (id: number, escrowed: boolean) => { setSelected(id); nav(escrowed ? '/account' : `/open/${id}`, { viewTransition: true }); };

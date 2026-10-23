@@ -232,3 +232,8 @@
   h1 { font-size: 30px; }
   .amount input.big { font-size: 52px; }
 }
+
+.header .acct { background: var(--ink-850); border: 1px solid var(--ink-700); border-radius: 10px; padding: 6px 10px; cursor: pointer; min-height: 36px; }
+.header .acct:hover { border-color: var(--purple-500); }
+.btn.connect-sm { height: 38px; padding: 0 14px; font-size: 14px; border-radius: 12px; }
+.viewing { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; border: 1px dashed var(--purple-500); border-radius: var(--r-card); padding: 12px 14px; font-size: 14px; color: var(--text-muted); }

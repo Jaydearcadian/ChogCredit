@@ -1,6 +1,8 @@
 # Chog Credit app
 
-React + TypeScript + viem. No wallet library: it talks to the browser wallet directly. Styling follows `docs/brand/DESIGN.md`; screens follow the wireframes (`docs/ux/`).
+React + TypeScript + viem, with RainbowKit on wagmi for wallets. Anyone can look around without a wallet: the Chogs tab lists every vault, and any account, its Activity and the Risk page are read-only from the chain. A wallet is asked for only when you act.
+
+Wallets: browser-extension wallets (MetaMask, Rabby, Phantom and others) and Coinbase Wallet work with no key. Phone wallets over WalletConnect (QR code or deep link) need a WalletConnect Cloud projectId, which RainbowKit requires; set `VITE_WALLETCONNECT_PROJECT_ID` to turn them on. Without it, a phone browser with no wallet is offered links that open the app inside MetaMask, Phantom, Coinbase Wallet or Trust. Styling follows `docs/brand/DESIGN.md`; screens follow the wireframes (`docs/ux/`).
 
 Built so far: Connect, Pick your Chog, Open a vault, Account overview, Add assets, Borrow and Repay, Withdraw, Release, plus Risk and Settings. Not built yet: Sell, Activity, Lend, Receive. All of it runs against test deployments with mock assets.
 

@@ -14,9 +14,11 @@ const URL = process.env.APP_URL ?? 'https://chog-credit-jaydearcadians-projects.
 
 const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
+let authorized = false;
 await ctx.exposeBinding('__rpc', async (_s, method, params) => {
   switch (method) {
-    case 'eth_requestAccounts': case 'eth_accounts': return [account.address];
+    case 'eth_requestAccounts': authorized = true; return [account.address];
+    case 'eth_accounts': return authorized ? [account.address] : []; // like a real wallet: nothing until the user connects
     case 'eth_chainId': return '0x279f';
     case 'wallet_switchEthereumChain': case 'wallet_addEthereumChain': return null;
     case 'eth_sendTransaction': { const t = params[0]; return wal.sendTransaction({ to: t.to, data: t.data, value: t.value ? BigInt(t.value) : 0n, gas: t.gas ? BigInt(t.gas) : undefined }); }
@@ -36,7 +38,7 @@ const shot = (n) => p.screenshot({ path: `shots/${n}.png` });
 const t0 = Date.now();
 const step = async (name, fn) => { const s = Date.now(); try { await fn(); console.log('ok  ', name, `${((Date.now() - s) / 1000).toFixed(1)}s`); } catch (e) { console.log('FAIL', name, String(e.message).split('\n')[0]); await shot('fail'); console.log((await main.innerText().catch(() => '')).slice(0, 500)); console.log(errs); await b.close(); process.exit(1); } };
 
-await step('connect', async () => { await p.goto(URL); await p.getByRole('button', { name: 'Connect wallet' }).click(); await p.getByRole('heading', { name: 'Pick your Chog' }).waitFor({ timeout: 30000 }); });
+await step('connect', async () => { await p.goto(URL); await p.getByRole('button', { name: 'Connect wallet' }).click(); await p.getByRole('button', { name: 'Browser Wallet' }).click({ timeout: 5000 }).catch(() => {}); await p.getByRole('heading', { name: 'Pick your Chog' }).waitFor({ timeout: 30000 }); });
 await step('open the Chog that already has a vault (from the first run)', async () => {
   await p.getByRole('button', { name: /In its vault/ }).first().click({ timeout: 30000 });
   await main.getByRole('link', { name: 'Add assets' }).first().waitFor({ timeout: 30000 }); await p.waitForTimeout(800); await shot('2-account');

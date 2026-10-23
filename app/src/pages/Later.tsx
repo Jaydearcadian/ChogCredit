@@ -1,12 +1,8 @@
-import { Navigate } from 'react-router-dom';
 import { Bubble, Icon, PixelKey } from '../components/brand';
 import { Shell } from '../components/chrome';
 import { Chip } from '../components/status';
-import { useApp } from '../state';
 
 export function Soon({ title, why }: { title: string; why: string }) {
-  const { wallet } = useApp();
-  if (!wallet) return <Navigate to="/" replace />;
   return (
     <Shell>
       <h1>{title}</h1>
@@ -21,8 +17,6 @@ export function Soon({ title, why }: { title: string; why: string }) {
 }
 /** S18 Risk: the plain explainer. */
 export function Risk() {
-  const { wallet } = useApp();
-  if (!wallet) return <Navigate to="/" replace />;
   return (
     <Shell>
       <h1>How risk works</h1>

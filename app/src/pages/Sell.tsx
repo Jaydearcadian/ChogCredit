@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { isAddress, parseAbi, type Address, type Hex } from 'viem';
 import { ABI, reason } from '../chain/api';
 import { fmtUsdc, healthNumber, parseAmount, short } from '../chain/format';
@@ -7,7 +7,7 @@ import { buyerBounds, decode, fromStrings, linkTo, saleState, toStrings, typedDa
 import { statusOf } from '../chain/status';
 import { Figure, TextField } from '../components/amount';
 import { Bubble, ChogFrame, Icon } from '../components/brand';
-import { Shell } from '../components/chrome';
+import { ConnectGate, Shell } from '../components/chrome';
 import { FlowSkeleton } from '../components/moments';
 import { Chip, Num } from '../components/status';
 import { TxSteps, useTx } from '../components/tx';
@@ -72,7 +72,7 @@ export function SellSetup() {
   const [payoff, setPayoff] = useState(false);
   const [repayText, setRepayText] = useState('');
   const [link, setLink] = useState<string | null>(null);
-  if (!wallet) return <Navigate to="/" replace />;
+  if (!wallet) return <Shell><h1>Sell with Vault</h1><p className="muted">Sell a Chog together with everything in its vault, loan included. The buyer signs exactly what they take on.</p><ConnectGate action="sell a Chog" /></Shell>;
   if (chogs && id === null) return <Shell><h1>Sell with Vault</h1><div className="card"><b>No Chog in a vault yet.</b><span className="small muted">Open a vault first; then the whole vault can be sold with the Chog.</span><Link to="/pick" className="btn">Pick a Chog</Link></div></Shell>;
   if (!acct || id === null) return <Shell enter={false}><FlowSkeleton /></Shell>;
 

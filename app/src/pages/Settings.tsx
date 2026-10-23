@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { parseAbi, type Address } from 'viem';
 import { ABI } from '../chain/api';
 import { short } from '../chain/format';
@@ -24,7 +24,6 @@ export default function Settings() {
   const tx = useTx();
   const [p, setP] = useState(getPrefs());
   useEffect(() => onPrefs(() => setP(getPrefs())), []);
-  if (!wallet) return <Navigate to="/" replace />;
   const oracle = async (fn: string, args: unknown[]) => {
     const address = (await pc.readContract({ address: dep.pool, abi: ABI.pool, functionName: 'oracle' })) as Address;
     await tx.run([{ address, abi: parseAbi(['function setDown(bool d)', 'function setPrice(address token, uint256 priceRaw)']), functionName: fn, args }]);
@@ -39,7 +38,7 @@ export default function Settings() {
       </div>
       <div className="card">
         <div className="kv"><span>Network</span><span>{dep.chainId === 143 ? 'Monad' : dep.chainId === 10143 ? 'Monad testnet' : 'Local chain'}</span></div>
-        <div className="kv"><span>Wallet</span><span className="num">{short(wallet.address)}</span></div>
+        <div className="kv"><span>Wallet</span><span className="num">{wallet ? short(wallet.address) : 'Not connected'}</span></div>
         {test && <span className="tiny muted">Test deployment: mock assets and a mock oracle.</span>}
       </div>
       {devWalletAllowed(dep.chainId) && (
@@ -51,7 +50,7 @@ export default function Settings() {
           <TxSteps title="Oracle" tx={tx} />
         </div>
       )}
-      <button className="btn secondary block" onClick={disconnect}>Disconnect wallet</button>
+      {wallet && <button className="btn secondary block" onClick={disconnect}>Disconnect wallet</button>}
       <Link to="/account" viewTransition className="small">Back to account</Link>
     </Shell>
   );

@@ -113,6 +113,9 @@ export async function runTx(w: Wallet, pc: PublicClient, call: TxCall, onStage: 
   onStage('signing');
   let hash: Hex;
   try {
+    // A wallet on another network is asked to switch first, so the transaction never goes to the wrong chain.
+    const want = pc.chain?.id;
+    if (w.kind === 'injected' && want && (await w.client.getChainId()) !== want) await w.client.switchChain({ id: want });
     hash = await w.client.writeContract({ ...call, account: w.account, chain: w.client.chain } as never);
   } catch (e) {
     const msg = String((e as Error).message ?? e);
@@ -193,4 +196,14 @@ export async function maxWithdrawable(pc: PublicClient, dep: Deployment, key: He
     if (await ok(mid)) lo = mid; else hi = mid;
   }
   return lo;
+}
+
+/** Every Chog that has a vault, from public chain data, so anyone can look around without a wallet. */
+export async function loadPublicChogs(pc: PublicClient, dep: Deployment): Promise<{ id: number; escrowed: boolean }[]> {
+  const total = Number(await read<bigint>(pc, dep.mockChogGenesis, ABI.chog, 'totalSupply'));
+  const ids = Array.from({ length: Math.min(total, 2500) }, (_, i) => i + 1);
+  const vaults = await many(pc, ids.map((id) => ({ address: dep.registry, abi: ABI.registry, functionName: 'vaultOf', args: [dep.mockChogGenesis, BigInt(id)] })));
+  const withVault = ids.filter((_, i) => vaults[i].status === 'fulfilled' && (vaults[i] as PromiseFulfilledResult<string>).value !== zeroAddress);
+  const owners = await many(pc, withVault.map((id) => ({ address: dep.mockChogGenesis, abi: ABI.chog, functionName: 'ownerOf', args: [BigInt(id)] })));
+  return withVault.map((id, i) => ({ id, escrowed: owners[i].status === 'fulfilled' && (owners[i] as PromiseFulfilledResult<string>).value.toLowerCase() === dep.escrow.toLowerCase() }));
 }

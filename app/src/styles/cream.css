@@ -27,3 +27,4 @@
 .cream a.btn.secondary, .cream a.btn.link { color: var(--text-on-cream); }
 /* An Account Card shown on cream keeps its own ink: it is the seam between the two registers. */
 .cream .account-card { --text: var(--cream-50); --text-muted: #d2ccea; --purple-300: #b7aaff; color: var(--cream-50); box-shadow: 0 28px 60px rgba(20, 16, 38, 0.28); }
+.cream .header .acct { background: var(--cream-50); border-color: var(--cream-200); color: var(--text-on-cream); }

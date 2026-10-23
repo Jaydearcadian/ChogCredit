@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ABI } from '../chain/api';
 import { Bubble, ChogFrame } from '../components/brand';
-import { Shell } from '../components/chrome';
+import { ConnectGate, Shell } from '../components/chrome';
 import { VaultDoor } from '../components/moments';
 import { TxSteps, useTx } from '../components/tx';
 import { useApp } from '../state';
@@ -14,7 +14,7 @@ export default function Open() {
   const tx = useTx();
   const row = chogs?.find((c) => c.id === id);
   const done = tx.stage === 'confirmed' || tx.stage === 'final';
-  if (!wallet) return <Navigate to="/" replace />;
+  if (!wallet) return <Shell tabs={false} register="chog" back="/explore"><ConnectGate action="open a vault" /></Shell>;
   if (row?.state === 'escrowed' && !done) return <Navigate to="/account" replace />;
 
   const open = async () => {

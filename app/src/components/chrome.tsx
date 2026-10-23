@@ -1,14 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useAccountModal } from '@rainbow-me/rainbowkit';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { short } from '../chain/format';
 import { confirmedOnce, getPrefs, onPrefs, setPrefs } from '../feedback';
 import { useApp } from '../state';
-import { Icon, Wordmark } from './brand';
+import { Bubble, Icon, PixelKey, Wordmark } from './brand';
 
 const I = (d: ReactNode) => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{d}</svg>;
 /** Tab icons drawn as on brand board 4. */
 const TABS: [string, string, ReactNode][] = [
   ['/account', 'Account', I(<><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18" /></>)],
+  ['/explore', 'Chogs', I(<><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></>)],
   ['/borrow', 'Borrow', I(<><path d="M12 4v12M7 11l5 5 5-5" /><path d="M5 20h14" /></>)],
   ['/activity', 'Activity', I(<path d="M5 5h14M5 12h14M5 19h9" />)],
   ['/sell', 'Sell', I(<path d="M7 7h11l-3-3M17 17H6l3 3" />)],
@@ -29,8 +31,9 @@ export function TabBar() {
 
 /** App header: the Full Stop wordmark and the TESTNET pill; in a focused flow, Back and the screen's name. */
 export function Header({ title, back }: { title?: string; back?: string }) {
-  const { wallet, test } = useApp();
+  const { wallet, test, connect } = useApp();
   const nav = useNavigate();
+  const { openAccountModal } = useAccountModal();
   return (
     <header className="header">
       {back ? (
@@ -39,7 +42,10 @@ export function Header({ title, back }: { title?: string; back?: string }) {
       {title && <span className="title">{title}</span>}
       <span className="meta">
         {test && <span className="pill">TESTNET</span>}
-        {!title && wallet && <span className="addr">{short(wallet.address)}</span>}
+        {!title && wallet && (wallet.kind === 'injected' && openAccountModal
+          ? <button className="addr acct" onClick={openAccountModal}>{short(wallet.address)}</button>
+          : <span className="addr">{short(wallet.address)}</span>)}
+        {!title && !wallet && <button className="btn connect-sm" onClick={connect}>Connect</button>}
       </span>
     </header>
   );
@@ -69,5 +75,20 @@ function SoundOffer() {
       <button className="btn" style={{ height: 44 }} onClick={() => setPrefs({ sound: true, offered: true })}>Yes</button>
       <button className="btn secondary" style={{ height: 44 }} onClick={() => setPrefs({ offered: true })}>No thanks</button>
     </div>
+  );
+}
+
+/** Shown where an action needs a wallet. Looking around never does. */
+export function ConnectGate({ action, back = '/explore' }: { action: string; back?: string }) {
+  const { connect } = useApp();
+  return (
+    <section className="card" style={{ alignItems: 'flex-start', gap: 14 }}>
+      <PixelKey width={72} />
+      <Bubble>Hm, what's in here?</Bubble>
+      <b>Connect a wallet to {action}.</b>
+      <span className="small muted">Looking around needs no wallet. Everything you see is read from the chain.</span>
+      <button className="btn cta block" onClick={connect}>Connect wallet</button>
+      <Link to={back} viewTransition className="btn link block">Keep looking around</Link>
+    </section>
   );
 }
