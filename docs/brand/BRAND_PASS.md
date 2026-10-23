@@ -90,15 +90,15 @@ Method: your Chief Brand Designer prompt, informed by ten design skills (motion,
 
 **Rule one: Chog's character and wordmark lead, ours supports.** We do not draw, redraw or "improve" Chog. Where the official art or wordmark is not yet cleared, the UI shows a neutral frame with the token id (see F).
 
-**Decided: three marks, three jobs.** The first proposal (a C-shaped ring gauge) was retired as overused. Round two (brand board, section 6) produced the system below.
+**Decided: three marks, three jobs (A, B and D).** The first proposal (a C-shaped ring gauge) was retired as overused. Round two (brand board, section 6) produced the system below.
 
 | Mark | Job | Where it appears | Never |
 |---|---|---|---|
 | **A. The Slip** | Brand logo | Lockup, app icon, favicon, social, deck cover, the shape of the Account Card | In the app's top bar |
-| **C. The Brackets** | Top-bar glyph | App header and website nav, 28 to 32 px, always beside the words "Chog Credit" | As the app icon or favicon |
+| **D. The Full Stop** | Top-bar wordmark | App header and website nav: the words "Chog Credit" with one pink full stop; "cc." is the monogram for tiny spaces | As the app icon or favicon |
 | **B. The Pixel Key** | Prop | Stickers, the Chog bubble's "browsing" state, empty states, social | As a logo or an icon |
 
-Dropped: the C-Ring (overused ring gauge) and "The Full Stop" wordmark. The Health Ring stays as the plain gauge inside the app and is never a logo.
+Dropped: the C-Ring (overused ring gauge) and C, The Brackets. The Health Ring stays as the plain gauge inside the app and is never a logo.
 
 **Why the Slip.** A credit slip is a ticket stub or an IOU: it says "credit" and "you can hand this over" at once, it is playful, and it gives the product a signature shape. The pink square is the stamp; the dashed line is the tear line.
 
@@ -108,12 +108,12 @@ Dropped: the C-Ring (overused ring gauge) and "The Full Stop" wordmark. The Heal
 
 **Construction (100-unit grid, drawn as SVG on the brand board).**
 - *Slip:* body x 8 to 92, y 26 to 74, corner radius 8; side notches radius 7 at mid-height; pink stamp 18 by 18 (radius 4) at x 19, y 41; text bars in cream; dashed perforation at x 66. At 32 px or smaller drop the text bars; at 16 px drop the perforation too (body + stamp only). Clear space = the notch diameter (14 units). Minimum size 16 px.
-- *Brackets:* two square brackets, stroke 10, round joins, x 18 to 36 and 64 to 82, y 18 to 82; pink block 28 by 28 (radius 6) centred. At 16 px use stroke 14.
+- *Full Stop:* the words "Chog Credit" in Baloo 2 ExtraBold with a square pink full stop (radius about a quarter of its width) sitting on the baseline, about 0.3 of the cap height. The "cc." monogram is the same lettering with the stop; use it only where the full name cannot fit. It is text, so it needs no artwork, and the stop is `aria-hidden`.
 - *Pixel Key:* 12 by 6 pixel grid (96 by 48 units), one pixel = 8 units, pink 2 by 2 gem in the bow. Not drawn below 48 px wide.
 
 **Variants.** Purple on ink (default), deep purple `#46188D` on cream, mono cream on `#2D2556`. App icon: the Slip on a violet-ink rounded square with a 2 px Monad-purple border. Generate launcher sets (Android and iOS) with the icon-generator skill once the Slip artwork is final.
 
-**Do not.** Add a hedgehog or any new creature; put any mark over the Chog's face; use pink for status; use two of the three marks side by side in one bar; recolour a mark by risk.
+**Do not.** Add a hedgehog or any new creature; put any mark over the Chog's face; use pink for status; put the Slip and the wordmark side by side in one top bar; recolour a mark by risk.
 
 ---
 
@@ -339,7 +339,7 @@ Fallback if the chain is slow: the same script on a local fork, labelled as such
 
 **Deck prompt.** *"Make a 10-slide dark deck from section I: one idea per slide, max 20 words, cream text on #141026, official Chog art inside the Chog Frame, mono numerals, pink sticker in one corner."*
 
-**Icons and app icon.** The Slip, Brackets and Pixel Key are already drawn as SVG on the brand board (section 6); export launcher sets for the Slip with the icon-generator skill.
+**Icons and app icon.** The Slip and Pixel Key are already drawn as SVG on the brand board (section 6), and the Full Stop is plain text; export launcher sets for the Slip with the icon-generator skill.
 
 ---
 
@@ -359,10 +359,10 @@ Fallback if the chain is slow: the same script on a local fork, labelled as such
 - A Chog's floor is small. If anyone reads "credit against your NFT", they'll expect more than we offer. Our copy must keep saying the value is the vault.
 - Retention is our thinnest rubric item. Health watching and interest are real reasons to return, but alerts and a weekly report are not built, and I'd rather say so than invent streaks. Gamifying debt is a trap.
 - The `$CHOG` bonus is not claimed.
-- Fonts and all three marks are my proposals, not Chog's official assets.
+- Fonts and the marks are my proposals, not Chog's official assets.
 
 **Decisions I need from you.**
-1. ~~Logo direction~~ Decided: the Slip for the brand, the Brackets in the top bar, the Pixel Key as a prop.
+1. ~~Logo direction~~ Decided: the Slip (A) for the brand, the Full Stop (D) in the top bar, the Pixel Key (B) as a prop.
 2. Approve dark-only for the app and cream for the landing page?
 3. Baloo 2 plus Inter plus JetBrains Mono, with Gaegu only for the bubble: yes?
 4. Who contacts the Chog team about art and wordmark permission?
