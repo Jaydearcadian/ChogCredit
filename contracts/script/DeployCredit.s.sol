@@ -91,21 +91,23 @@ contract DeployCredit is Script {
             oracle: address(d.oracle),
             closeFactorBps: 5_000,
             dustDebt: 10e6,
-            supplyCap: 1_000_000e6,
-            borrowCap: 500_000e6,
-            accountDebtCap: 100_000e6,
+            // Sized to the measured WMON exit depth (about $50k at 2% impact, docs/evidence/LIQUIDITY_MODEL.md): if the
+            // whole borrowCap went underwater, the collateral sold (borrowCap / 65%) stays near half of that depth.
+            supplyCap: vm.envOr("SUPPLY_CAP", uint256(25_000e6)),
+            borrowCap: vm.envOr("BORROW_CAP", uint256(15_000e6)),
+            accountDebtCap: vm.envOr("ACCOUNT_DEBT_CAP", uint256(5_000e6)),
             baseRateBps: 200,
             slope1Bps: 400,
             slope2Bps: 6_000,
             optimalUtilBps: 8_000
         });
         p.collaterals = new ChogCreditPool.CollateralConfig[](1);
-        p.collaterals[0] = ChogCreditPool.CollateralConfig(address(d.wmon), 4_000, 6_500, 800, 2_000_000 ether);
+        p.collaterals[0] = ChogCreditPool.CollateralConfig(address(d.wmon), 4_000, 6_500, 800, 600_000 ether);
         _requirePermittedCollateral(p.collaterals);
         if (d.lp) {
             p.lp.positionManager = address(d.pm);
             p.lp.pools = new ChogCreditPool.LpPoolConfig[](1);
-            p.lp.pools[0] = ChogCreditPool.LpPoolConfig(address(d.lpPool), 2_800, 4_550, 500, 200, 50_000e6);
+            p.lp.pools[0] = ChogCreditPool.LpPoolConfig(address(d.lpPool), 2_800, 4_550, 500, 200, 12_500e6);
         }
     }
 

@@ -1,16 +1,6 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Account from './pages/Account';
-import { Add, Borrow, Release, Repay, Withdraw } from './pages/Flows';
-import Activity from './pages/Activity';
-import Explore from './pages/Explore';
-import Lend from './pages/Lend';
-import { Risk } from './pages/Later';
-import { SellComplete, SellSetup, SellSign } from './pages/Sell';
-import Open from './pages/Open';
-import Receive, { Pay } from './pages/Receive';
-import Settings from './pages/Settings';
 import { Connect, Pick } from './pages/Start';
 import { Root } from './state';
 import './styles/tokens.css';
@@ -19,10 +9,32 @@ import './styles/components.css';
 import './styles/cream.css';
 import './styles/motion.css';
 
+// Each screen loads when it is first opened, so the landing page does not carry the sell, lend and flow code.
+const Account = lazy(() => import('./pages/Account'));
+const Flows = () => import('./pages/Flows');
+const Add = lazy(() => Flows().then((m) => ({ default: m.Add })));
+const Borrow = lazy(() => Flows().then((m) => ({ default: m.Borrow })));
+const Release = lazy(() => Flows().then((m) => ({ default: m.Release })));
+const Repay = lazy(() => Flows().then((m) => ({ default: m.Repay })));
+const Withdraw = lazy(() => Flows().then((m) => ({ default: m.Withdraw })));
+const Activity = lazy(() => import('./pages/Activity'));
+const Explore = lazy(() => import('./pages/Explore'));
+const Lend = lazy(() => import('./pages/Lend'));
+const Risk = lazy(() => import('./pages/Later').then((m) => ({ default: m.Risk })));
+const SellPages = () => import('./pages/Sell');
+const SellSetup = lazy(() => SellPages().then((m) => ({ default: m.SellSetup })));
+const SellSign = lazy(() => SellPages().then((m) => ({ default: m.SellSign })));
+const SellComplete = lazy(() => SellPages().then((m) => ({ default: m.SellComplete })));
+const Open = lazy(() => import('./pages/Open'));
+const Receive = lazy(() => import('./pages/Receive'));
+const Pay = lazy(() => import('./pages/Receive').then((m) => ({ default: m.Pay })));
+const Settings = lazy(() => import('./pages/Settings'));
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Root>
       <BrowserRouter>
+        <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<Connect />} />
           <Route path="/pick" element={<Pick />} />
@@ -44,6 +56,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/risk" element={<Risk />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </Root>
   </StrictMode>,

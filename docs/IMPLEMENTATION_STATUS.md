@@ -151,3 +151,6 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Independent audit | Not performed | Audit report, commit hash and remediation status |
 
 The next claim of completion must cite these artifacts, not just the presence of new files.
+
+| Lend, Receive, pool positions as collateral (app) | Done on the local chain; Lend and Receive on testnet | Pool limits sized to measured exit depth; Risk screen reads them from the pool |
+| App bundle | First load about 690 KB (was 1.09 MB); screens and the wallet layer load on demand | Wallet layer loads after first paint |

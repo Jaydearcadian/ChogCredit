@@ -1,6 +1,7 @@
 /**
- * The five states people see. Thresholds below are APP SAMPLE VALUES: the real Watch and At-risk lines are a product
- * decision (docs/brand/DESIGN.md "Open items"). Liquidatable is the contract's line (health < 1.0).
+ * The states people see. Health is liquidation value over debt. WMON borrows at 40% and liquidates at 65%, so a full
+ * borrow starts at 1.625. Watch (below 1.50) is a price fall of about 8% from a full borrow, At risk (below 1.25) about
+ * 23%, and Liquidatable (below 1.00, the contract's own line) about 38%. Decided in docs/SECURITY_AND_RISK.md.
  */
 export type Status = 'safe' | 'watch' | 'risk' | 'danger' | 'paused' | 'nodebt';
 

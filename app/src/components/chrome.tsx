@@ -1,5 +1,4 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useAccountModal } from '@rainbow-me/rainbowkit';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { short } from '../chain/format';
 import { confirmedOnce, getPrefs, onPrefs, setPrefs } from '../feedback';
@@ -32,9 +31,8 @@ export function TabBar() {
 
 /** App header: the Full Stop wordmark and the TESTNET pill; in a focused flow, Back and the screen's name. */
 export function Header({ title, back }: { title?: string; back?: string }) {
-  const { wallet, test, connect } = useApp();
+  const { wallet, test, connect, openAccount } = useApp();
   const nav = useNavigate();
-  const { openAccountModal } = useAccountModal();
   return (
     <header className="header">
       {back ? (
@@ -43,8 +41,8 @@ export function Header({ title, back }: { title?: string; back?: string }) {
       {title && <span className="title">{title}</span>}
       <span className="meta">
         {test && <span className="pill">TESTNET</span>}
-        {!title && wallet && (wallet.kind === 'injected' && openAccountModal
-          ? <button className="addr acct" onClick={openAccountModal}>{short(wallet.address)}</button>
+        {!title && wallet && (wallet.kind === 'injected' && openAccount
+          ? <button className="addr acct" onClick={openAccount}>{short(wallet.address)}</button>
           : <span className="addr">{short(wallet.address)}</span>)}
         {!title && !wallet && <button className="btn connect-sm" onClick={connect}>Connect</button>}
       </span>

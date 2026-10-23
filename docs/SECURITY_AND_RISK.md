@@ -126,3 +126,29 @@ All critical/high findings must be fixed and retested. An audit applies to a spe
 - [ ] UI clearly distinguishes actual Chog NFT, test collection, mock token, simulated market and live contract state.
 
 Any unchecked item is a no-go for public real-funds lending.
+
+
+## Decided risk numbers (test deployment)
+
+**Pool limits, sized to measured exit depth.** The Uniswap V3 USDC/WMON 0.30% pool absorbs about $50,000 of WMON at roughly 2% impact (QuoterV2, `docs/evidence/LIQUIDITY_MODEL.md`). If the whole borrow cap went underwater at once, the collateral to sell is the cap divided by the 65% liquidation threshold. Caps keep that near half of the measured depth, so several liquidations and a thinner pool both fit.
+
+| Limit | Value | Why |
+| --- | --- | --- |
+| Pool borrow cap | $15,000 | $15,000 / 0.65 = about $23,000 of WMON to sell, under half of the $50,000 depth |
+| Account debt cap | $5,000 | One account is at most a third of the pool |
+| Supply cap | $25,000 | Lenders are never exposed beyond what the exit can carry |
+| Counted WMON per account | 600,000 | About $12,600 at the sample price, which is the 40% borrow limit for a full account debt cap |
+| Liquidity-position value per account | $12,500 | Same idea for pool positions |
+
+These are `DeployCredit.s.sol` defaults and can be overridden with `SUPPLY_CAP`, `BORROW_CAP` and `ACCOUNT_DEBT_CAP`. Re-measure depth before each deployment and raise caps only as depth rises. `$CHOG` stays at zero credit.
+
+**Status lines.** Health is liquidation value over debt. WMON borrows at 40% and liquidates at 65%, so a full borrow starts at 1.625.
+
+| State | Health | Price fall from a full borrow |
+| --- | --- | --- |
+| Safe | 1.50 or more | up to about 8% |
+| Watch | 1.25 to 1.50 | about 8% to 23% |
+| At risk | 1.00 to 1.25 | about 23% to 38% |
+| Liquidatable | below 1.00 | the contract's own line |
+
+The Risk screen reads LTV, threshold, bonus, close factor and caps from the pool, and the status lines come from `app/src/chain/status.ts`, so the page and the contract cannot drift apart.

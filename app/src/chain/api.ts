@@ -273,3 +273,24 @@ async function loadVaultPositions(pc: PublicClient, dep: Deployment, key: Hex, v
     withdrawAllowed: await read<boolean>(pc, dep.registry, ABI.registry, 'positionWithdrawAllowed', [key, id]).catch(() => false),
   })));
 }
+
+export type RiskView = {
+  collaterals: { token: Address; symbol: string; ltvBps: number; thresholdBps: number; bonusBps: number }[];
+  borrowCap: bigint; accountDebtCap: bigint; supplyCap: bigint; closeFactorBps: number; totalDebt: bigint;
+};
+
+/** The numbers behind the Risk page, read from the pool so the page can never disagree with the contract. */
+export async function loadRisk(pc: PublicClient, dep: Deployment): Promise<RiskView> {
+  const p = <T,>(fn: string, args: unknown[] = []) => read<T>(pc, dep.pool, ABI.pool, fn, args);
+  const [n, borrowCap, accountDebtCap, supplyCap, closeFactorBps, totalDebt] = await Promise.all([
+    p<bigint>('collateralCount'), p<bigint>('borrowCap'), p<bigint>('accountDebtCap'), p<bigint>('supplyCap'),
+    p<number>('closeFactorBps'), p<bigint>('totalDebt'),
+  ]);
+  const sym = parseAbi(['function symbol() view returns (string)']) as Abi;
+  const collaterals = await Promise.all(Array.from({ length: Number(n) }, async (_, i) => {
+    const c = (await p<{ token: Address; ltvBps: number; thresholdBps: number; bonusBps: number }>('collateralAt', [BigInt(i)]));
+    const symbol = (await read<string>(pc, c.token, sym, 'symbol').catch(() => 'token')).replace(/^m/, '');
+    return { token: c.token, symbol, ltvBps: Number(c.ltvBps), thresholdBps: Number(c.thresholdBps), bonusBps: Number(c.bonusBps) };
+  }));
+  return { collaterals, borrowCap, accountDebtCap, supplyCap, closeFactorBps: Number(closeFactorBps), totalDebt };
+}

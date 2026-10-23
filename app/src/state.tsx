@@ -1,16 +1,17 @@
-import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PublicClient } from 'viem';
-import { useAccount, useDisconnect, useWalletClient } from 'wagmi';
 import { loadChogs, loadPublicChogs, type ChogRow } from './chain/api';
 import { isTestDeployment, loadDeployment, type Deployment } from './chain/config';
 import { connectDev, devWalletAllowed, isMobile, publicClientFor, type Wallet } from './chain/wallet';
 import { WalletPicker } from './components/picker';
-import { Web3, walletConnectEnabled } from './web3';
+import { walletConnectEnabled } from './walletconfig';
+import type { WalletBridge } from './web3';
+
+const WalletLayer = lazy(() => import('./web3'));
 
 type Ctx = {
   dep: Deployment; pc: PublicClient; wallet: Wallet | null; chogs: ChogRow[] | null; test: boolean; tick: number;
-  connect(): void; disconnect(): void; refresh(): void; error: string | null;
+  connect(): void; disconnect(): void; openAccount?: () => void; refresh(): void; error: string | null;
   /** Looking around without a wallet: every Chog with a vault, and the one being viewed. */
   publicChogs: { id: number; escrowed: boolean }[] | null; viewing: number | null; setViewing(id: number): void;
 };
@@ -27,7 +28,7 @@ export function Root({ children }: { children: ReactNode }) {
   useEffect(() => { loadDeployment().then(setDep).catch((e) => setError(String(e.message ?? e))); }, []);
   if (error) return <div className="shell"><main><h1>Can't start</h1><p className="muted">{error}</p></main></div>;
   if (!dep) return <div className="shell"><main><p className="muted">Loading…</p></main></div>;
-  return <Web3 dep={dep}><AppProvider dep={dep}>{children}</AppProvider></Web3>;
+  return <AppProvider dep={dep}>{children}</AppProvider>;
 }
 
 function AppProvider({ dep, children }: { dep: Deployment; children: ReactNode }) {
@@ -41,15 +42,10 @@ function AppProvider({ dep, children }: { dep: Deployment; children: ReactNode }
   const [deepLinks, setDeepLinks] = useState(false);
   const followUp = useRef<ReturnType<typeof setTimeout>>();
 
-  // A wallet from RainbowKit/wagmi, shaped like the rest of the app expects.
-  const acct = useAccount();
-  const { data: walletClient } = useWalletClient();
-  const { disconnect: wagmiDisconnect } = useDisconnect();
-  const { openConnectModal } = useConnectModal();
-  const wagmiWallet = useMemo<Wallet | null>(() => (
-    acct.isConnected && acct.address && walletClient ? { address: acct.address, client: walletClient, account: acct.address, kind: 'injected' } : null
-  ), [acct.isConnected, acct.address, walletClient]);
-  const wallet = dev ?? wagmiWallet;
+  // The wallet layer (RainbowKit on wagmi) loads after first paint and reports in through this bridge.
+  const [bridge, setBridge] = useState<WalletBridge | null>(null);
+  const wantConnect = useRef(false);
+  const wallet = dev ?? bridge?.wallet ?? null;
 
   /** Re-read now and once more a moment later: a public node can answer from a block before your transaction. */
   const refresh = useCallback(() => {
@@ -79,17 +75,21 @@ function AppProvider({ dep, children }: { dep: Deployment; children: ReactNode }
     const injected = !!(window as unknown as { ethereum?: unknown }).ethereum;
     // A phone browser with no wallet and no WalletConnect: offer to open the app inside a wallet app instead.
     if (isMobile() && !injected && !walletConnectEnabled) { setDeepLinks(true); return; }
-    openConnectModal?.();
-  }, [dep.chainId, openConnectModal]);
+    if (bridge?.openConnect) bridge.openConnect(); else wantConnect.current = true; // still loading: open it on arrival
+  }, [dep.chainId, bridge]);
+  useEffect(() => {
+    if (wantConnect.current && bridge?.openConnect) { wantConnect.current = false; bridge.openConnect(); }
+  }, [bridge]);
 
   const setViewing = useCallback((id: number) => { setViewingState(id); try { sessionStorage.setItem(VIEW, String(id)); } catch { /* fine */ } }, []);
 
   return (
     <C.Provider value={{
       dep, pc, wallet, chogs, test: isTestDeployment(dep), tick, connect, refresh, error, publicChogs, viewing, setViewing,
-      disconnect: () => { setDev(null); wagmiDisconnect(); },
+      disconnect: () => { setDev(null); bridge?.disconnect(); }, openAccount: bridge?.openAccount,
     }}>
       {children}
+      <Suspense fallback={null}><WalletLayer dep={dep} onBridge={setBridge} /></Suspense>
       {deepLinks && <WalletPicker wallets={[]} onPick={() => undefined} onClose={() => setDeepLinks(false)} error={null} />}
     </C.Provider>
   );
