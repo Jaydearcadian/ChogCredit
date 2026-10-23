@@ -74,4 +74,4 @@ cd app && KEEPER_KEY=<deployer testnet key> node scripts/price-keeper.mjs       
 cd app && KEEPER_KEY=<deployer testnet key> node scripts/price-keeper.mjs --once     # one pass
 ```
 
-It refuses mainnet, skips while a Pause Drill is on, skips a stale feed, and writes only when the price moved by 0.5% or 30 minutes passed. The key must be the oracle owner (the deployer) and must be a testnet-only key.
+`--dry` shows what it would write and writes nothing. It refuses mainnet, skips while a Pause Drill is on, skips a stale feed, and writes only when the price moved by 0.5% or 30 minutes passed. The key must be the oracle owner (the deployer) and must be a testnet-only key.

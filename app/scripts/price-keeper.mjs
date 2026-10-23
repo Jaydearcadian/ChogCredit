@@ -12,7 +12,8 @@ import { privateKeyToAccount } from 'viem/accounts';
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const dep = JSON.parse(readFileSync(arg('--deployment', 'public/deployments/monad-testnet.json'), 'utf8'));
-const ONCE = process.argv.includes('--once');
+const ONCE = process.argv.includes('--once') || process.argv.includes('--dry');
+const DRY = process.argv.includes('--dry'); // report what would be written, write nothing
 const SOURCE_RPC = process.env.SOURCE_RPC ?? 'https://rpc.monad.xyz';
 const TARGET_RPC = process.env.TARGET_RPC ?? (dep.chainId === 10143 ? 'https://testnet-rpc.monad.xyz' : 'http://127.0.0.1:8545');
 const FEED = '0xBcD78f76005B7515837af6b50c7C52BCf73822fb'; // Chainlink MON / USD on Monad
@@ -52,6 +53,7 @@ async function tick() {
   const moved = cur === 0n ? 10_000n : ((priceRaw > cur ? priceRaw - cur : cur - priceRaw) * 10_000n) / cur;
   const old = Date.now() / 1000 - last.at > MAX_AGE_S;
   if (moved < MIN_MOVE_BPS && !old) return console.log(`hold: $${Number(priceRaw) / 1e6} (moved ${moved} bps)`);
+  if (DRY) return console.log(`dry run: would set WMON to $${Number(priceRaw) / 1e6} (now $${Number(cur) / 1e6}, moved ${moved} bps)`);
   const opts = gasPrice ? { gasPrice } : {};
   const h1 = await wal.writeContract({ address: dep.mockOracle, abi: oracleAbi, functionName: 'setPrice', args: [dep.mockWmon, priceRaw], ...opts });
   await pub.waitForTransactionReceipt({ hash: h1 });
