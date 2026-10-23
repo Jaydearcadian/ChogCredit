@@ -78,7 +78,9 @@ contract SmokeCredit is Script {
         c.wmon.approve(address(vault), 100_000e18);
         vault.depositERC20(address(c.wmon), 100_000e18); // 100,000 mWMON at $0.02 = $2,000; 40% LTV
         ChogCreditPool.AccountData memory d = c.pool.accountData(c.key);
-        require(d.priceOk && d.borrowPower == 800e6, "unexpected borrowing power (a payment must not count until claimed)");
+        require(
+            d.priceOk && d.borrowPower == 800e6, "unexpected borrowing power (a payment must not count until claimed)"
+        );
 
         // the vault also holds mock $CHOG: it is allowed, worth nothing as collateral, and always withdrawable
         c.chogToken.mint(c.me, 1_000_000e18);
