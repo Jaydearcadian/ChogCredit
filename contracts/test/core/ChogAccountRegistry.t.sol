@@ -9,6 +9,13 @@ import {BadNoFunctions, BadWrongSize, BadBool, BadSwitchable} from "../../src/mo
 import {HostileCollection} from "../../src/mocks/HostileMocks.sol";
 
 contract ChogAccountRegistryTest is CoreBase {
+    function mkRegistry(address[] memory c, address[] memory t, address b, address r)
+        external
+        returns (ChogAccountRegistry)
+    {
+        return new ChogAccountRegistry(c, t, b, r);
+    }
+
     function test_createAccount_returnsPredictedVaultAndRecordsInfo() external {
         address predicted = registry.predictVault(address(chog), 1);
         bytes32 key = registry.accountKey(address(chog), 1);
@@ -138,19 +145,25 @@ contract ChogAccountRegistryTest is CoreBase {
         address[] memory one = new address[](1);
         one[0] = address(chog);
         vm.expectRevert(IChogAccountRegistry.EmptyAllowlist.selector);
-        new ChogAccountRegistry(none, none, address(this), address(0));
+        this.mkRegistry(none, none, address(this), address(0));
 
         address[] memory zero = new address[](1);
         vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
-        new ChogAccountRegistry(zero, none, address(this), address(0));
+        this.mkRegistry(zero, none, address(this), address(0));
         vm.expectRevert(IChogAccountRegistry.ZeroAddress.selector);
-        new ChogAccountRegistry(one, zero, address(this), address(0));
+        this.mkRegistry(one, zero, address(this), address(0));
 
         address[] memory dup = new address[](2);
         dup[0] = address(chog);
         dup[1] = address(chog);
         vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.DuplicateEntry.selector, address(chog)));
-        new ChogAccountRegistry(dup, none, address(this), address(0));
+        this.mkRegistry(dup, none, address(this), address(0));
+
+        address[] memory dupTokens = new address[](2);
+        dupTokens[0] = address(usdc);
+        dupTokens[1] = address(usdc);
+        vm.expectRevert(abi.encodeWithSelector(IChogAccountRegistry.DuplicateEntry.selector, address(usdc)));
+        this.mkRegistry(one, dupTokens, address(this), address(0));
     }
 
     function test_noAdminSurface() external view {
@@ -187,6 +200,18 @@ contract ChogAccountRegistryTest is CoreBase {
             )
         );
         registry.createAccount(address(chog), 1);
+    }
+
+    /// @dev The mock module does not implement the position functions; every answer must fail closed.
+    function test_positionPassthroughs_failClosed() external {
+        // no module bound: nothing is accepted, withdrawals have no debt to protect
+        assertEq(registry.positionManager(), address(0));
+        assertFalse(registry.positionAccepted(1));
+        assertTrue(registry.positionWithdrawAllowed(_key(1), 1));
+        registry.bindCreditModule(address(module));
+        assertEq(registry.positionManager(), address(0));
+        assertFalse(registry.positionAccepted(1), "a module that does not answer accepts nothing");
+        assertFalse(registry.positionWithdrawAllowed(_key(1), 1), "a module that does not answer blocks withdrawal");
     }
 
     function test_bindCreditModule_onlyBinder_once_nonZero() external {

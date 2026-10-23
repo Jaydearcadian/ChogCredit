@@ -64,6 +64,10 @@ Likelihood labels are provisional until threat modeling, testing and audit.
 | R-39 | Pool parameters, oracle and collateral list are immutable and there is no pause; a wrong parameter cannot be fixed in place | Medium | Deploy via the factory with reviewed parameters; plan migration; timelocked governance only if a multisig exists |
 | R-40 | Loan-token (USDC) administrator powers (blacklist, pause) could freeze the pool or vaults; collateral tokens that rebase would desynchronise vault accounting | Medium | Disclose; allowlist plain tokens only; monitor |
 | R-41 | Lender bad-debt socialisation with no reserve or withdrawal queue; lenders can only redeem up to pool cash | Medium | Disclosed in lender documentation; caps; reserve/queue design before public liquidity |
+| R-42 | LP valuation manipulated through the pool price | High | Valued at the oracle price only; pool further than the bound from the oracle makes the position unpriceable (fail closed); tested with a real swap on a fork (Gate E2) |
+| R-43 | Unwinding a position at a distorted pool price loses value | Medium | Same 2% bound applies before any unwind; larger gaps refuse the unwind. Residual loss up to the bound |
+| R-44 | Reliance on the third-party Uniswap V3 deployment and tokens inside it | Medium | Only the configured manager and factory-derived pools are accepted; tokens must be vault-allowed and be the loan token or a configured collateral; fee-on-transfer tokens are excluded by the vault's balance-delta checks |
+| R-45 | Test-method blind spot: `vm.expectRevert` + `new` ended tests at the first revert, hiding unchecked constructor validation (Gates C, D, E2) | Medium | FIXED and swept mechanically (Gate E2). Process rule: every revert test needs a non-vacuity or mutation check |
 
 ## 4. Mandatory security invariants
 

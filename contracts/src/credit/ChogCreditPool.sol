@@ -9,6 +9,15 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IChogAccountRegistry, ICreditModule} from "../core/interfaces/IChogAccountRegistry.sol";
 import {AccountVault} from "../core/AccountVault.sol";
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
+import {INonfungiblePositionManager, IUniswapV3Factory, IUniswapV3PoolState} from "./interfaces/IUniswapV3.sol";
+import {LpMath} from "./lib/LpMath.sol";
+import {IPositionHost} from "../core/interfaces/IChogAccountRegistry.sol";
+
+interface IUniswapV3PoolInfo {
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+    function fee() external view returns (uint24);
+}
 
 /// @title ChogCreditPool
 /// @notice Lends an existing ERC-20 (for example USDC) against collateral held in Chog account vaults. It never mints
@@ -26,8 +35,11 @@ import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 ///    attack. There is no reserve/fee: all interest accrues to lenders. Bad debt is written off against lenders.
 ///  - Oracle failure fails CLOSED for borrowing, for withdrawals while indebted, and for liquidation. Repayment,
 ///    supplying, redeeming (cash permitting) and withdrawals by debt-free accounts never need a price.
-///  - Collateral caps per asset across all accounts are NOT implemented (R-27); only pool, borrow and per-account caps.
-contract ChogCreditPool is ICreditModule, ReentrancyGuard {
+///  - Collateral caps per asset across all accounts are NOT implemented (R-27); only pool, borrow and per-account caps,
+///    plus a per-account `maxCounted` per collateral.
+///  - Uniswap V3 positions (optional, docs/LP_COLLATERAL_SPEC.md) are valued at the ORACLE price, never the pool's own
+///    price, and a pool that disagrees with the oracle by more than its bound makes the position unpriceable.
+contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     uint256 public constant RAY = 1e27;
@@ -35,6 +47,8 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
     uint256 public constant YEAR = 365 days;
     uint256 public constant VIRTUAL_SHARES = 1e6;
     uint256 public constant MAX_COLLATERALS = 4;
+    uint256 public constant MAX_LP_POOLS = 2;
+    uint256 internal constant LP_QUOTE_WHOLE_TOKENS = 1e6; // price probe size, for precision
     uint256 public constant MAX_RATE_BPS = 100_000; // 1000% APR ceiling on the sum of the rate parameters
 
     struct PoolConfig {
@@ -66,6 +80,32 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
         uint16 thresholdBps;
         uint16 bonusBps;
         uint256 maxCounted;
+    }
+
+    struct LpPoolConfig {
+        address pool; // the Uniswap V3 pool; must be the factory's pool for its own tokens and fee
+        uint16 ltvBps;
+        uint16 liquidationThresholdBps;
+        uint16 liquidationBonusBps;
+        uint16 maxDeviationBps; // largest allowed gap between the pool price and the oracle price
+        uint256 maxCountedValue; // per-account cap on counted position value (loan-token units)
+    }
+
+    struct LpConfig {
+        address positionManager; // address(0) disables positions
+        LpPoolConfig[] pools;
+    }
+
+    struct LpPool {
+        address pool;
+        address token0;
+        address token1;
+        uint24 fee;
+        uint16 ltvBps;
+        uint16 thresholdBps;
+        uint16 bonusBps;
+        uint16 maxDeviationBps;
+        uint256 maxCountedValue;
     }
 
     struct Valuation {
@@ -100,6 +140,11 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
 
     Collateral[] internal _collaterals;
 
+    /// @inheritdoc IPositionHost
+    address public immutable positionManager;
+    address internal immutable _lpFactory;
+    LpPool[] internal _lpPools;
+
     uint256 public borrowIndex = RAY;
     uint64 public lastAccrual;
     uint256 public totalScaledDebt;
@@ -132,8 +177,9 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
     event Liquidated(bytes32 indexed key, address indexed liquidator, uint256 repaid, uint256 debtAfter);
     event BadDebtWrittenOff(bytes32 indexed key, uint256 amount);
     event Accrued(uint256 borrowIndex, uint256 rateBps);
+    event PositionsUnwound(bytes32 indexed key, uint256 positions, uint256 debtRepaidFromProceeds);
 
-    constructor(address registry_, PoolConfig memory c, CollateralConfig[] memory cols) {
+    constructor(address registry_, PoolConfig memory c, CollateralConfig[] memory cols, LpConfig memory lp) {
         if (registry_ == address(0) || c.loanToken == address(0) || c.oracle == address(0)) revert ZeroAddress();
         if (c.closeFactorBps == 0 || c.closeFactorBps > BPS) revert BadConfig();
         if (c.optimalUtilBps == 0 || c.optimalUtilBps >= BPS) revert BadConfig();
@@ -176,6 +222,56 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
                 Collateral(cc.token, dec, cc.ltvBps, cc.liquidationThresholdBps, cc.liquidationBonusBps, cc.maxCounted)
             );
         }
+
+        positionManager = lp.positionManager;
+        address lpFactory;
+        if (lp.positionManager != address(0)) {
+            lpFactory = INonfungiblePositionManager(lp.positionManager).factory();
+            if (lpFactory == address(0)) revert BadConfig();
+            _initLpPools(registry_, c.loanToken, lp.pools, lpFactory);
+        } else if (lp.pools.length != 0) {
+            revert BadConfig();
+        }
+        _lpFactory = lpFactory;
+    }
+
+    /// @dev Each LP pool must be the factory's genuine pool, hold only tokens the vault accepts, and hold only the loan
+    ///      token or a configured collateral so that an unwound position can always be repaid from or seized.
+    function _initLpPools(address registry_, address loan, LpPoolConfig[] memory pools, address lpFactory) private {
+        if (pools.length == 0 || pools.length > MAX_LP_POOLS) revert BadConfig();
+        for (uint256 i; i < pools.length; ++i) {
+            LpPoolConfig memory p = pools[i];
+            if (p.pool == address(0) || p.ltvBps == 0 || p.ltvBps >= p.liquidationThresholdBps) revert BadConfig();
+            if (p.liquidationThresholdBps > BPS || p.liquidationBonusBps > 2_000) revert BadConfig();
+            if (uint256(p.liquidationThresholdBps) * (BPS + p.liquidationBonusBps) > BPS * BPS) revert BadConfig();
+            if (p.maxCountedValue == 0 || p.maxDeviationBps == 0 || p.maxDeviationBps > 1_000) revert BadConfig();
+            for (uint256 j; j < i; ++j) {
+                if (pools[j].pool == p.pool) revert BadConfig();
+            }
+            address t0 = IUniswapV3PoolInfo(p.pool).token0();
+            address t1 = IUniswapV3PoolInfo(p.pool).token1();
+            uint24 fee = IUniswapV3PoolInfo(p.pool).fee();
+            if (IUniswapV3Factory(lpFactory).getPool(t0, t1, fee) != p.pool) revert BadConfig();
+            if (!_lpTokenUsable(registry_, loan, t0) || !_lpTokenUsable(registry_, loan, t1)) revert BadConfig();
+            _lpPools.push(
+                LpPool(
+                    p.pool,
+                    t0,
+                    t1,
+                    fee,
+                    p.ltvBps,
+                    p.liquidationThresholdBps,
+                    p.liquidationBonusBps,
+                    p.maxDeviationBps,
+                    p.maxCountedValue
+                )
+            );
+        }
+    }
+
+    function _lpTokenUsable(address registry_, address loan, address token) private view returns (bool) {
+        if (!IChogAccountRegistry(registry_).isTokenAllowed(token)) return false;
+        return token == loan || _isCollateral(token);
     }
 
     // ================================================================ views
@@ -225,6 +321,37 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
 
     function debtOf(bytes32 key) public view returns (uint256) {
         return _debtFromScaled(debtScaled[key], _indexNow());
+    }
+
+    function lpPoolCount() external view returns (uint256) {
+        return _lpPools.length;
+    }
+
+    function lpPoolAt(uint256 i) external view returns (LpPool memory) {
+        return _lpPools[i];
+    }
+
+    /// @notice Raw (uncapped) oracle value of one position, for UIs. `ok == false` means it cannot be priced now.
+    function positionValue(uint256 tokenId) external view returns (bool ok, uint256 value) {
+        if (positionManager == address(0)) return (false, 0);
+        (ok,, value) = _positionValue(tokenId);
+    }
+
+    /// @inheritdoc IPositionHost
+    function positionAccepted(uint256 tokenId) external view returns (bool) {
+        if (positionManager == address(0)) return false;
+        (bool ok, PositionData memory p) = _readPosition(tokenId);
+        if (!ok) return false;
+        (bool found,,) = _lpPoolOf(p);
+        return found;
+    }
+
+    /// @inheritdoc IPositionHost
+    function positionWithdrawAllowed(bytes32 key, uint256 tokenId) external view returns (bool) {
+        uint256 scaled = debtScaled[key];
+        if (scaled == 0) return true; // no debt: never needs a price
+        Valuation memory v = _valuationFull(key, address(0), 0, tokenId);
+        return v.ok && _debtFromScaled(scaled, _indexNow()) <= v.borrowPower;
     }
 
     /// @inheritdoc ICreditModule
@@ -347,11 +474,41 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
         _requireLiquidatable(key, debt);
 
         address vault = registry.accountInfo(key).vault;
+        if (positionManager != address(0) && AccountVault(vault).positionCount() != 0) {
+            // Positions are turned into plain tokens first; the loan-token share of the proceeds repays the debt at no
+            // bonus. If that already restores health the call ends here and the liquidator pays nothing.
+            debt = _unwindPositions(key, vault, debt);
+            if (debt == 0) return 0;
+            Valuation memory after_ = _valuation(key, address(0), 0);
+            if (!after_.ok) revert OracleFailure();
+            if (debt <= after_.liquidationValue) return 0;
+        }
         (uint256 actual, uint256[4] memory seize, bool allSeized) =
             _planSeizure(vault, _min(repayAmount, _maxLiquidationRepay(debt)));
         if (actual == 0) revert NothingToSeize();
         _applyLiquidation(key, vault, debt, actual, seize, allSeized);
         return actual;
+    }
+
+    /// @dev Removes all liquidity from the account's positions, then applies the vault's loan-token balance (the
+    ///      loan-token half of the proceeds) to the debt. Returns the debt that remains.
+    function _unwindPositions(bytes32 key, address vault, uint256 debt) internal returns (uint256) {
+        AccountVault v = AccountVault(vault);
+        uint256 n = v.positionCount();
+        for (uint256 i; i < n; ++i) {
+            v.unwindPosition(v.positionAt(i));
+        }
+        uint256 bal = v.accounted(address(loanToken));
+        uint256 take = _min(bal, debt);
+        if (take != 0) {
+            uint256 beforeBal = availableLiquidity();
+            v.seizeCollateral(address(loanToken), take, address(this));
+            uint256 got = availableLiquidity() - beforeBal;
+            if (got != take) revert BalanceDeltaMismatch(take, got);
+            _reduceDebt(key, take, debt);
+        }
+        emit PositionsUnwound(key, n, take);
+        return _debtFromScaled(debtScaled[key], borrowIndex);
     }
 
     function _requireLiquidatable(bytes32 key, uint256 debt) internal view {
@@ -475,6 +632,15 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
     }
 
     function _valuation(bytes32 key, address hypToken, uint256 hypReduce) internal view returns (Valuation memory v) {
+        return _valuationFull(key, hypToken, hypReduce, 0);
+    }
+
+    /// @dev `hypPosition` (a position token id, never 0) is treated as already gone from the vault.
+    function _valuationFull(bytes32 key, address hypToken, uint256 hypReduce, uint256 hypPosition)
+        internal
+        view
+        returns (Valuation memory v)
+    {
         address vault = registry.accountInfo(key).vault;
         v.ok = true;
         for (uint256 i; i < _collaterals.length; ++i) {
@@ -492,6 +658,137 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
             v.collateralValue += val;
             v.borrowPower += (val * c.ltvBps) / BPS;
             v.liquidationValue += (val * c.thresholdBps) / BPS;
+        }
+        if (positionManager == address(0)) return v;
+        if (!_addPositions(vault, hypPosition, v)) return Valuation(false, 0, 0, 0);
+    }
+
+    /// @dev Adds every held position's counted value to `v`. Returns false (fail closed) if any cannot be priced.
+    function _addPositions(address vault, uint256 hypPosition, Valuation memory v) internal view returns (bool) {
+        uint256 n = AccountVault(vault).positionCount();
+        if (n == 0) return true;
+        uint256[2] memory perPool; // MAX_LP_POOLS entries: raw value held in each configured pool
+        for (uint256 i; i < n; ++i) {
+            uint256 id = AccountVault(vault).positionAt(i);
+            if (id == hypPosition) continue;
+            (bool ok, uint256 idx, uint256 val) = _positionValue(id);
+            if (!ok) return false;
+            perPool[idx] += val;
+        }
+        for (uint256 j; j < _lpPools.length; ++j) {
+            if (perPool[j] == 0) continue;
+            LpPool storage lp = _lpPools[j];
+            uint256 counted = _min(perPool[j], lp.maxCountedValue);
+            v.collateralValue += counted;
+            v.borrowPower += (counted * lp.ltvBps) / BPS;
+            v.liquidationValue += (counted * lp.thresholdBps) / BPS;
+        }
+        return true;
+    }
+
+    struct PositionData {
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint128 liquidity;
+    }
+
+    /// @dev Reads a position without a 12-value decode. False if the call fails, the reply is the wrong size or the
+    ///      ticks are out of range.
+    function _readPosition(uint256 tokenId) internal view returns (bool ok, PositionData memory p) {
+        (bool success, bytes memory ret) =
+            positionManager.staticcall(abi.encodeCall(INonfungiblePositionManager.positions, (tokenId)));
+        if (!success || ret.length != 12 * 32) return (false, p);
+        uint256 w0;
+        uint256 w1;
+        uint256 fee;
+        int256 tl;
+        int256 tu;
+        uint256 liq;
+        assembly ("memory-safe") {
+            w0 := mload(add(ret, 0x60)) // word 2: token0
+            w1 := mload(add(ret, 0x80)) // word 3: token1
+            fee := mload(add(ret, 0xa0)) // word 4
+            tl := mload(add(ret, 0xc0)) // word 5
+            tu := mload(add(ret, 0xe0)) // word 6
+            liq := mload(add(ret, 0x100)) // word 7
+        }
+        if (w0 > type(uint160).max || w1 > type(uint160).max || fee > type(uint24).max) return (false, p);
+        if (liq > type(uint128).max) return (false, p);
+        int256 maxTick = int256(LpMath.MAX_TICK);
+        if (tl < -maxTick || tu > maxTick || tl >= tu) return (false, p);
+        p = PositionData(address(uint160(w0)), address(uint160(w1)), uint24(fee), int24(tl), int24(tu), uint128(liq));
+        ok = true;
+    }
+
+    /// @dev Index of the configured pool a position belongs to; `found == false` if it is not in a whitelisted pool.
+    function _lpPoolOf(PositionData memory p) internal view returns (bool found, uint256 idx, address poolAddr) {
+        try IUniswapV3Factory(_lpFactory).getPool(p.token0, p.token1, p.fee) returns (address a) {
+            poolAddr = a;
+        } catch {
+            return (false, 0, address(0));
+        }
+        if (poolAddr == address(0)) return (false, 0, address(0));
+        for (uint256 i; i < _lpPools.length; ++i) {
+            if (_lpPools[i].pool == poolAddr) return (true, i, poolAddr);
+        }
+    }
+
+    /// @dev Value of one position at the ORACLE price, or ok == false if anything about it cannot be trusted.
+    function _positionValue(uint256 tokenId) internal view returns (bool ok, uint256 idx, uint256 value) {
+        PositionData memory p;
+        (ok, p) = _readPosition(tokenId);
+        if (!ok) return (false, 0, 0);
+        address poolAddr;
+        (ok, idx, poolAddr) = _lpPoolOf(p);
+        if (!ok) return (false, 0, 0);
+        if (p.liquidity == 0) return (true, idx, 0); // nothing to price
+        uint160 sqrtOracle;
+        (ok, sqrtOracle) = _oracleSqrtPrice(p.token0, p.token1);
+        if (!ok) return (false, 0, 0);
+        if (!_poolPriceAgrees(poolAddr, sqrtOracle, _lpPools[idx].maxDeviationBps)) return (false, 0, 0);
+        (uint256 a0, uint256 a1) = LpMath.amountsForLiquidity(
+            sqrtOracle, LpMath.sqrtRatioAtTick(p.tickLower), LpMath.sqrtRatioAtTick(p.tickUpper), p.liquidity
+        );
+        uint256 v0;
+        uint256 v1;
+        if (a0 != 0) {
+            (ok, v0) = _tryQuote(p.token0, a0);
+            if (!ok) return (false, 0, 0);
+        }
+        if (a1 != 0) {
+            (ok, v1) = _tryQuote(p.token1, a1);
+            if (!ok) return (false, 0, 0);
+        }
+        return (true, idx, v0 + v1);
+    }
+
+    /// @dev Price of token0 in token1 (as a Q64.96 square root) implied by the oracle, probed with a large quantity so
+    ///      the integer loan-token values keep enough digits.
+    function _oracleSqrtPrice(address t0, address t1) internal view returns (bool ok, uint160 sqrtP) {
+        uint256 s0 = 10 ** IERC20Metadata(t0).decimals() * LP_QUOTE_WHOLE_TOKENS;
+        uint256 s1 = 10 ** IERC20Metadata(t1).decimals() * LP_QUOTE_WHOLE_TOKENS;
+        uint256 v0;
+        uint256 v1;
+        (ok, v0) = _tryQuote(t0, s0);
+        if (!ok) return (false, 0);
+        (ok, v1) = _tryQuote(t1, s1);
+        if (!ok) return (false, 0);
+        return LpMath.trySqrtPriceFromValues(v0, s0, v1, s1);
+    }
+
+    function _poolPriceAgrees(address poolAddr, uint160 sqrtOracle, uint16 maxBps) internal view returns (bool) {
+        try IUniswapV3PoolState(poolAddr).slot0() returns (
+            uint160 sqrtPool, int24, uint16, uint16, uint16, uint8, bool
+        ) {
+            if (sqrtPool < LpMath.MIN_SQRT_RATIO) {
+                return false;
+            }
+            return LpMath.deviationBps(sqrtOracle, sqrtPool) <= maxBps;
+        } catch {
+            return false;
         }
     }
 

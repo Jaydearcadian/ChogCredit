@@ -7,6 +7,7 @@ import {
     IChogAccountRegistry,
     IChogCreditEscrow,
     ICreditModule,
+    IPositionHost,
     ReleaseBlocker,
     AccountInfo
 } from "./interfaces/IChogAccountRegistry.sol";
@@ -105,6 +106,28 @@ contract ChogAccountRegistry is IChogAccountRegistry {
         (bool ok, uint256 allowed) =
             _readWord(module, abi.encodeCall(ICreditModule.withdrawAllowed, (key, token, amount)));
         return ok && allowed == 1; // anything but an explicit yes is a no
+    }
+
+    function positionManager() external view returns (address) {
+        address module = creditModule;
+        if (module == address(0)) return address(0);
+        (bool ok, uint256 word) = _readWord(module, abi.encodeCall(IPositionHost.positionManager, ()));
+        return ok && word <= type(uint160).max ? address(uint160(word)) : address(0);
+    }
+
+    function positionAccepted(uint256 tokenId) external view returns (bool) {
+        address module = creditModule;
+        if (module == address(0)) return false;
+        (bool ok, uint256 word) = _readWord(module, abi.encodeCall(IPositionHost.positionAccepted, (tokenId)));
+        return ok && word == 1;
+    }
+
+    function positionWithdrawAllowed(bytes32 key, uint256 tokenId) external view returns (bool) {
+        address module = creditModule;
+        if (module == address(0)) return true;
+        (bool ok, uint256 word) =
+            _readWord(module, abi.encodeCall(IPositionHost.positionWithdrawAllowed, (key, tokenId)));
+        return ok && word == 1; // anything but an explicit yes is a no
     }
 
     function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker) {

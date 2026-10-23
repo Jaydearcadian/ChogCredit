@@ -1,6 +1,6 @@
 # Uniswap V3 LP Positions as Collateral: Specification (draft v0.1)
 
-Status: **design only, nothing implemented.** Scope is one position type and one pool. Decisions in section 10 are settled.
+Status: **implemented in source (Gate E2, `docs/evidence/GATE_E2.md`); not deployed, not audited.** Differences from this draft: liquidation unwinds ALL positions first and applies the loan-token proceeds to the debt with no bonus before any token seizure; positions arrive by `transferFrom` and safe transfers are refused; the factory adds the loan token to the vault allowlist when LP is configured; the deploy script uses LTV 2,800 bps because its WMON LTV is 4,000 bps. Scope is one position type and one pool. Decisions in section 10 are settled.
 
 ## 1. What and why
 

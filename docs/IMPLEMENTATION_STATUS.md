@@ -139,7 +139,8 @@ This is not final collection approval. Verify from an official Chog source or ex
 | Real oracle path | **Fork-tested only:** Chainlink + RedStone feeds on Monad via `ChainlinkPairOracle`; feed heartbeats and deviation thresholds NOT verified; default deployments use a mock oracle | `docs/evidence/GATE_D.md` |
 | Credit-module binder | **Closed:** `ChogCreditFactory` binds the pool in its constructor | `docs/evidence/GATE_D.md` |
 | Debt-bearing package sales | **Done in source (Gate E1):** buyer-signed bounds on debt, collateral value and health, optional atomic payoff; 29 new tests, fork test with real holders, 21/21 mutants caught. Not deployed, not audited, legal review pending | `docs/evidence/GATE_E1.md` |
-| LP-position collateral, second-market adapter | **Not built** (LP has a draft spec) | `docs/LP_COLLATERAL_SPEC.md` |
+| LP-position collateral | **Done in source (Gate E2):** oracle-priced Uniswap V3 positions, vault custody, unwind-first liquidation; maths matches the real position manager to the wei on a fork; real end-to-end liquidation on a fork; invariants and mutation checks. Not deployed, not audited | `docs/evidence/GATE_E2.md` |
+| Second-market adapter | **Not built** (deferred by the project owner until after the rest) | n/a |
 | Position valuation/recovery | Not implemented | Adapter spec, tests and recovery evidence |
 | Pool/lender accounting | Prototype-level | Invariant report and accounting reconciliation |
 | Testnet deployment | Not performed/verified | Chain ID, deploy tx hashes, addresses, explorer links and code verification |

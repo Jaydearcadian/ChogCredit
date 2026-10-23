@@ -5,10 +5,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IChogAccountRegistry, AccountInfo} from "./interfaces/IChogAccountRegistry.sol";
+import {INonfungiblePositionManager} from "../credit/interfaces/IUniswapV3.sol";
 
 /// @title AccountVault
-/// @notice Custody for one Chog account. EIP-1167 clone created by the registry. Holds allowlisted ERC-20s only.
-///         There is no generic `call(target, data)`: the only external effects are token transfers.
+/// @notice Custody for one Chog account. EIP-1167 clone created by the registry. Holds allowlisted ERC-20s and, when the
+///         credit module supports them, at most `MAX_POSITIONS` Uniswap V3 position NFTs. There is no generic
+///         `call(target, data)`: the only external effects are token transfers and the fixed position-manager calls
+///         below (docs/LP_COLLATERAL_SPEC.md).
 /// @dev GATE C. Balances are tracked per token (`accounted`), not read from `balanceOf`, so an unsolicited transfer
 ///      cannot make the account look non-empty and block release of the Chog. Control, "may this account hold
 ///      assets" and debt all come from the registry. Withdrawals ask the credit module whether the account
@@ -22,6 +25,12 @@ contract AccountVault is ReentrancyGuard {
     mapping(address => uint256) public accounted;
     uint256 public nonEmptyTokens;
 
+    uint256 public constant MAX_POSITIONS = 2;
+    /// @notice The position manager of the NFTs held here; fixed by the first deposit.
+    address public positionManager;
+    uint256[] private _positions;
+    mapping(uint256 => bool) public holdsPosition;
+
     error AlreadyInitialized();
     error OnlyRegistry();
     error NotController();
@@ -34,10 +43,21 @@ contract AccountVault is ReentrancyGuard {
     error OnlyCreditModule();
     error ExceedsAccounted(uint256 requested, uint256 accounted);
     error NothingToSweep();
+    error PositionsNotSupported();
+    error PositionNotAccepted(uint256 tokenId);
+    error TooManyPositions();
+    error PositionNotHeld(uint256 tokenId);
+    error PositionNotReceived(uint256 tokenId);
+    error WrongPositionManager(address expected, address got);
+    error SafeTransferRejected();
 
     event Deposited(address indexed token, address indexed from, uint256 amount, uint256 stateNonce);
     event Withdrawn(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
     event Seized(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
+    event PositionDeposited(uint256 indexed tokenId, uint256 stateNonce);
+    event PositionWithdrawn(uint256 indexed tokenId, address indexed to, uint256 stateNonce);
+    event PositionUnwound(uint256 indexed tokenId, uint256 amount0, uint256 amount1, uint256 stateNonce);
+    event FeesCollected(uint256 indexed tokenId, address indexed to, uint256 amount0, uint256 amount1);
 
     constructor() {
         // Lock the implementation so nobody can initialise it and treat it as an account.
@@ -84,9 +104,9 @@ contract AccountVault is ReentrancyGuard {
         emit Deposited(token, msg.sender, amount, stateNonce);
     }
 
-    /// @notice True when no accounted token balance remains. Unsolicited transfers do not count.
+    /// @notice True when no accounted token balance and no position remains. Unsolicited transfers do not count.
     function isEmpty() external view returns (bool) {
-        return nonEmptyTokens == 0;
+        return nonEmptyTokens == 0 && _positions.length == 0;
     }
 
     /// @notice Send accounted tokens to `to`, unless the credit module says the account would end up over its
@@ -136,5 +156,129 @@ contract AccountVault is ReentrancyGuard {
             ++stateNonce;
         }
         IERC20(token).safeTransfer(to, bal - have);
+    }
+
+    // ---------------------------------------------------------------- Uniswap V3 positions
+
+    function positionCount() external view returns (uint256) {
+        return _positions.length;
+    }
+
+    function positionAt(uint256 i) external view returns (uint256) {
+        return _positions[i];
+    }
+
+    /// @notice Take custody of a position NFT from the controller. The credit module decides whether it is acceptable
+    ///         (right manager, whitelisted pool); the vault owns it afterwards, so only vault code can act on it.
+    function depositPosition(uint256 tokenId) external nonReentrant onlyController {
+        if (!registry.canAcceptAssets(key)) revert AssetsNotAccepted();
+        address pm = registry.positionManager();
+        if (pm == address(0)) revert PositionsNotSupported();
+        if (positionManager != address(0) && positionManager != pm) revert WrongPositionManager(positionManager, pm);
+        if (_positions.length >= MAX_POSITIONS) revert TooManyPositions();
+        if (!registry.positionAccepted(tokenId)) revert PositionNotAccepted(tokenId);
+
+        positionManager = pm;
+        _positions.push(tokenId);
+        holdsPosition[tokenId] = true;
+        unchecked {
+            ++stateNonce;
+        }
+        // transferFrom, not safeTransferFrom: no receiver callback is ever run. The manager checks that the vault is
+        // approved by the current owner, and `from` is the controller, so nobody else's position can be pulled in.
+        INonfungiblePositionManager(pm).transferFrom(msg.sender, address(this), tokenId);
+        if (INonfungiblePositionManager(pm).ownerOf(tokenId) != address(this)) revert PositionNotReceived(tokenId);
+        emit PositionDeposited(tokenId, stateNonce);
+    }
+
+    /// @notice Send a held position to `to`, unless the account would end up over its borrowing limit without it.
+    function withdrawPosition(uint256 tokenId, address to) external nonReentrant onlyController {
+        if (to == address(0)) revert ZeroAddress();
+        if (!holdsPosition[tokenId]) revert PositionNotHeld(tokenId);
+        if (!registry.positionWithdrawAllowed(key, tokenId)) revert WithdrawalBlocked();
+        _removePosition(tokenId);
+        unchecked {
+            ++stateNonce;
+        }
+        INonfungiblePositionManager(positionManager).transferFrom(address(this), to, tokenId);
+        emit PositionWithdrawn(tokenId, to, stateNonce);
+    }
+
+    /// @notice Collect a position's earned fees to `to`. Uncollected fees never count as collateral, so this cannot
+    ///         weaken the account. The only other thing `collect` could pay out is liquidity removed by the credit
+    ///         module, which collects it in the same transaction.
+    function collectFees(uint256 tokenId, address to) external nonReentrant onlyController {
+        if (to == address(0)) revert ZeroAddress();
+        if (!holdsPosition[tokenId]) revert PositionNotHeld(tokenId);
+        (uint256 a0, uint256 a1) = INonfungiblePositionManager(positionManager)
+            .collect(
+                INonfungiblePositionManager.CollectParams({
+                    tokenId: tokenId, recipient: to, amount0Max: type(uint128).max, amount1Max: type(uint128).max
+                })
+            );
+        emit FeesCollected(tokenId, to, a0, a1);
+    }
+
+    /// @notice Liquidation path: the credit module removes all liquidity from a position and the proceeds (and any
+    ///         fees) become accounted balances of this vault. Only tokens the registry allows may arrive.
+    function unwindPosition(uint256 tokenId)
+        external
+        nonReentrant
+        returns (address token0, address token1, uint256 amount0, uint256 amount1)
+    {
+        if (msg.sender != registry.creditModule()) revert OnlyCreditModule();
+        if (!holdsPosition[tokenId]) revert PositionNotHeld(tokenId);
+        INonfungiblePositionManager pm = INonfungiblePositionManager(positionManager);
+        uint128 liquidity;
+        (,, token0, token1,,,, liquidity,,,,) = pm.positions(tokenId);
+        if (!registry.isTokenAllowed(token0)) revert TokenNotAllowed(token0);
+        if (!registry.isTokenAllowed(token1)) revert TokenNotAllowed(token1);
+
+        uint256 before0 = IERC20(token0).balanceOf(address(this));
+        uint256 before1 = IERC20(token1).balanceOf(address(this));
+        if (liquidity != 0) {
+            pm.decreaseLiquidity(
+                INonfungiblePositionManager.DecreaseLiquidityParams({
+                    tokenId: tokenId, liquidity: liquidity, amount0Min: 0, amount1Min: 0, deadline: block.timestamp
+                })
+            );
+        }
+        pm.collect(
+            INonfungiblePositionManager.CollectParams({
+                tokenId: tokenId, recipient: address(this), amount0Max: type(uint128).max, amount1Max: type(uint128).max
+            })
+        );
+        amount0 = IERC20(token0).balanceOf(address(this)) - before0;
+        amount1 = IERC20(token1).balanceOf(address(this)) - before1;
+        _credit(token0, amount0);
+        _credit(token1, amount1);
+        unchecked {
+            ++stateNonce;
+        }
+        emit PositionUnwound(tokenId, amount0, amount1, stateNonce);
+    }
+
+    function _credit(address token, uint256 amount) private {
+        if (amount == 0) return;
+        if (accounted[token] == 0) ++nonEmptyTokens;
+        accounted[token] += amount;
+    }
+
+    function _removePosition(uint256 tokenId) private {
+        uint256 n = _positions.length;
+        for (uint256 i; i < n; ++i) {
+            if (_positions[i] == tokenId) {
+                _positions[i] = _positions[n - 1];
+                _positions.pop();
+                break;
+            }
+        }
+        holdsPosition[tokenId] = false;
+    }
+
+    /// @dev Positions are only ever received through `depositPosition` (which uses transferFrom). A safe transfer to
+    ///      this address is refused, so a position cannot be pushed in unaccounted.
+    function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
+        revert SafeTransferRejected();
     }
 }

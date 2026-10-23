@@ -8,6 +8,10 @@ import {MockAggregator} from "../../src/mocks/MockOracles.sol";
 import {TestToken} from "../../src/mocks/TestToken.sol";
 
 contract ChainlinkPairOracleTest is Test {
+    function mkOracle(address loan, ChainlinkPairOracle.FeedConfig[] memory c) external returns (ChainlinkPairOracle) {
+        return new ChainlinkPairOracle(loan, c);
+    }
+
     TestToken internal usdc; // loan token, 6 decimals
     TestToken internal wmon; // 18 decimals
     TestToken internal wbtc; // 8 decimals
@@ -157,31 +161,40 @@ contract ChainlinkPairOracleTest is Test {
         ChainlinkPairOracle.FeedConfig[] memory c = new ChainlinkPairOracle.FeedConfig[](1);
         c[0] = _cfg(address(wmon), address(monA), address(0), MAX_AGE, 0);
         vm.expectRevert(ChainlinkPairOracle.BadConfig.selector); // no feed for the loan token
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
 
         c = new ChainlinkPairOracle.FeedConfig[](2);
         c[0] = _cfg(address(usdc), address(usdcA), address(0), USDC_AGE, 0);
         c[1] = _cfg(address(usdc), address(usdcA), address(0), USDC_AGE, 0); // duplicate
         vm.expectRevert(ChainlinkPairOracle.BadConfig.selector);
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
 
         c[1] = _cfg(address(wmon), address(monA), address(0), 0, 0); // zero max age
         vm.expectRevert(ChainlinkPairOracle.BadConfig.selector);
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
         c[1] = _cfg(address(wmon), address(monA), address(monB), MAX_AGE, 0); // secondary without a bound
         vm.expectRevert(ChainlinkPairOracle.BadConfig.selector);
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
         c[1] = _cfg(address(wmon), address(monA), address(monB), MAX_AGE, 2_001); // bound too loose
         vm.expectRevert(ChainlinkPairOracle.BadConfig.selector);
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
         c[1] = _cfg(address(wmon), address(0), address(0), MAX_AGE, 0);
         vm.expectRevert(ChainlinkPairOracle.ZeroAddress.selector);
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
+
+        c[1] = _cfg(address(wmon), address(monA), address(0), MAX_AGE, 0);
+        vm.expectRevert(ChainlinkPairOracle.ZeroAddress.selector); // zero loan token
+        this.mkOracle(address(0), c);
+
+        TestToken huge = new TestToken("Huge", "HUGE", 37);
+        c[1] = _cfg(address(huge), address(monA), address(0), MAX_AGE, 0);
+        vm.expectRevert(ChainlinkPairOracle.BadConfig.selector); // token with more than 36 decimals
+        this.mkOracle(address(usdc), c);
 
         MockAggregator weird = new MockAggregator(19, 1);
         c[1] = _cfg(address(wmon), address(weird), address(0), MAX_AGE, 0); // > 18 decimals
         vm.expectRevert(ChainlinkPairOracle.BadConfig.selector);
-        new ChainlinkPairOracle(address(usdc), c);
+        this.mkOracle(address(usdc), c);
     }
 
     function test_noSettersExist() external {

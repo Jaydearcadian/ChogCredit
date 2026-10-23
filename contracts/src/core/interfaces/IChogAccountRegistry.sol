@@ -28,6 +28,16 @@ interface ICreditModule {
     function withdrawAllowed(bytes32 key, address token, uint256 amount) external view returns (bool);
 }
 
+/// @notice Optional LP-position support offered by the credit module (docs/LP_COLLATERAL_SPEC.md).
+interface IPositionHost {
+    /// @notice The only position manager whose NFTs vaults may hold; zero if positions are not supported.
+    function positionManager() external view returns (address);
+    /// @notice Whether the module is willing to treat this position as collateral (right manager, whitelisted pool).
+    function positionAccepted(uint256 tokenId) external view returns (bool);
+    /// @notice Whether the account stays within its borrowing limit after this position leaves the vault.
+    function positionWithdrawAllowed(bytes32 key, uint256 tokenId) external view returns (bool);
+}
+
 interface IChogCreditEscrow {
     function beneficialOwnerOf(bytes32 key) external view returns (address);
     function isEscrowed(bytes32 key) external view returns (bool);
@@ -76,6 +86,12 @@ interface IChogAccountRegistry {
     function debtOf(bytes32 key) external view returns (uint256);
     /// @notice Fails closed: false if a module is bound and refuses or fails; true if none is bound.
     function withdrawAllowed(bytes32 key, address token, uint256 amount) external view returns (bool);
+    /// @notice The credit module's position manager, or zero if none is bound, unsupported, or the module fails.
+    function positionManager() external view returns (address);
+    /// @notice Fails closed: false unless a bound module explicitly accepts the position.
+    function positionAccepted(uint256 tokenId) external view returns (bool);
+    /// @notice Fails closed like `withdrawAllowed`; true if no module is bound.
+    function positionWithdrawAllowed(bytes32 key, uint256 tokenId) external view returns (bool);
     function releaseBlocker(bytes32 key) external view returns (ReleaseBlocker);
     /// @notice Like `releaseBlocker` but ignores held assets: only debt, pending operations and module failure.
     function liabilityBlocker(bytes32 key) external view returns (ReleaseBlocker);

@@ -16,15 +16,15 @@ import {TestToken} from "../../src/mocks/TestToken.sol";
 ///      BTC ltv 70%, threshold 80%, bonus 5%; close factor 50%; dust 10 USDC; rates 2% + 4% to 80% util + 60% beyond.
 abstract contract CreditBase is Test {
     MockChogGenesis internal chog;
-    MockUSDC internal usdc;
-    TestToken internal wmon;
+    MockUSDC public usdc;
+    TestToken public wmon;
     TestToken internal btc;
-    MockOracle internal oracle;
+    MockOracle public oracle;
 
     ChogCreditFactory internal factory;
     ChogAccountRegistry internal registry;
     ChogCreditEscrow internal escrow;
-    ChogCreditPool internal pool;
+    ChogCreditPool public pool;
 
     address internal alice = address(0xA11CE);
     address internal bob = address(0xB0B);
@@ -66,6 +66,13 @@ abstract contract CreditBase is Test {
         });
     }
 
+    function _noLp() internal pure returns (ChogCreditPool.LpConfig memory lp) {}
+
+    /// @dev Override to enable Uniswap V3 positions; the default is none.
+    function _lpConfig() internal virtual returns (ChogCreditPool.LpConfig memory) {
+        return _noLp();
+    }
+
     function _collaterals(bool withBtc) internal view returns (ChogCreditPool.CollateralConfig[] memory cols) {
         cols = new ChogCreditPool.CollateralConfig[](withBtc ? 2 : 1);
         cols[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 500, type(uint256).max);
@@ -81,7 +88,8 @@ abstract contract CreditBase is Test {
                 extraTokens: new address[](0),
                 rescuer: address(0),
                 pool: pc,
-                collaterals: cols
+                collaterals: cols,
+                lp: _lpConfig()
             })
         );
         registry = factory.registry();

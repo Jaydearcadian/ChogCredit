@@ -10,8 +10,18 @@ import {ChogCreditFactory} from "../../src/credit/ChogCreditFactory.sol";
 import {IChogAccountRegistry, ReleaseBlocker} from "../../src/core/interfaces/IChogAccountRegistry.sol";
 import {ChogCreditEscrow} from "../../src/core/ChogCreditEscrow.sol";
 import {FeeOnTransferToken} from "../../src/mocks/HostileMocks.sol";
+import {TestToken} from "../../src/mocks/TestToken.sol";
 
 contract ChogCreditPoolTest is CreditBase {
+    function mkPool(
+        address r,
+        ChogCreditPool.PoolConfig memory c,
+        ChogCreditPool.CollateralConfig[] memory cols,
+        ChogCreditPool.LpConfig memory lp
+    ) external returns (ChogCreditPool) {
+        return new ChogCreditPool(r, c, cols, lp);
+    }
+
     // ======================================================================== wiring
     function test_factoryBindsPoolOnce_andHasNoOtherPower() external {
         assertEq(registry.creditModule(), address(pool));
@@ -30,6 +40,19 @@ contract ChogCreditPoolTest is CreditBase {
         assertFalse(registry.isTokenAllowed(address(btc)));
     }
 
+    function test_constructor_rejectsTokensWithTooManyDecimals() external {
+        TestToken huge = new TestToken("Huge", "HUGE", 37);
+        address[] memory cols = new address[](1);
+        cols[0] = address(chog);
+        address[] memory toks = new address[](1);
+        toks[0] = address(huge);
+        ChogAccountRegistry r2 = new ChogAccountRegistry(cols, toks, address(this), address(0));
+        ChogCreditPool.CollateralConfig[] memory cc = new ChogCreditPool.CollateralConfig[](1);
+        cc[0] = ChogCreditPool.CollateralConfig(address(huge), 5_000, 7_500, 500, type(uint256).max);
+        vm.expectRevert(ChogCreditPool.BadConfig.selector);
+        this.mkPool(address(r2), _poolConfig(), cc, _noLp());
+    }
+
     function test_constructorValidation() external {
         ChogCreditPool.PoolConfig memory c = _poolConfig();
         ChogCreditPool.CollateralConfig[] memory cols = _collaterals(false);
@@ -38,41 +61,41 @@ contract ChogCreditPoolTest is CreditBase {
         ChogCreditPool.PoolConfig memory bad = _poolConfig();
         bad.closeFactorBps = 0;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         bad = _poolConfig();
         bad.closeFactorBps = 10_001;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         bad = _poolConfig();
         bad.optimalUtilBps = 0;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         bad = _poolConfig();
         bad.optimalUtilBps = 10_000;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         bad = _poolConfig();
         bad.slope2Bps = 60_000;
         bad.slope1Bps = 40_000;
         bad.baseRateBps = 1;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         bad = _poolConfig();
         bad.supplyCap = 0;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         bad = _poolConfig();
         bad.oracle = address(0);
         vm.expectRevert(ChogCreditPool.ZeroAddress.selector);
-        new ChogCreditPool(r, bad, cols);
+        this.mkPool(r, bad, cols, _noLp());
         vm.expectRevert(ChogCreditPool.ZeroAddress.selector);
-        new ChogCreditPool(address(0), c, cols);
+        this.mkPool(address(0), c, cols, _noLp());
 
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, new ChogCreditPool.CollateralConfig[](0));
+        this.mkPool(r, c, new ChogCreditPool.CollateralConfig[](0), _noLp());
         ChogCreditPool.CollateralConfig[] memory five = new ChogCreditPool.CollateralConfig[](5);
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, five);
+        this.mkPool(r, c, five, _noLp());
     }
 
     function test_constructorValidation_collateral() external {
@@ -82,28 +105,28 @@ contract ChogCreditPoolTest is CreditBase {
 
         one[0] = ChogCreditPool.CollateralConfig(address(wmon), 7_500, 7_500, 500, type(uint256).max); // ltv == threshold
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, one);
+        this.mkPool(r, c, one, _noLp());
         one[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 9_600, 500, type(uint256).max); // threshold * (1+bonus) > 100%
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, one);
+        this.mkPool(r, c, one, _noLp());
         one[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 2_001, type(uint256).max); // bonus too large
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, one);
+        this.mkPool(r, c, one, _noLp());
         one[0] = ChogCreditPool.CollateralConfig(address(wmon), 0, 7_500, 500, type(uint256).max); // zero ltv
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, one);
+        this.mkPool(r, c, one, _noLp());
         one[0] = ChogCreditPool.CollateralConfig(address(usdc), 5_000, 7_500, 500, type(uint256).max); // loan token as collateral
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, one);
+        this.mkPool(r, c, one, _noLp());
         one[0] = ChogCreditPool.CollateralConfig(address(btc), 5_000, 7_500, 500, type(uint256).max); // vault would reject it
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, one);
+        this.mkPool(r, c, one, _noLp());
 
         ChogCreditPool.CollateralConfig[] memory dup = new ChogCreditPool.CollateralConfig[](2);
         dup[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 500, type(uint256).max);
         dup[1] = dup[0];
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(r, c, dup);
+        this.mkPool(r, c, dup, _noLp());
     }
 
     // ======================================================================== lenders
@@ -266,7 +289,7 @@ contract ChogCreditPoolTest is CreditBase {
         ChogCreditPool.CollateralConfig[] memory cols = _collaterals(false);
         cols[0].maxCounted = 0;
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
-        new ChogCreditPool(address(registry), _poolConfig(), cols);
+        this.mkPool(address(registry), _poolConfig(), cols, _noLp());
     }
 
     function test_borrow_authorization() external {
