@@ -1,0 +1,22 @@
+/* Tokens from docs/brand/DESIGN.md. Change them there first. */
+:root {
+  --ink-950: #0e0b1a; --ink-900: #141026; --ink-850: #181330; --ink-800: #211a40; --ink-700: #2d2556;
+  --cream-50: #faf9fc;
+  --text: var(--cream-50); --text-muted: #d2cceA;
+  --purple-500: #836ef9; --purple-300: #b7aaff; --purple-btn: #6b52f0;
+  --pink-500: #e845a4; --testnet: #f9c230;
+  --safe: #72e4bc; --watch: #f9c230; --risk: #ea7c31; --danger: #c83846; --paused: #9a93c9;
+  --safe-tint: #22343c; --watch-tint: #3e2f1f; --risk-tint: #3e262d; --danger-tint: #3e1f32; --paused-tint: #211a40;
+
+  --font-display: 'Baloo 2', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-num: 'JetBrains Mono', ui-monospace, monospace;
+  --font-hand: 'Gaegu', cursive;
+
+  --r-chip: 12px; --r-field: 14px; --r-button: 16px; --r-card: 20px; --r-account: 24px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 150ms; --t-base: 300ms; --t-slow: 500ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t-base: 0ms; --t-slow: 0ms; }
+}
