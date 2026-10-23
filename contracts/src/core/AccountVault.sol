@@ -43,6 +43,7 @@ contract AccountVault is ReentrancyGuard {
     error OnlyCreditModule();
     error ExceedsAccounted(uint256 requested, uint256 accounted);
     error NothingToSweep();
+    error NothingToClaim();
     error PositionsNotSupported();
     error PositionNotAccepted(uint256 tokenId);
     error TooManyPositions();
@@ -53,6 +54,7 @@ contract AccountVault is ReentrancyGuard {
 
     event Deposited(address indexed token, address indexed from, uint256 amount, uint256 stateNonce);
     event Withdrawn(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
+    event Received(address indexed token, uint256 amount, uint256 stateNonce);
     event Seized(address indexed token, address indexed to, uint256 amount, uint256 stateNonce);
     event PositionDeposited(uint256 indexed tokenId, uint256 stateNonce);
     event PositionWithdrawn(uint256 indexed tokenId, address indexed to, uint256 stateNonce);
@@ -102,6 +104,28 @@ contract AccountVault is ReentrancyGuard {
             ++stateNonce;
         }
         emit Deposited(token, msg.sender, amount, stateNonce);
+    }
+
+    /// @notice Count tokens that arrived by plain transfer (a payment to this vault) as part of the account.
+    ///         Controller only, so a stranger can send but cannot change what counts, or void a signed sale by
+    ///         crediting dust. Same gates as `depositERC20`: the Chog must be escrowed and the token allowlisted.
+    ///         Credits the whole unaccounted balance, and bumps the nonce like any other change to the contents.
+    /// @return amount What was added to `accounted[token]`.
+    function claimReceived(address token) external nonReentrant onlyController returns (uint256 amount) {
+        if (!registry.canAcceptAssets(key)) revert AssetsNotAccepted();
+        if (!registry.isTokenAllowed(token)) revert TokenNotAllowed(token);
+
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        uint256 have = accounted[token];
+        if (bal <= have) revert NothingToClaim(); // also covers a balance that shrank (negative rebase)
+        amount = bal - have;
+
+        if (have == 0) ++nonEmptyTokens;
+        accounted[token] = bal;
+        unchecked {
+            ++stateNonce;
+        }
+        emit Received(token, amount, stateNonce);
     }
 
     /// @notice True when no accounted token balance and no position remains. Unsolicited transfers do not count.

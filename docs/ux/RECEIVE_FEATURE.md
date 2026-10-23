@@ -1,6 +1,6 @@
 # Receive: how paying a Chog would work
 
-Status: design only. Nothing here is built. It needs one small contract change and one test before anyone is told it works.
+Status: the contract function `claimReceived` is built and tested (see below). The app screen, payment link and a local-chain run are not built yet.
 
 ## The idea
 
@@ -16,7 +16,7 @@ Read from `AccountVault.sol`:
 
 So the idea works for the money arriving, but not for it counting. That needs the change below.
 
-## The change
+## The change (built)
 
 One new controller-only function, say `claimReceived(token)`:
 
@@ -64,3 +64,11 @@ Per-account collateral caps (`maxCounted`) still apply, so a large payment above
 2. Anvil test: transfer USDC to the predicted vault address, open the vault, claim it.
 3. Add one Receive screen to the wireframes.
 4. Legal check on the payments angle (see the research note).
+
+## Built so far
+
+`AccountVault.claimReceived(token)` is in, with 11 new tests (9 vault, 2 sale) and 7 hand-made mutants all caught: controller-only, escrow and allowlist gates, nonce bump, no double count, a payment sent before the vault exists, a fee-on-transfer token credited at what actually arrived, a fuzz that accounting never exceeds the balance, a claim voids a signed sale, and a stranger's unclaimed dust does not. Full suite: 281 passed, 0 failed (fork tests skipped without an RPC). Not done: the Anvil run of the whole path, slither on the change, and the Receive screen.
+
+## Which tokens can be received
+
+Only tokens on the registry allowlist, which is set when the registry is deployed and has no setter. Native MON cannot be sent at all (no `receive()`), only WMON. See the chat answer recorded in `docs/ux/TOKEN_SUPPORT.md`.

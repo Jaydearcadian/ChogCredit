@@ -599,6 +599,29 @@ contract AccountTransferCoordinatorTest is CoreBase {
         coord.executeSale(a, sig);
     }
 
+    function test_claimReceivedVoidsAcceptance() external {
+        AccountTransferCoordinator.Acceptance memory a = _acc(100e6, 1);
+        bytes memory sig = _sign(a, buyerPk);
+        deal(address(usdc), address(vault), usdc.balanceOf(address(vault)) + 7e6); // a payment arrives
+        vm.prank(seller);
+        vault.claimReceived(address(usdc)); // counting it changes what the buyer saw
+        uint256 nowNonce = vault.stateNonce();
+        vm.prank(seller);
+        vm.expectRevert(
+            abi.encodeWithSelector(AccountTransferCoordinator.StateChanged.selector, a.stateNonce, nowNonce)
+        );
+        coord.executeSale(a, sig);
+    }
+
+    function test_strangerPaymentAloneDoesNotVoidAcceptance() external {
+        AccountTransferCoordinator.Acceptance memory a = _acc(100e6, 1);
+        bytes memory sig = _sign(a, buyerPk);
+        deal(address(usdc), address(vault), usdc.balanceOf(address(vault)) + 1); // dust from anyone
+        assertEq(vault.stateNonce(), a.stateNonce, "unclaimed dust cannot be used to grief a sale");
+        vm.prank(seller);
+        coord.executeSale(a, sig);
+    }
+
     function test_buyerCannotBeAProtocolContract() external {
         address[4] memory bad = [address(coord), address(escrow), address(registry), address(vault)];
         for (uint256 i; i < bad.length; i++) {

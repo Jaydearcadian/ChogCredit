@@ -5,6 +5,7 @@ import {CoreBase} from "./CoreBase.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AccountVault} from "../../src/core/AccountVault.sol";
 import {ChogAccountRegistry} from "../../src/core/ChogAccountRegistry.sol";
+import {ReleaseBlocker} from "../../src/core/interfaces/IChogAccountRegistry.sol";
 
 contract AccountVaultTest is CoreBase {
     AccountVault internal vault;
@@ -171,6 +172,130 @@ contract AccountVaultTest is CoreBase {
         vm.expectRevert(AccountVault.NothingToSweep.selector);
         vault.sweepUnaccounted(address(usdc), alice);
         assertEq(vault.balanceOfToken(address(usdc)), 100e6);
+    }
+
+    // ---- claimReceived: payments to the vault address
+    function test_claimReceived_countsAPaymentAndBumpsNonce() external {
+        deal(address(usdc), address(this), 120e6);
+        usdc.transfer(address(vault), 120e6); // anyone can pay the vault
+        assertEq(vault.accounted(address(usdc)), 0);
+        assertTrue(vault.isEmpty());
+        uint256 n0 = vault.stateNonce();
+
+        vm.prank(alice);
+        uint256 got = vault.claimReceived(address(usdc));
+
+        assertEq(got, 120e6);
+        assertEq(vault.accounted(address(usdc)), 120e6);
+        assertEq(vault.nonEmptyTokens(), 1);
+        assertFalse(vault.isEmpty());
+        assertEq(vault.stateNonce(), n0 + 1);
+        assertEq(uint8(registry.releaseBlocker(_key(1))), uint8(ReleaseBlocker.HasAssets), "now blocks release");
+
+        vm.prank(alice);
+        vault.withdrawERC20(address(usdc), 120e6, alice); // and it is withdrawable like a deposit
+        assertTrue(vault.isEmpty());
+    }
+
+    function test_claimReceived_onlyTheExcessOverWhatIsAccounted() external {
+        vm.prank(alice);
+        vault.depositERC20(address(usdc), 100e6);
+        deal(address(usdc), address(vault), usdc.balanceOf(address(vault)) + 30e6);
+        vm.prank(alice);
+        assertEq(vault.claimReceived(address(usdc)), 30e6);
+        assertEq(vault.accounted(address(usdc)), 130e6);
+        assertEq(vault.nonEmptyTokens(), 1, "token already counted, not counted twice");
+    }
+
+    function test_claimReceived_secondClaimWithNothingNewReverts() external {
+        deal(address(usdc), address(vault), 5e6);
+        vm.startPrank(alice);
+        vault.claimReceived(address(usdc));
+        vm.expectRevert(AccountVault.NothingToClaim.selector);
+        vault.claimReceived(address(usdc));
+        vm.stopPrank();
+    }
+
+    function test_claimReceived_strangerCannotClaim() external {
+        deal(address(usdc), address(vault), 5e6);
+        uint256 n0 = vault.stateNonce();
+        vm.prank(bob);
+        vm.expectRevert(AccountVault.NotController.selector);
+        vault.claimReceived(address(usdc));
+        assertEq(vault.stateNonce(), n0, "a stranger cannot bump the nonce");
+    }
+
+    function test_claimReceived_refusedWhileChogNotEscrowed() external {
+        AccountVault v = _openWalletHeld(alice, 2);
+        deal(address(usdc), address(v), 5e6);
+        vm.prank(alice);
+        vm.expectRevert(AccountVault.AssetsNotAccepted.selector);
+        v.claimReceived(address(usdc));
+    }
+
+    function test_claimReceived_refusedForATokenOffTheAllowlist() external {
+        MockOther t = new MockOther();
+        t.mint(address(vault), 10);
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(AccountVault.TokenNotAllowed.selector, address(t)));
+        vault.claimReceived(address(t));
+        assertEq(vault.accounted(address(t)), 0, "never counted");
+    }
+
+    function test_claimReceived_creditsWhatActuallyArrivedForAFeeToken() external {
+        feeToken.mint(address(this), 1_000e18);
+        feeToken.transfer(address(vault), 1_000e18);
+        uint256 arrived = feeToken.balanceOf(address(vault));
+        assertLt(arrived, 1_000e18, "fee was taken in transit");
+        vm.prank(alice);
+        assertEq(vault.claimReceived(address(feeToken)), arrived);
+        assertEq(vault.accounted(address(feeToken)), feeToken.balanceOf(address(vault)));
+    }
+
+    function test_claimReceived_paymentSentBeforeTheVaultExistsIsClaimable() external {
+        chog.mint(alice, 5);
+        address predicted = registry.predictVault(address(chog), 5);
+        deal(address(usdc), address(this), 77e6);
+        usdc.transfer(predicted, 77e6); // paid to a Chog whose vault is not open yet
+        assertEq(predicted.code.length, 0);
+
+        AccountVault v = _open(alice, 5);
+        assertEq(address(v), predicted);
+        assertEq(usdc.balanceOf(address(v)), 77e6);
+        assertTrue(v.isEmpty(), "not counted until claimed");
+
+        vm.prank(alice);
+        assertEq(v.claimReceived(address(usdc)), 77e6);
+        assertEq(v.accounted(address(usdc)), 77e6);
+    }
+
+    /// @dev Any mix of deposits, outside payments, claims and withdrawals keeps `accounted` at or below the balance,
+    ///      and `nonEmptyTokens` equal to the number of tokens with an accounted balance.
+    function testFuzz_claimReceived_accountingNeverExceedsBalance(uint64[8] calldata amts, uint8[8] calldata ops)
+        external
+    {
+        deal(address(usdc), alice, 1e12);
+        for (uint256 i; i < 8; i++) {
+            uint256 a = uint256(amts[i]) % 1e9 + 1;
+            uint8 op = ops[i] % 4;
+            if (op == 0) {
+                vm.prank(alice);
+                vault.depositERC20(address(usdc), a);
+            } else if (op == 1) {
+                deal(address(usdc), address(vault), usdc.balanceOf(address(vault)) + a); // outside payment
+            } else if (op == 2) {
+                vm.prank(alice);
+                try vault.claimReceived(address(usdc)) {} catch {}
+            } else {
+                uint256 have = vault.accounted(address(usdc));
+                if (have != 0) {
+                    vm.prank(alice);
+                    vault.withdrawERC20(address(usdc), a > have ? have : a, alice);
+                }
+            }
+            assertLe(vault.accounted(address(usdc)), usdc.balanceOf(address(vault)));
+            assertEq(vault.nonEmptyTokens(), vault.accounted(address(usdc)) == 0 ? 0 : 1);
+        }
     }
 
     // ---- debt blocks withdrawals
