@@ -63,6 +63,8 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
         uint16 slope1Bps; // added APR from 0 to optimal utilization
         uint16 slope2Bps; // added APR from optimal to 100% utilization
         uint16 optimalUtilBps;
+        uint16 priorityUtilBps; // above this utilization after a borrow, only vaults at least priorityMinAge old may borrow (0 = off)
+        uint32 priorityMinAge; // seconds a vault must have been open to borrow above the line
     }
 
     struct CollateralConfig {
@@ -145,6 +147,8 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
     address internal immutable _lpFactory;
     LpPool[] internal _lpPools;
 
+    uint16 public immutable priorityUtilBps;
+    uint32 public immutable priorityMinAge;
     uint256 public borrowIndex = RAY;
     uint64 public lastAccrual;
     uint256 public totalScaledDebt;
@@ -161,6 +165,7 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
     error SupplyCapExceeded(uint256 totalAfter, uint256 cap);
     error BorrowCapExceeded(uint256 totalAfter, uint256 cap);
     error AccountCapExceeded(uint256 debtAfter, uint256 cap);
+    error PriorityAccessOnly(uint256 utilAfterBps, uint256 minAge, uint256 age);
     error BorrowLimitExceeded(uint256 debtAfter, uint256 borrowPower);
     error NotController();
     error NotEscrowed();
@@ -185,6 +190,7 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
         if (c.optimalUtilBps == 0 || c.optimalUtilBps >= BPS) revert BadConfig();
         if (uint256(c.baseRateBps) + c.slope1Bps + c.slope2Bps > MAX_RATE_BPS) revert BadConfig();
         if (c.supplyCap == 0 || c.borrowCap == 0 || c.accountDebtCap == 0) revert BadConfig();
+        if (c.priorityUtilBps > BPS || (c.priorityUtilBps != 0 && c.priorityMinAge == 0)) revert BadConfig();
         if (cols.length == 0 || cols.length > MAX_COLLATERALS) revert BadConfig();
 
         registry = IChogAccountRegistry(registry_);
@@ -195,6 +201,8 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
         supplyCap = c.supplyCap;
         borrowCap = c.borrowCap;
         accountDebtCap = c.accountDebtCap;
+        priorityUtilBps = c.priorityUtilBps;
+        priorityMinAge = c.priorityMinAge;
         baseRateBps = c.baseRateBps;
         slope1Bps = c.slope1Bps;
         slope2Bps = c.slope2Bps;
@@ -421,6 +429,29 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
 
     // ================================================================ borrowers
 
+    /// @dev When the pool would be busier than `priorityUtilBps` after this borrow, only vaults open for at least
+    ///      `priorityMinAge` may borrow. It allocates scarce lending capacity; it never changes a limit or a rate.
+    function _requirePriority(bytes32 key, uint256 poolDebtAfter, uint256 cashAfter) internal view {
+        if (priorityUtilBps == 0) return;
+        uint256 total = poolDebtAfter + cashAfter;
+        uint256 util = total == 0 ? 0 : Math.mulDiv(poolDebtAfter, BPS, total);
+        if (util <= priorityUtilBps) return;
+        uint256 age = block.timestamp - registry.accountInfo(key).createdAt;
+        if (age < priorityMinAge) revert PriorityAccessOnly(util, priorityMinAge, age);
+    }
+
+    /// @notice For UIs: would a vault of this age be held back from borrowing `amount` right now? (Uses the last accrued index.)
+    function priorityRestricted(bytes32 key, uint256 amount) external view returns (bool) {
+        if (priorityUtilBps == 0) return false;
+        uint256 cash = availableLiquidity();
+        if (amount > cash) return false; // a different error will say so
+        uint256 debtAfter = Math.mulDiv(totalScaledDebt, borrowIndex, RAY) + amount;
+        uint256 total = debtAfter + (cash - amount);
+        uint256 util = total == 0 ? 0 : Math.mulDiv(debtAfter, BPS, total);
+        if (util <= priorityUtilBps) return false;
+        return block.timestamp - registry.accountInfo(key).createdAt < priorityMinAge;
+    }
+
     /// @notice Borrow to your own wallet against the collateral in this account's vault. Only the account's
     ///         controller, and only while its Chog is escrowed.
     function borrow(bytes32 key, uint256 amount) external nonReentrant {
@@ -438,6 +469,7 @@ contract ChogCreditPool is ICreditModule, IPositionHost, ReentrancyGuard {
         uint256 poolAfter = _debtFromScaled(totalScaledDebt + add, borrowIndex);
         if (poolAfter > borrowCap) revert BorrowCapExceeded(poolAfter, borrowCap);
         if (debtAfter > accountDebtCap) revert AccountCapExceeded(debtAfter, accountDebtCap);
+        _requirePriority(key, poolAfter, cash - amount);
 
         Valuation memory v = _valuation(key, address(0), 0);
         if (!v.ok) revert OracleFailure();
