@@ -1,0 +1,60 @@
+<template>
+<style>
+
+@font-face{font-family:'Baloo 2';font-weight:800;src:url('assets/fonts/Baloo2-800.ttf')}
+@font-face{font-family:'Gaegu';font-weight:700;src:url('assets/fonts/Gaegu-700.ttf')}
+:root{--cream:#F4F1E6;--cream50:#FAF9FC;--cream200:#E7E2D0;--dot:#D9D3BF;--ink:#141026;--ink950:#0E0B1A;--ink850:#181330;--ink800:#211A40;--ink700:#2D2556;--v500:#836EF9;--v300:#B7AAFF;--v700:#46188D;--pink:#E845A4;--amber:#FCBB00;--safe:#72E4BC;--muted:#575070}
+#root{position:absolute;inset:0;overflow:hidden;font-family:'Inter',sans-serif;color:var(--ink)}
+#root *{box-sizing:border-box}
+.bg-cream{position:absolute;inset:0;background:radial-gradient(ellipse at 85% 0%,rgba(131,110,249,.2),rgba(131,110,249,0) 55%),radial-gradient(var(--dot) 2px,transparent 2px) 0 0/40px 40px,var(--cream)}
+.bg-ink{position:absolute;inset:0;background:radial-gradient(ellipse at 15% 100%,rgba(131,110,249,.22),rgba(131,110,249,0) 55%),linear-gradient(rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,linear-gradient(90deg,rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,var(--ink)}
+.bg-violet{position:absolute;inset:0;background:radial-gradient(ellipse at 90% 100%,rgba(232,69,164,.28),rgba(232,69,164,0) 55%),radial-gradient(rgba(250,249,252,.14) 2px,transparent 2px) 0 0/40px 40px,var(--v700)}
+.disp{font-family:'Baloo 2',sans-serif;font-weight:800;letter-spacing:-.025em;line-height:.98}
+.mono{font-family:'JetBrains Mono',monospace;font-weight:600}
+.dark{color:var(--cream50)}
+.ch{opacity:0}
+.cr{display:inline-block;width:.42em;height:.42em;margin-left:.04em;background:var(--pink);opacity:0;vertical-align:baseline;position:absolute}
+.phone{position:absolute;left:1180px;top:84px;width:432px;height:912px;border-radius:64px;background:var(--ink950);box-shadow:0 40px 90px rgba(20,16,38,.4),0 0 0 3px var(--ink700);transform-origin:50% 100%}
+.phone .screen{position:absolute;inset:13px;border-radius:52px;overflow:hidden;background:#000}
+.phone video{position:absolute;left:0;top:0;width:406px;height:886px;object-fit:cover}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:26px;letter-spacing:.06em;text-transform:uppercase}
+.callout{position:absolute;display:flex;align-items:center;gap:14px;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:8px 26px}
+.pix{position:absolute;width:var(--s,18px);height:var(--s,18px);background:var(--pink)}
+#s7-rows .kvr{display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px dashed var(--ink700);opacity:0}#s7-rows .mono{font-size:34px}</style>
+<div id="root" data-composition-id="s7" data-width="1920" data-height="1080">
+<div class="bg-ink"></div>
+
+<div id="s7-lock" style="position:absolute;left:140px;top:120px"><svg width="220" height="220" viewBox="0 0 36 36"><rect x="7" y="15" width="22" height="16" rx="4" fill="#E845A4" stroke="#0E0B1A" stroke-width="1.6"/><path id="s7-sh" d="M12 15v-4a6 6 0 0112 0v4" fill="none" stroke="#B7AAFF" stroke-width="2.4" stroke-linecap="round"/><circle cx="18" cy="23" r="2.2" fill="#0E0B1A"/></svg></div>
+<div id="s7-t" class="disp dark" style="position:absolute;left:400px;top:120px;font-size:112px;line-height:1.02">Borrow<br>pauses.</div>
+<div id="s7-r" class="disp" style="position:absolute;left:400px;top:360px;font-size:112px;color:var(--safe)">Repay never.</div>
+<div id="s7-rows" style="position:absolute;left:140px;top:520px;width:900px;font-size:32px;color:var(--cream50)">
+  <div class="kvr"><span>Borrow up to</span><span class="mono">40% of value</span></div>
+  <div class="kvr"><span>Sold off below</span><span class="mono">65% of value</span></div>
+  <div class="kvr"><span>Pool lends at most</span><span class="mono">$15,000</span></div></div>
+
+<div class="phone" id="s7-phone"><div class="screen"><video id="s7-v0" class="clip" src="assets/footage/c7.mp4" data-start="0.3" data-duration="10.93" muted playsinline></video></div></div>
+
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+
+function typeIn(tl, sel, t0, t1, caretSel){
+  const els = document.querySelectorAll(sel + ' .ch'); const n = els.length; if(!n) return;
+  const dt = (t1 - t0) / n;
+  els.forEach((e, i) => tl.set(e, { opacity: 1 }, t0 + i * dt));
+  if (caretSel) { const c = document.querySelector(caretSel); if (!c) return;
+    tl.set(c, { opacity: 1 }, t0); els.forEach((e, i) => { if (i % 3 === 2) tl.set(c, { opacity: (i / 3) % 2 ? 1 : 0.15 }, t0 + i * dt); }); tl.set(c, { opacity: 0 }, t1 + 0.5); }
+}
+const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
+
+
+tl.fromTo('#s7-phone',{opacity:0,y:140,rotation:7,scale:.96},{opacity:1,y:0,rotation:2,scale:1,duration:.8,ease:'power4.out'},0.1);
+tl.fromTo('#s7-lock',{opacity:0,scale:.7},{opacity:1,scale:1,duration:.4,ease:'back.out(1.6)'},.5);
+tl.fromTo('#s7-sh',{y:-5},{y:0,duration:.3,ease:'power2.out'},2.4);
+tl.fromTo('#s7-t',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},1.0);
+tl.fromTo('#s7-r',{opacity:0,x:-40},{opacity:1,x:0,duration:.45,ease:'power3.out'},3.2);
+document.querySelectorAll('#s7-rows .kvr').forEach((r,i)=>tl.fromTo(r,{opacity:0,x:-30},{opacity:1,x:0,duration:.4,ease:'power3.out'},5.0+i*.45));
+
+window.__timelines["s7"] = tl;
+</script>
+</template>

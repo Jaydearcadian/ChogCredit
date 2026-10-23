@@ -1,0 +1,67 @@
+<template>
+<style>
+
+@font-face{font-family:'Baloo 2';font-weight:800;src:url('assets/fonts/Baloo2-800.ttf')}
+@font-face{font-family:'Gaegu';font-weight:700;src:url('assets/fonts/Gaegu-700.ttf')}
+:root{--cream:#F4F1E6;--cream50:#FAF9FC;--cream200:#E7E2D0;--dot:#D9D3BF;--ink:#141026;--ink950:#0E0B1A;--ink850:#181330;--ink800:#211A40;--ink700:#2D2556;--v500:#836EF9;--v300:#B7AAFF;--v700:#46188D;--pink:#E845A4;--amber:#FCBB00;--safe:#72E4BC;--muted:#575070}
+#root{position:absolute;inset:0;overflow:hidden;font-family:'Inter',sans-serif;color:var(--ink)}
+#root *{box-sizing:border-box}
+.bg-cream{position:absolute;inset:0;background:radial-gradient(ellipse at 85% 0%,rgba(131,110,249,.2),rgba(131,110,249,0) 55%),radial-gradient(var(--dot) 2px,transparent 2px) 0 0/40px 40px,var(--cream)}
+.bg-ink{position:absolute;inset:0;background:radial-gradient(ellipse at 15% 100%,rgba(131,110,249,.22),rgba(131,110,249,0) 55%),linear-gradient(rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,linear-gradient(90deg,rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,var(--ink)}
+.bg-violet{position:absolute;inset:0;background:radial-gradient(ellipse at 90% 100%,rgba(232,69,164,.28),rgba(232,69,164,0) 55%),radial-gradient(rgba(250,249,252,.14) 2px,transparent 2px) 0 0/40px 40px,var(--v700)}
+.disp{font-family:'Baloo 2',sans-serif;font-weight:800;letter-spacing:-.025em;line-height:.98}
+.mono{font-family:'JetBrains Mono',monospace;font-weight:600}
+.dark{color:var(--cream50)}
+.ch{opacity:0}
+.cr{display:inline-block;width:.42em;height:.42em;margin-left:.04em;background:var(--pink);opacity:0;vertical-align:baseline;position:absolute}
+.phone{position:absolute;left:1180px;top:84px;width:432px;height:912px;border-radius:64px;background:var(--ink950);box-shadow:0 40px 90px rgba(20,16,38,.4),0 0 0 3px var(--ink700);transform-origin:50% 100%}
+.phone .screen{position:absolute;inset:13px;border-radius:52px;overflow:hidden;background:#000}
+.phone video{position:absolute;left:0;top:0;width:406px;height:886px;object-fit:cover}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:26px;letter-spacing:.06em;text-transform:uppercase}
+.callout{position:absolute;display:flex;align-items:center;gap:14px;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:8px 26px}
+.pix{position:absolute;width:var(--s,18px);height:var(--s,18px);background:var(--pink)}
+.card5{position:absolute;width:340px;height:150px;border-radius:24px;background:var(--ink);color:var(--cream50);border:2px solid var(--v500);padding:24px 28px;display:flex;flex-direction:column;justify-content:center;gap:6px;opacity:0}.card5 b{font-family:'Baloo 2';font-weight:800;font-size:54px;line-height:1}.card5 span{color:var(--v300);font-size:24px}</style>
+<div id="root" data-composition-id="s5" data-width="1920" data-height="1080">
+<div class="bg-cream"></div>
+
+<div class="disp" style="position:absolute;left:140px;top:90px;font-size:112px;line-height:1">Sell it<br><span style="color:var(--v700)">with the loan.</span></div>
+<div id="s5-seller" class="card5" style="left:140px;top:360px"><b>Seller</b><span class="mono">signs the offer</span></div>
+<div id="s5-buyer" class="card5" style="left:640px;top:360px"><b>Buyer</b><span class="mono">signs back</span></div>
+<svg id="s5-links" viewBox="0 0 1000 360" style="position:absolute;left:100px;top:540px;width:1000px;height:300px;overflow:visible" fill="none">
+  <path id="s5-p1" d="M170 20 C170 120 330 120 330 20" stroke="#46188D" stroke-width="4" stroke-dasharray="12 12" opacity="0"/>
+  <path id="s5-p2" d="M590 20 C590 150 330 150 330 20" stroke="#E845A4" stroke-width="4" stroke-dasharray="12 12" opacity="0"/></svg>
+<div id="s5-l1" class="pill" style="position:absolute;left:260px;top:580px;background:var(--ink);color:#f9c230;opacity:0">Offer link</div>
+<div id="s5-l2" class="pill" style="position:absolute;left:500px;top:665px;background:var(--ink);color:#f9c230;opacity:0">Signed link</div>
+<div id="s5-done" class="pill" style="position:absolute;left:140px;top:730px;font-size:26px;background:var(--v700);color:var(--cream50);opacity:0">Sold. Loan, vault and Chog move together.</div>
+<div id="s5-pk1" class="pix" style="left:270px;top:550px;opacity:0"></div><div id="s5-pk2" class="pix" style="left:690px;top:550px;opacity:0"></div>
+
+<div class="phone" id="s5-phone"><div class="screen"><video id="s5-v0" class="clip" src="assets/footage/c5.mp4" data-start="0.3" data-duration="10.27" muted playsinline></video></div></div>
+
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+
+function typeIn(tl, sel, t0, t1, caretSel){
+  const els = document.querySelectorAll(sel + ' .ch'); const n = els.length; if(!n) return;
+  const dt = (t1 - t0) / n;
+  els.forEach((e, i) => tl.set(e, { opacity: 1 }, t0 + i * dt));
+  if (caretSel) { const c = document.querySelector(caretSel); if (!c) return;
+    tl.set(c, { opacity: 1 }, t0); els.forEach((e, i) => { if (i % 3 === 2) tl.set(c, { opacity: (i / 3) % 2 ? 1 : 0.15 }, t0 + i * dt); }); tl.set(c, { opacity: 0 }, t1 + 0.5); }
+}
+const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
+
+
+tl.fromTo('#s5-phone',{opacity:0,y:140,rotation:7,scale:.96},{opacity:1,y:0,rotation:2,scale:1,duration:.8,ease:'power4.out'},0.1);
+tl.fromTo('#s5-seller',{opacity:0,y:30},{opacity:1,y:0,duration:.45,ease:'power3.out'},1.6);
+tl.fromTo('#s5-buyer',{opacity:0,y:30},{opacity:1,y:0,duration:.45,ease:'power3.out'},2.1);
+tl.set('#s5-p1',{opacity:1},3.4); tl.fromTo('#s5-p1',{strokeDashoffset:80},{strokeDashoffset:0,duration:.9,ease:'power2.out'},3.4);
+tl.fromTo('#s5-l1',{opacity:0,scale:.8},{opacity:1,scale:1,duration:.3,ease:'back.out(2)'},3.9);
+tl.set('#s5-pk1',{opacity:1},3.6); tl.to('#s5-pk1',{x:160,duration:.8,ease:'power2.inOut'},3.6); tl.to('#s5-pk1',{opacity:0,duration:.1},4.4);
+tl.set('#s5-p2',{opacity:1},5.6); tl.fromTo('#s5-p2',{strokeDashoffset:80},{strokeDashoffset:0,duration:.9,ease:'power2.out'},5.6);
+tl.fromTo('#s5-l2',{opacity:0,scale:.8},{opacity:1,scale:1,duration:.3,ease:'back.out(2)'},6.1);
+tl.set('#s5-pk2',{opacity:1},5.8); tl.to('#s5-pk2',{x:-260,duration:.8,ease:'power2.inOut'},5.8); tl.to('#s5-pk2',{opacity:0,duration:.1},6.6);
+tl.fromTo('#s5-done',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},7.6);
+
+window.__timelines["s5"] = tl;
+</script>
+</template>

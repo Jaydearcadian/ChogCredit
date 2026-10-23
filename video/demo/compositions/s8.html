@@ -1,0 +1,57 @@
+<template>
+<style>
+
+@font-face{font-family:'Baloo 2';font-weight:800;src:url('assets/fonts/Baloo2-800.ttf')}
+@font-face{font-family:'Gaegu';font-weight:700;src:url('assets/fonts/Gaegu-700.ttf')}
+:root{--cream:#F4F1E6;--cream50:#FAF9FC;--cream200:#E7E2D0;--dot:#D9D3BF;--ink:#141026;--ink950:#0E0B1A;--ink850:#181330;--ink800:#211A40;--ink700:#2D2556;--v500:#836EF9;--v300:#B7AAFF;--v700:#46188D;--pink:#E845A4;--amber:#FCBB00;--safe:#72E4BC;--muted:#575070}
+#root{position:absolute;inset:0;overflow:hidden;font-family:'Inter',sans-serif;color:var(--ink)}
+#root *{box-sizing:border-box}
+.bg-cream{position:absolute;inset:0;background:radial-gradient(ellipse at 85% 0%,rgba(131,110,249,.2),rgba(131,110,249,0) 55%),radial-gradient(var(--dot) 2px,transparent 2px) 0 0/40px 40px,var(--cream)}
+.bg-ink{position:absolute;inset:0;background:radial-gradient(ellipse at 15% 100%,rgba(131,110,249,.22),rgba(131,110,249,0) 55%),linear-gradient(rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,linear-gradient(90deg,rgba(131,110,249,.07) 1px,transparent 1px) 0 0/80px 80px,var(--ink)}
+.bg-violet{position:absolute;inset:0;background:radial-gradient(ellipse at 90% 100%,rgba(232,69,164,.28),rgba(232,69,164,0) 55%),radial-gradient(rgba(250,249,252,.14) 2px,transparent 2px) 0 0/40px 40px,var(--v700)}
+.disp{font-family:'Baloo 2',sans-serif;font-weight:800;letter-spacing:-.025em;line-height:.98}
+.mono{font-family:'JetBrains Mono',monospace;font-weight:600}
+.dark{color:var(--cream50)}
+.ch{opacity:0}
+.cr{display:inline-block;width:.42em;height:.42em;margin-left:.04em;background:var(--pink);opacity:0;vertical-align:baseline;position:absolute}
+.phone{position:absolute;left:1180px;top:84px;width:432px;height:912px;border-radius:64px;background:var(--ink950);box-shadow:0 40px 90px rgba(20,16,38,.4),0 0 0 3px var(--ink700);transform-origin:50% 100%}
+.phone .screen{position:absolute;inset:13px;border-radius:52px;overflow:hidden;background:#000}
+.phone video{position:absolute;left:0;top:0;width:406px;height:886px;object-fit:cover}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:12px;font-family:'JetBrains Mono',monospace;font-weight:600;font-size:26px;letter-spacing:.06em;text-transform:uppercase}
+.callout{position:absolute;display:flex;align-items:center;gap:14px;font-family:'Gaegu',cursive;font-weight:700;font-size:44px;background:var(--cream50);color:var(--ink);border:3px solid var(--ink);border-radius:26px 26px 26px 6px;padding:8px 26px}
+.pix{position:absolute;width:var(--s,18px);height:var(--s,18px);background:var(--pink)}
+</style>
+<div id="root" data-composition-id="s8" data-width="1920" data-height="1080">
+<div class="bg-cream"></div>
+
+<div id="s8-word" class="disp" style="position:absolute;left:0;right:0;top:210px;text-align:center;font-size:260px">Chog Credit<span id="s8-dot" style="display:inline-block;width:.1em;height:.1em;background:var(--pink);margin-left:.04em"></span></div>
+<div id="s8-key" style="position:absolute;left:1380px;top:150px;transform:rotate(12deg)"><svg viewBox="0 0 96 48" width="180" height="90" shape-rendering="crispEdges"><g fill="#836EF9"><rect x="0" y="0" width="32" height="8"/><rect x="0" y="8" width="8" height="16"/><rect x="24" y="8" width="8" height="16"/><rect x="0" y="24" width="32" height="8"/><rect x="32" y="8" width="64" height="16"/><rect x="64" y="24" width="8" height="16"/><rect x="88" y="24" width="8" height="24"/></g><rect x="8" y="8" width="16" height="16" fill="#E845A4"/></svg></div>
+<div id="s8-sub" class="mono" style="position:absolute;left:0;right:0;top:560px;text-align:center;font-size:36px;letter-spacing:.12em;text-transform:uppercase;color:var(--v700)">Live on Monad testnet</div>
+<div id="s8-url" class="mono" style="position:absolute;left:0;right:0;top:640px;text-align:center;font-size:64px;color:var(--ink)"><span class="ch ">c</span><span class="ch ">h</span><span class="ch ">o</span><span class="ch ">g</span><span class="ch ">-</span><span class="ch ">c</span><span class="ch ">r</span><span class="ch ">e</span><span class="ch ">d</span><span class="ch ">i</span><span class="ch ">t</span><span class="ch ">.</span><span class="ch ">v</span><span class="ch ">e</span><span class="ch ">r</span><span class="ch ">c</span><span class="ch ">e</span><span class="ch ">l</span><span class="ch ">.</span><span class="ch ">a</span><span class="ch ">p</span><span class="ch ">p</span></div>
+<div id="s8-tag" class="pill" style="position:absolute;left:0;right:0;margin:0 auto;top:760px;width:max-content;background:var(--ink);color:#f9c230">Look around first. No wallet needed.</div>
+
+</div>
+<script>
+const tl = gsap.timeline({ paused: true });
+
+function typeIn(tl, sel, t0, t1, caretSel){
+  const els = document.querySelectorAll(sel + ' .ch'); const n = els.length; if(!n) return;
+  const dt = (t1 - t0) / n;
+  els.forEach((e, i) => tl.set(e, { opacity: 1 }, t0 + i * dt));
+  if (caretSel) { const c = document.querySelector(caretSel); if (!c) return;
+    tl.set(c, { opacity: 1 }, t0); els.forEach((e, i) => { if (i % 3 === 2) tl.set(c, { opacity: (i / 3) % 2 ? 1 : 0.15 }, t0 + i * dt); }); tl.set(c, { opacity: 0 }, t1 + 0.5); }
+}
+const rise = (tl, sel, t, y = 28, d = 0.45) => tl.fromTo(sel, { opacity: 0, y }, { opacity: 1, y: 0, duration: d, ease: 'power3.out' }, t);
+
+
+tl.fromTo('#s8-word',{opacity:0,y:50,scale:.96},{opacity:1,y:0,scale:1,duration:.7,ease:'power4.out'},.3);
+tl.fromTo('#s8-dot',{scale:0},{scale:1,duration:.4,ease:'back.out(3)'},1.0);
+tl.fromTo('#s8-key',{opacity:0,y:-40,rotation:30},{opacity:1,y:0,rotation:12,duration:.6,ease:'back.out(1.8)'},1.2);
+tl.fromTo('#s8-sub',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},1.8);
+typeIn(tl,'#s8-url',2.8,4.4);
+tl.fromTo('#s8-tag',{opacity:0,y:20},{opacity:1,y:0,duration:.45,ease:'power3.out'},4.2);
+tl.to('#root',{opacity:0,duration:.8,ease:'power2.in'},8.1);
+
+window.__timelines["s8"] = tl;
+</script>
+</template>
