@@ -3,65 +3,232 @@
   "networks": {
     "mainnet": {
       "chainId": 143,
-      "rpc": ["https://rpc.monad.xyz", "https://rpc1.monad.xyz"],
+      "rpc": [
+        "https://rpc.monad.xyz",
+        "https://rpc1.monad.xyz"
+      ],
       "ws": "wss://rpc.monad.xyz",
-      "explorers": ["https://monadvision.com", "https://monadscan.com"],
+      "explorers": [
+        "https://monadvision.com",
+        "https://monadscan.com"
+      ],
       "contracts": {
-        "chogGenesis": { "address": "0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763", "kind": "erc721", "name": "Chog Genesis", "symbol": "CHOG", "totalSupply": 1969, "note": "candidate; official-source address confirmation still pending" },
-        "chogToken": { "address": "0x350035555E10d9AfAF1566AaebfCeD5BA6C27777", "kind": "erc20", "symbol": "CHOG", "decimals": 18, "note": "address printed on www.chog.xyz" },
-        "usdc": { "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603", "kind": "erc20", "symbol": "USDC", "decimals": 6, "note": "Circle-listed" },
-        "wmon": { "address": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A", "kind": "erc20", "symbol": "WMON", "decimals": 18 },
-        "multicall3": { "address": "0xcA11bde05977b3631167028862bE2a173976CA11" },
-        "permit2": { "address": "0x000000000022d473030f116ddee9f6b43ac78ba3" },
-        "createX": { "address": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed" },
-        "create2Deployer": { "address": "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2" },
-        "deterministicFactory": { "address": "0x4e59b44847b379578588920ca78fbf26c0b4956c" },
-        "entryPointV07": { "address": "0x0000000071727De22E5E9d8BAf0edAc6f37da032" },
-        "erc6551Registry": { "address": "0x000000006551c19487814612e58FE06813775758", "note": "Tokenbound v3 canonical; optional pattern" },
-        "erc6551AccountImplV3": { "address": "0x41C8f39463A868d3A88af00cd0fe7102F30E44eC" },
-        "openseaSeaport": { "address": "0x0000000000000068F116a894984e2DB1123eB395" },
-        "uniswapV3Factory": { "address": "0x204faca1764b154221e35c0d20abb3c525710498" },
-        "uniswapV3PositionManager": { "address": "0x7197e214c0b767cfb76fb734ab638e2c192f4e53", "kind": "erc721" },
-        "uniswapV3SwapRouter02": { "address": "0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900" },
-        "uniswapV3QuoterV2": { "address": "0x661e93cca42afacb172121ef892830ca3b70f08d" },
-        "uniswapV4PositionManager": { "address": "0x5b7ec4a94ff9bedb700fb82ab09d5846972f4016", "kind": "erc721" },
-        "uniswapV4PoolManager": { "address": "0x188d586ddcf52439676ca21a244753fa19f9ea8e" },
-        "pancakeV3Factory": { "address": "0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865" },
-        "pancakeV3PositionManager": { "address": "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364", "kind": "erc721" },
-        "morphoBlue": { "address": "0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee" },
-        "neverlandPool": { "address": "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585" },
-        "curvanceCentralRegistry": { "address": "0x1310f352f1389969Ece6741671c4B919523912fF" },
-        "kuruRouter": { "address": "0xd651346d7c789536ebf06dc72aE3C8502cd695CC" }
+        "chogGenesis": {
+          "address": "0xc96d31f8626c6d03fae5dcd3d61e3fb9f4a73763",
+          "kind": "erc721",
+          "name": "Chog Genesis",
+          "symbol": "CHOG",
+          "totalSupply": 1969,
+          "note": "candidate; official-source address confirmation still pending"
+        },
+        "chogToken": {
+          "address": "0x350035555E10d9AfAF1566AaebfCeD5BA6C27777",
+          "kind": "erc20",
+          "symbol": "CHOG",
+          "decimals": 18,
+          "note": "address printed on www.chog.xyz"
+        },
+        "usdc": {
+          "address": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+          "kind": "erc20",
+          "symbol": "USDC",
+          "decimals": 6,
+          "note": "Circle-listed"
+        },
+        "wmon": {
+          "address": "0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A",
+          "kind": "erc20",
+          "symbol": "WMON",
+          "decimals": 18
+        },
+        "multicall3": {
+          "address": "0xcA11bde05977b3631167028862bE2a173976CA11"
+        },
+        "permit2": {
+          "address": "0x000000000022d473030f116ddee9f6b43ac78ba3"
+        },
+        "createX": {
+          "address": "0xba5Ed099633D3B313e4D5F7bdc1305d3c28ba5Ed"
+        },
+        "create2Deployer": {
+          "address": "0x13b0D85CcB8bf860b6b79AF3029fCA081AE9beF2"
+        },
+        "deterministicFactory": {
+          "address": "0x4e59b44847b379578588920ca78fbf26c0b4956c"
+        },
+        "entryPointV07": {
+          "address": "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+        },
+        "erc6551Registry": {
+          "address": "0x000000006551c19487814612e58FE06813775758",
+          "note": "Tokenbound v3 canonical; optional pattern"
+        },
+        "erc6551AccountImplV3": {
+          "address": "0x41C8f39463A868d3A88af00cd0fe7102F30E44eC"
+        },
+        "openseaSeaport": {
+          "address": "0x0000000000000068F116a894984e2DB1123eB395"
+        },
+        "uniswapV3Factory": {
+          "address": "0x204faca1764b154221e35c0d20abb3c525710498"
+        },
+        "uniswapV3PositionManager": {
+          "address": "0x7197e214c0b767cfb76fb734ab638e2c192f4e53",
+          "kind": "erc721"
+        },
+        "uniswapV3SwapRouter02": {
+          "address": "0xfe31f71c1b106eac32f1a19239c9a9a72ddfb900"
+        },
+        "uniswapV3QuoterV2": {
+          "address": "0x661e93cca42afacb172121ef892830ca3b70f08d"
+        },
+        "uniswapV4PositionManager": {
+          "address": "0x5b7ec4a94ff9bedb700fb82ab09d5846972f4016",
+          "kind": "erc721"
+        },
+        "uniswapV4PoolManager": {
+          "address": "0x188d586ddcf52439676ca21a244753fa19f9ea8e"
+        },
+        "pancakeV3Factory": {
+          "address": "0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865"
+        },
+        "pancakeV3PositionManager": {
+          "address": "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364",
+          "kind": "erc721"
+        },
+        "morphoBlue": {
+          "address": "0xD5D960E8C380B724a48AC59E2DfF1b2CB4a1eAee"
+        },
+        "neverlandPool": {
+          "address": "0x80F00661b13CC5F6ccd3885bE7b4C9c67545D585"
+        },
+        "curvanceCentralRegistry": {
+          "address": "0x1310f352f1389969Ece6741671c4B919523912fF"
+        },
+        "kuruRouter": {
+          "address": "0xd651346d7c789536ebf06dc72aE3C8502cd695CC"
+        }
       },
       "pools": {
-        "uniswapV3_USDC_WMON_3000": { "address": "0x659bd0bc4167ba25c62e05656f78043e7ed4a9da", "note": "deepest USDC/WMON pool observed" },
-        "pancakeV3_USDC_WMON_500": { "address": "0x63e48b725540a3db24acf6682a29f877808c53f2" },
-        "uniswapV3_CHOG_WMON_3000": { "address": "0xde4c4a5d91ed23964a7b636d2b15edf51f4a7a6d", "note": "negligible liquidity" }
+        "uniswapV3_USDC_WMON_3000": {
+          "address": "0x659bd0bc4167ba25c62e05656f78043e7ed4a9da",
+          "note": "deepest USDC/WMON pool observed"
+        },
+        "pancakeV3_USDC_WMON_500": {
+          "address": "0x63e48b725540a3db24acf6682a29f877808c53f2"
+        },
+        "uniswapV3_CHOG_WMON_3000": {
+          "address": "0xde4c4a5d91ed23964a7b636d2b15edf51f4a7a6d",
+          "note": "negligible liquidity"
+        }
       },
       "oracles": {
-        "chainlink_MON_USD": { "address": "0xBcD78f76005B7515837af6b50c7C52BCf73822fb", "decimals": 8, "kind": "chainlink" },
-        "chainlink_USDC_USD": { "address": "0xf5F15f188AbCb0d165D1Edb7f37F7d6fA2fCebec", "decimals": 8, "kind": "chainlink" },
-        "chainlink_ETH_USD": { "address": "0x1B1414782B859871781bA3E4B0979b9ca57A0A04", "decimals": 8, "kind": "chainlink" },
-        "chainlink_BTC_USD": { "address": "0xc1d4C3331635184fA4C3c22fb92211B2Ac9E0546", "decimals": 8, "kind": "chainlink" },
-        "redstone_MON_USD": { "address": "0x1C9582E87eD6E99bc23EC0e6Eb52eE9d7C0D6bcd", "decimals": 8, "kind": "chainlink" },
-        "redstone_USDC_USD": { "address": "0x7A9b672fc20b5C89D6774514052b3e0899E5E263", "decimals": 8, "kind": "chainlink" },
-        "pyth_PriceFeed": { "address": "0x2880aB155794e7179c9eE2e38200202908C17B43", "kind": "pyth", "feedIds": { "MON_USD": "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1", "ETH_USD": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace", "USDC_USD": "0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a" } }
+        "chainlink_MON_USD": {
+          "address": "0xBcD78f76005B7515837af6b50c7C52BCf73822fb",
+          "decimals": 8,
+          "kind": "chainlink"
+        },
+        "chainlink_USDC_USD": {
+          "address": "0xf5F15f188AbCb0d165D1Edb7f37F7d6fA2fCebec",
+          "decimals": 8,
+          "kind": "chainlink"
+        },
+        "chainlink_ETH_USD": {
+          "address": "0x1B1414782B859871781bA3E4B0979b9ca57A0A04",
+          "decimals": 8,
+          "kind": "chainlink"
+        },
+        "chainlink_BTC_USD": {
+          "address": "0xc1d4C3331635184fA4C3c22fb92211B2Ac9E0546",
+          "decimals": 8,
+          "kind": "chainlink"
+        },
+        "redstone_MON_USD": {
+          "address": "0x1C9582E87eD6E99bc23EC0e6Eb52eE9d7C0D6bcd",
+          "decimals": 8,
+          "kind": "chainlink"
+        },
+        "redstone_USDC_USD": {
+          "address": "0x7A9b672fc20b5C89D6774514052b3e0899E5E263",
+          "decimals": 8,
+          "kind": "chainlink"
+        },
+        "pyth_PriceFeed": {
+          "address": "0x2880aB155794e7179c9eE2e38200202908C17B43",
+          "kind": "pyth",
+          "feedIds": {
+            "MON_USD": "0x31491744e2dbf6df7fcf4ac0820d18a609b49076d45066d3568424e62f686cd1",
+            "ETH_USD": "0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace",
+            "USDC_USD": "0xeaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a"
+          }
+        }
+      },
+      "recommendedFeedParams": {
+        "_note": "Starting points from docs/evidence/FEED_ANALYSIS.md (200-round sample, 2026-10-22). maxAge = 2x p95 update gap; re-measure before deployment. Not authoritative.",
+        "chainlink_MON_USD": {
+          "maxAgeSeconds": 240,
+          "maxDeviationPct": 0.5
+        },
+        "chainlink_ETH_USD": {
+          "maxAgeSeconds": 600,
+          "maxDeviationPct": 0.5
+        },
+        "chainlink_BTC_USD": {
+          "maxAgeSeconds": 480,
+          "maxDeviationPct": 0.5
+        },
+        "chainlink_USDC_USD": {
+          "maxAgeSeconds": 7260,
+          "maxDeviationPct": 0.5
+        }
+      },
+      "collateralPolicy": {
+        "_note": "From docs/evidence/LIQUIDITY_MODEL.md QuoterV2 quotes.",
+        "wmon": {
+          "enable": true,
+          "maxCountedPerAccount": "2000000 WMON (~$42k at 0.021 USD; ~50k USD sell measured at 2.1% impact)"
+        },
+        "chogToken": {
+          "enable": false,
+          "reason": "CHOG/WMON pool returns ~2.4 WMON for any sale; no liquidation depth"
+        }
       }
     },
     "testnet": {
       "chainId": 10143,
-      "rpc": ["https://testnet-rpc.monad.xyz"],
+      "rpc": [
+        "https://testnet-rpc.monad.xyz"
+      ],
       "ws": "wss://testnet-rpc.monad.xyz",
-      "explorers": ["https://testnet.monadvision.com", "https://testnet.monadscan.com"],
+      "explorers": [
+        "https://testnet.monadvision.com",
+        "https://testnet.monadscan.com"
+      ],
       "faucet": "https://faucet.monad.xyz",
       "note": "Testnet was reset from genesis on 2025-12-16 (Monad docs). The live Chog Genesis collection is not expected on testnet; use a mock ERC-721 there.",
       "contracts": {
-        "usdc": { "address": "0x534b2f3A21130d7a60830c2Df862319e593943A3", "kind": "erc20", "symbol": "USDC", "decimals": 6, "note": "Circle testnet listing" },
-        "multicall3": { "address": "0xcA11bde05977b3631167028862bE2a173976CA11" },
-        "erc6551Registry": { "address": "0x000000006551c19487814612e58FE06813775758" },
-        "pyth_PriceFeed": { "address": "0x2880aB155794e7179c9eE2e38200202908C17B43", "kind": "pyth" }
+        "usdc": {
+          "address": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+          "kind": "erc20",
+          "symbol": "USDC",
+          "decimals": 6,
+          "note": "Circle testnet listing"
+        },
+        "multicall3": {
+          "address": "0xcA11bde05977b3631167028862bE2a173976CA11"
+        },
+        "erc6551Registry": {
+          "address": "0x000000006551c19487814612e58FE06813775758"
+        },
+        "pyth_PriceFeed": {
+          "address": "0x2880aB155794e7179c9eE2e38200202908C17B43",
+          "kind": "pyth"
+        }
       },
-      "unverifiedHere": ["chogGenesis (check whether any testnet deployment exists)", "chainlink testnet feeds"]
+      "unverifiedHere": [
+        "chogGenesis (check whether any testnet deployment exists)",
+        "chainlink testnet feeds"
+      ]
     }
   },
   "sources": {

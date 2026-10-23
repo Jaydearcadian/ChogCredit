@@ -80,7 +80,7 @@ contract DeployCredit is Script {
             optimalUtilBps: 8_000
         });
         p.collaterals = new ChogCreditPool.CollateralConfig[](1);
-        p.collaterals[0] = ChogCreditPool.CollateralConfig(address(d.wmon), 4_000, 6_500, 800);
+        p.collaterals[0] = ChogCreditPool.CollateralConfig(address(d.wmon), 4_000, 6_500, 800, 2_000_000 ether);
     }
 
     function _checkMode(string memory mode, uint256 chainId) internal pure {

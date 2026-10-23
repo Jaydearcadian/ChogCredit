@@ -56,6 +56,7 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
         uint16 ltvBps; // borrowing power
         uint16 liquidationThresholdBps; // above ltv; liquidation when debt exceeds value * threshold
         uint16 liquidationBonusBps;
+        uint256 maxCounted; // per-account cap on collateral units counted toward borrowing power and health
     }
 
     struct Collateral {
@@ -64,6 +65,7 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
         uint16 ltvBps;
         uint16 thresholdBps;
         uint16 bonusBps;
+        uint256 maxCounted;
     }
 
     struct Valuation {
@@ -161,7 +163,7 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
             if (cc.ltvBps == 0 || cc.ltvBps >= cc.liquidationThresholdBps || cc.liquidationThresholdBps > BPS) {
                 revert BadConfig();
             }
-            if (cc.liquidationBonusBps > 2_000) revert BadConfig();
+            if (cc.liquidationBonusBps > 2_000 || cc.maxCounted == 0) revert BadConfig();
             // Aave-style solvency condition: threshold * (1 + bonus) <= 100%, so seizing value*(1+bonus) never exceeds
             // what the threshold implied was available.
             if (uint256(cc.liquidationThresholdBps) * (BPS + cc.liquidationBonusBps) > BPS * BPS) revert BadConfig();
@@ -170,7 +172,9 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
             }
             uint8 dec = IERC20Metadata(cc.token).decimals();
             if (dec > 36) revert BadConfig();
-            _collaterals.push(Collateral(cc.token, dec, cc.ltvBps, cc.liquidationThresholdBps, cc.liquidationBonusBps));
+            _collaterals.push(
+                Collateral(cc.token, dec, cc.ltvBps, cc.liquidationThresholdBps, cc.liquidationBonusBps, cc.maxCounted)
+            );
         }
     }
 
@@ -480,6 +484,8 @@ contract ChogCreditPool is ICreditModule, ReentrancyGuard {
                 if (hypReduce > bal) return Valuation(false, 0, 0, 0);
                 bal -= hypReduce;
             }
+            // Only up to maxCounted units count: bounds the market impact of liquidating any single account.
+            bal = _min(bal, c.maxCounted);
             if (bal == 0) continue;
             (bool ok, uint256 val) = _tryQuote(c.token, bal);
             if (!ok) return Valuation(false, 0, 0, 0);

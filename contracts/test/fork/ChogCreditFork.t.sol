@@ -79,7 +79,7 @@ contract ChogCreditForkTest is Test {
             optimalUtilBps: 8_000
         });
         p.collaterals = new ChogCreditPool.CollateralConfig[](1);
-        p.collaterals[0] = ChogCreditPool.CollateralConfig(WMON, 4_000, 6_500, 800);
+        p.collaterals[0] = ChogCreditPool.CollateralConfig(WMON, 4_000, 6_500, 800, 2_000_000 ether);
         factory = new ChogCreditFactory(p);
         registry = factory.registry();
         escrow = ChogCreditEscrow(address(registry.escrow()));

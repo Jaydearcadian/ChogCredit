@@ -80,27 +80,27 @@ contract ChogCreditPoolTest is CreditBase {
         address r = address(registry);
         ChogCreditPool.CollateralConfig[] memory one = new ChogCreditPool.CollateralConfig[](1);
 
-        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 7_500, 7_500, 500); // ltv == threshold
+        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 7_500, 7_500, 500, type(uint256).max); // ltv == threshold
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, one);
-        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 9_600, 500); // threshold * (1+bonus) > 100%
+        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 9_600, 500, type(uint256).max); // threshold * (1+bonus) > 100%
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, one);
-        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 2_001); // bonus too large
+        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 2_001, type(uint256).max); // bonus too large
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, one);
-        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 0, 7_500, 500); // zero ltv
+        one[0] = ChogCreditPool.CollateralConfig(address(wmon), 0, 7_500, 500, type(uint256).max); // zero ltv
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, one);
-        one[0] = ChogCreditPool.CollateralConfig(address(usdc), 5_000, 7_500, 500); // loan token as collateral
+        one[0] = ChogCreditPool.CollateralConfig(address(usdc), 5_000, 7_500, 500, type(uint256).max); // loan token as collateral
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, one);
-        one[0] = ChogCreditPool.CollateralConfig(address(btc), 5_000, 7_500, 500); // vault would reject it
+        one[0] = ChogCreditPool.CollateralConfig(address(btc), 5_000, 7_500, 500, type(uint256).max); // vault would reject it
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, one);
 
         ChogCreditPool.CollateralConfig[] memory dup = new ChogCreditPool.CollateralConfig[](2);
-        dup[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 500);
+        dup[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 500, type(uint256).max);
         dup[1] = dup[0];
         vm.expectRevert(ChogCreditPool.BadConfig.selector);
         new ChogCreditPool(r, c, dup);
@@ -238,6 +238,35 @@ contract ChogCreditPoolTest is CreditBase {
             abi.encodeWithSelector(ChogCreditPool.BorrowLimitExceeded.selector, 1_000 * USDC + 1, 1_000 * USDC)
         );
         pool.borrow(k, 1);
+    }
+
+    function test_perAccountCollateralCap_limitsBorrowPowerAndHealth() external {
+        ChogCreditPool.CollateralConfig[] memory cols = _collaterals(false);
+        cols[0].maxCounted = 500 * WMON;
+        _deploy(_poolConfig(), cols);
+        _supply(lender, 10_000 * USDC);
+        _fund(alice, 1, 1_000 * WMON); // twice the counted cap
+        bytes32 k = _key(1);
+
+        ChogCreditPool.AccountData memory d = pool.accountData(k);
+        assertEq(d.collateralValue, 1_000 * USDC, "only 500 WMON at 2 USDC counts");
+        assertEq(d.borrowPower, 500 * USDC, "50% LTV on the counted half");
+        assertEq(d.liquidationValue, 750 * USDC);
+        assertEq(d.availableToBorrow, 500 * USDC);
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(ChogCreditPool.BorrowLimitExceeded.selector, 500 * USDC + 1, 500 * USDC));
+        pool.borrow(k, 500 * USDC + 1);
+        vm.prank(alice);
+        pool.borrow(k, 500 * USDC);
+        assertEq(pool.debtOf(k), 500 * USDC);
+    }
+
+    function test_constructor_rejectsZeroCollateralCap() external {
+        ChogCreditPool.CollateralConfig[] memory cols = _collaterals(false);
+        cols[0].maxCounted = 0;
+        vm.expectRevert(ChogCreditPool.BadConfig.selector);
+        new ChogCreditPool(address(registry), _poolConfig(), cols);
     }
 
     function test_borrow_authorization() external {

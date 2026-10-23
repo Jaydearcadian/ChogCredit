@@ -68,8 +68,8 @@ abstract contract CreditBase is Test {
 
     function _collaterals(bool withBtc) internal view returns (ChogCreditPool.CollateralConfig[] memory cols) {
         cols = new ChogCreditPool.CollateralConfig[](withBtc ? 2 : 1);
-        cols[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 500);
-        if (withBtc) cols[1] = ChogCreditPool.CollateralConfig(address(btc), 7_000, 8_000, 500);
+        cols[0] = ChogCreditPool.CollateralConfig(address(wmon), 5_000, 7_500, 500, type(uint256).max);
+        if (withBtc) cols[1] = ChogCreditPool.CollateralConfig(address(btc), 7_000, 8_000, 500, type(uint256).max);
     }
 
     function _deploy(ChogCreditPool.PoolConfig memory pc, ChogCreditPool.CollateralConfig[] memory cols) internal {
