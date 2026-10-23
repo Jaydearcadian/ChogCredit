@@ -90,7 +90,7 @@ export default function Account() {
 
       <div className="row small" style={{ marginTop: 8 }}>
         {owes && !browsing ? <Link to="/release" viewTransition>Release the Chog</Link> : <span />}
-        <Link to="/settings" viewTransition>Settings</Link>
+        <span className="row" style={{ gap: 16 }}><Link to="/receive" viewTransition>{acct.tokens.some((t) => t.waiting > 0n) ? 'Get paid (something arrived)' : 'Get paid'}</Link><Link to="/settings" viewTransition>Settings</Link></span>
       </div>
       </div>
       </div>

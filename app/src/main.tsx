@@ -9,6 +9,7 @@ import Lend from './pages/Lend';
 import { Risk } from './pages/Later';
 import { SellComplete, SellSetup, SellSign } from './pages/Sell';
 import Open from './pages/Open';
+import Receive, { Pay } from './pages/Receive';
 import Settings from './pages/Settings';
 import { Connect, Pick } from './pages/Start';
 import { Root } from './state';
@@ -27,6 +28,8 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/pick" element={<Pick />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/lend" element={<Lend />} />
+          <Route path="/receive" element={<Receive />} />
+          <Route path="/pay/:id" element={<Pay />} />
           <Route path="/open/:id" element={<Open />} />
           <Route path="/account" element={<Account />} />
           <Route path="/add" element={<Add />} />
