@@ -70,6 +70,7 @@ export default function Lend() {
         <div className="kv rule"><span>Used by borrowers</span><span className="num">{pct(v.utilizationBps)}</span></div>
         <div className="kv"><span>Borrowers pay</span><span className="num">{pct(v.borrowRateBps)} a year, variable</span></div>
         <div className="kv"><span>Lenders earn</span><span className="num">{pct(lenderRate)} a year, variable</span></div>
+        {test && dep.demoChog !== undefined && v.totalDebt > 0n && <span className="tiny muted">On this test network, some of what is borrowed is a demo loan: Chog #{dep.demoChog}, a vault we opened so the lender yield is visible. It is real on-chain interest, not a real market.</span>}
       </section>
 
       {wallet ? (
