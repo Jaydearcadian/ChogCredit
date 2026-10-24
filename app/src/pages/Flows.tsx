@@ -116,14 +116,19 @@ export function Borrow() {
 
 /** S9 Repay. Works even while prices are paused. */
 export function Repay() {
-  const { dep } = useApp();
+  const { dep, test } = useApp();
   const { acct } = useAccount();
   const tx = useTx();
+  const faucet = useTx();
   const [text, setText] = useState('');
   const [full, setFull] = useState(false);
   if (!acct) return <Flow title="Repay"><FlowSkeleton /></Flow>;
   const d = acct.data;
   const max = d.debt < acct.usdcWallet ? d.debt : acct.usdcWallet;
+  // Interest keeps adding, so a borrower who still holds exactly what they borrowed is always a little short of owing it all.
+  const short = d.debt > acct.usdcWallet ? d.debt - acct.usdcWallet : 0n;
+  const needMore = short === 0n ? 0n : ((short + d.debt / 1000n + 10_000n + 9_999n) / 10_000n) * 10_000n; // the gap, plus a cushion, rounded up to a cent
+  const getUsdc = () => faucet.run([{ address: dep.mockUsdc, abi: parseAbi(['function faucet()']), functionName: 'faucet', args: [] }]);
   const amount = parseAmount(text, 6);
   const isAll = amount !== null && amount >= d.debt && d.debt > 0n;
   const h = healthAfter(acct, isAll ? 0n : d.debt - (amount ?? 0n));
@@ -166,6 +171,14 @@ export function Repay() {
         <div className="kv"><span>In your wallet</span><span className="num">{fmtUsdc(acct.usdcWallet)} USDC</span></div>
         <HealthAfter h={h} />
       </div>
+      {short > 0n && d.debt > 0n && (
+        <div className="card" role="status" style={{ gap: 8 }}>
+          <b>You're a little short of paying it all off</b>
+          <span className="small muted">You hold {fmtUsdc(acct.usdcWallet)} USDC and owe {fmtUsdc(d.debt)}. Interest has added a little since you borrowed. Get about {fmtUsdc(needMore)} USDC more to repay in full, or repay part now.</span>
+          {test && <button className="btn secondary block" disabled={faucet.busy || tx.busy} onClick={getUsdc}>{faucet.busy ? <Busy /> : 'Get test USDC'}</button>}
+          {test && faucet.stage === 'failed' && <TxSteps title="Get test USDC" tx={faucet} />}
+        </div>
+      )}
       <TxSteps title={`Repay ${text || '0'} USDC`} tx={tx} />
       <Bottom>
         <button className="btn cta block" disabled={!ready} onClick={() => go(false)}>{tx.busy ? <Busy /> : amount ? `Repay ${fmtUsdc(amount)} USDC` : 'Repay'}</button>
