@@ -20,9 +20,9 @@ const setStep = (n: number | null) => {
 const useStep = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f); }; }, () => step, () => null);
 
 const STOPS = [
-  { path: '/account', title: 'A real vault', text: "This vault holds test WMON and owes a real USDC loan on Monad testnet. Everything on the card comes straight from the chain: what's inside, what it owes, how safe it is, and what it can still borrow." },
+  { path: '/account', title: 'A real vault', text: "This is a demo vault we opened on Monad testnet, with test WMON inside and a real USDC loan against it. Everything on the card comes straight from the chain: what's inside, what it owes, how safe it is, and what it can still borrow." },
   { path: '/activity', title: 'Every move is public', text: 'Deposits, borrows and repayments are on-chain history. Anyone can read it, no wallet needed.' },
-  { path: '/lend', title: 'Where lender yield comes from', text: 'Lenders earn what borrowers pay. This vault borrowed, so part of the pool is in use and the yield shown is real. With nothing borrowed, lenders earn nothing.' },
+  { path: '/lend', title: 'Where lender yield comes from', text: 'Lenders earn what borrowers pay. The demo vault borrowed, so part of the pool is in use and the yield shown is real interest on a test network. With nothing borrowed, lenders earn nothing.' },
   { path: '/risk', title: 'Every limit, read from the contract', text: 'How much you can borrow, when a vault can be sold off, the pool limits and who gets priority when the pool is busy. Nothing is hidden or set by the app.' },
   { path: null, title: 'Try it for real', text: 'Connect a wallet, get a free test Chog and do it yourself in about three minutes. You need a little test MON for gas.' },
 ] as const;
@@ -41,7 +41,7 @@ export function DemoPrompt({ onClose }: { onClose(): void }) {
       <div className="picker-body">
         <div className="row"><PixelKey width={64} /><button className="btn link" onClick={() => ref.current?.close()} aria-label="Close">Close</button></div>
         <h2 id="demo-title" style={{ fontSize: 24 }}>Want a 60-second demo?</h2>
-        <p className="small muted">A guided look at a real vault on Monad testnet: what it holds, what it owes, what lenders earn and what the limits are. No wallet, nothing to sign.</p>
+        <p className="small muted">A guided look at a demo vault we opened on Monad testnet: what it holds, what it owes, what lenders earn and what the limits are. No wallet, nothing to sign.</p>
         <div className="stack" style={{ gap: 10 }}>
           <button className="btn cta block" autoFocus onClick={yes} disabled={demoId === null}>Yes, show me</button>
           <button className="btn secondary block" onClick={no}>No, I'll look around</button>
