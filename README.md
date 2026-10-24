@@ -81,3 +81,11 @@ The testnet runs this for you: `app/api/price-keeper.mjs` is the same pass as a 
 ## Priority access
 
 When the pool would be more than 90% used after a borrow, only vaults open for a day or more may borrow. See `docs/HOLDER_TERMS.md`.
+
+## The 60-second demo and the demo loan
+
+Tapping "Look around first" asks whether to take a guided demo: a real vault on testnet, then Activity, Lend and Risk, ending with an offer to connect (`app/src/components/demo.tsx`). It needs a vault with a real loan to show. `app/scripts/seed-demo-loan.mjs` opens one from the deployer's Chog #1 (escrow, test WMON, a 4,000 USDC borrow) so the pool is in use and lenders earn real interest. The manifest's `demoChog` field names it; with no field the demo uses the first vault it finds.
+
+```bash
+cd app && DEPLOYER_KEY=<deployer testnet key> node scripts/seed-demo-loan.mjs
+```

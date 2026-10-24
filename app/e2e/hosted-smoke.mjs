@@ -3,7 +3,7 @@ const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '
 const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
 const errs = []; p.on('pageerror', (e) => errs.push(e.message));
 const U = process.env.URL ?? 'https://chog-credit.vercel.app';
-await p.goto(U + '/'); await p.getByRole('link', { name: 'Look around first' }).click(); await p.getByText(/Chog|vault/i).first().waitFor({ timeout: 30000 }); console.log('ok   look around');
+await p.goto(U + '/'); await p.getByRole('button', { name: 'Look around first' }).click(); await p.getByRole('button', { name: "No, I'll look around" }).click(); await p.getByText(/Chog|vault/i).first().waitFor({ timeout: 30000 }); console.log('ok   look around');
 await p.goto(U + '/risk'); await p.getByText('The numbers').waitFor({ timeout: 30000 });
 const t = await p.locator('main').innerText(); console.log(t.includes('$15,000.00') ? 'ok   risk' : 'old caps on testnet:\n' + t.slice(0, 600));
 await p.goto(U + '/'); await p.getByRole('button', { name: /Connect/ }).first().click(); await p.getByText(/Connect a Wallet|Installed|Wallets/i).first().waitFor({ timeout: 30000 }); console.log('ok   wallet modal opens (lazy layer)');

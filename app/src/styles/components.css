@@ -237,3 +237,17 @@
 .header .acct:hover { border-color: var(--purple-500); }
 .btn.connect-sm { height: 38px; padding: 0 14px; font-size: 14px; border-radius: 12px; }
 .viewing { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; border: 1px dashed var(--purple-500); border-radius: var(--r-card); padding: 12px 14px; font-size: 14px; color: var(--text-muted); }
+
+/* ---------- the 60-second demo: a guide card above the tab bar ---------- */
+.tour { position: fixed; z-index: 40; left: 12px; right: 12px; bottom: calc(var(--tabbar) + 12px + env(safe-area-inset-bottom, 0px)); max-width: 456px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--r-account); background: var(--cream-50); color: var(--ink-900); border: 2px solid var(--ink-900); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: rise var(--dur-standard) var(--ease) both; --text-muted: #575070; }
+.tour .eyebrow { color: var(--purple-700); }
+.tour .btn.link { color: var(--purple-700); }
+.tour a { color: var(--link-light); }
+.tour-title { font-family: var(--font-display); font-weight: 800; font-size: 24px; line-height: 1.05; letter-spacing: -0.01em; }
+body[data-tour='on'] .shell main { padding-bottom: 260px; }
+@media (min-width: 900px) { .tour { bottom: 24px; left: auto; right: 24px; margin: 0; width: 380px; } body[data-tour='on'] .shell main { padding-bottom: 120px; } }
+/* A secondary button must read on whatever surface it sits on: the dialog is dark even when the page behind it is cream, and the guide card is cream. */
+dialog.picker .btn.secondary { color: var(--cream-50); border-color: var(--purple-500); background: transparent; }
+dialog.picker .btn.secondary:hover { background: rgba(131, 110, 249, 0.14); }
+aside.tour .btn.secondary { color: var(--ink-900); border-color: var(--purple-700); background: transparent; }
+aside.tour .btn.secondary:hover { background: rgba(70, 24, 141, 0.08); }

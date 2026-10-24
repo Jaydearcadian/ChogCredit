@@ -8,6 +8,7 @@ import { Bubble, ChogFrame, PixelKey } from '../components/brand';
 import { Shell } from '../components/chrome';
 import { Skel } from '../components/moments';
 import { Chip } from '../components/status';
+import { DemoOffer } from '../components/demo';
 import { useApp } from '../state';
 
 /** Look around: every Chog that has a vault, read from the chain. No wallet needed. */
@@ -30,7 +31,7 @@ export default function Explore() {
     <Shell>
       <h1>Chogs with a vault</h1>
       <p className="muted" style={{ margin: 0 }}>Look at any Chog's vault: what it holds, what it owes and how healthy it is. Read-only, straight from the chain.</p>
-      {!wallet && <div className="viewing"><span>You're looking around. Nothing here needs a wallet.</span><button className="btn connect-sm" onClick={connect}>Connect</button></div>}
+      {!wallet && <div className="viewing"><span>You're looking around. Nothing here needs a wallet.</span><span className="row" style={{ gap: 8 }}><DemoOffer /><button className="btn connect-sm" onClick={connect}>Connect</button></span></div>}
       {open === null && <div className="pick-grid"><Skel h={260} /><Skel h={260} /><Skel h={260} /></div>}
       {open?.length === 0 && (
         <div className="card" style={{ alignItems: 'flex-start', gap: 12 }}>

@@ -2,6 +2,7 @@ import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Connect, Pick } from './pages/Start';
+import { Tour } from './components/demo';
 import { Root } from './state';
 import './styles/tokens.css';
 import './styles/base.css';
@@ -57,6 +58,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/settings" element={<Settings />} />
         </Routes>
         </Suspense>
+        <Tour />
       </BrowserRouter>
     </Root>
   </StrictMode>,

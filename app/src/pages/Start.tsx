@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { parseAbi } from 'viem';
 import { TxSteps, useTx } from '../components/tx';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Bubble, ChogFrame, Icon, PixelKey, Slip } from '../components/brand';
 import { ConnectGate, Shell } from '../components/chrome';
+import { DemoPrompt } from '../components/demo';
 import { AccountCard } from '../components/status';
 import { useApp } from '../state';
 import { setSelected } from './useAccount';
@@ -12,9 +13,11 @@ import { setSelected } from './useAccount';
 export function Connect() {
   const { wallet, connect, error, test } = useApp();
   const [still, setStill] = useState(false);
+  const [ask, setAsk] = useState(false);
   if (wallet) return <Navigate to="/pick" replace />;
   return (
     <Shell tabs={false} register="chog" wide>
+      {ask && <DemoPrompt onClose={() => setAsk(false)} />}
       <section className="hero">
         <div className="copy">
           <div className="eyebrow" style={{ marginTop: 8 }}>A Chogathon build · Monad {test ? 'testnet' : ''}</div>
@@ -22,7 +25,7 @@ export function Connect() {
           <p className="lede">A vault and a credit line for your Chog Genesis NFT. Add assets, borrow USDC from the pool, and your Chog stays safe in its vault while you owe.</p>
           <div className="stack" style={{ gap: 10, maxWidth: 420 }}>
             <button className="btn cta block" onClick={connect}>Connect wallet</button>
-            <Link to="/explore" viewTransition className="btn secondary block">Look around first</Link>
+            <button className="btn secondary block" onClick={() => setAsk(true)}>Look around first</button>
             {error && <div className="banner risk" role="alert">{Icon.alert}<div><b style={{ color: 'var(--text-on-cream)' }}>Couldn't connect</b><p>{error}</p></div></div>}
             <div className="row tiny muted" style={{ justifyContent: 'flex-start', gap: 16 }}><span>Testnet only</span><span>Mock assets</span><span>Not audited</span></div>
           </div>
