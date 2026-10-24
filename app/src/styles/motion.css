@@ -103,7 +103,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(chog-frame) { animation: none; }
-  .enter > *, .pop, .bubble.say, .sticker.hop, .spark, .locking, .chip-in, .swap > .in { animation-name: fade-in-only; }
+  .enter > *, .tour, .pop, .bubble.say, .sticker.hop, .spark, .locking, .chip-in, .swap > .in { animation-name: fade-in-only; }
   .door i { animation: none; transform: none; } /* a static, closed door */
   .door b { animation: none; opacity: 1; }
   .tick { animation: none; stroke-dashoffset: 0; } /* the tick fades in with its parent, no pop */

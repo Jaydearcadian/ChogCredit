@@ -14,6 +14,8 @@ export type Deployment = {
   mockWmon: Address;
   /** Pool positions as collateral: a mock Uniswap V3 position manager and pool, when the deployment has them. */
   lpEnabled?: boolean;
+  /** A Chog whose vault has a real loan on this deployment, shown by the 60-second demo. Falls back to the first vault found. */
+  demoChog?: number;
   mockPositionManager?: Address;
   mockUniswapPool?: Address;
   /** The wallet that deployed, which owns the mock price source on a test deployment. */

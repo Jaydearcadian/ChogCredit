@@ -21,5 +21,6 @@
   "securityStatus": "TESTNET_UNAUDITED_MOCK_ASSETS_MOCK_ORACLE",
   "sourceCommit": "UNSET",
   "transferCoordinator": "0x2876cF7Ee17D4b200E2f59bFe6e1737B6ed65715",
-  "vaultImplementation": "0x6B66EaDA9D2f66f9893307BE5FAc5A5527e5F177"
+  "vaultImplementation": "0x6B66EaDA9D2f66f9893307BE5FAc5A5527e5F177",
+  "demoChog": 1
 }
